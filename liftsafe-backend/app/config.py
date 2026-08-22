@@ -1,6 +1,6 @@
 # app/config.py
 
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     DB_USER: str = "liftsafe_app"
@@ -21,6 +21,8 @@ class Settings(BaseSettings):
     MAIL_STARTTLS: bool = False  # ← Desactivado
     MAIL_SSL_TLS: bool = True    # ← Activado SSL
 
+    model_config = SettingsConfigDict(env_file=".env")
+    
     @property
     def DATABASE_URL(self):
         return f"mysql+pymysql://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"

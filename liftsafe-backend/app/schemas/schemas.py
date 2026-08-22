@@ -134,3 +134,27 @@ class InspeccionCreate(BaseModel):
     fecha_programada: date  # ← Cambiar de datetime a date
     tipo_servicio: str = "Periódica"
     observaciones: Optional[str] = None
+
+# ============ USUARIO-ASCENSOR ============
+class UsuarioAscensorBase(BaseModel):
+    id_usuario: int
+    id_ascensor: int
+    tipo_asignacion: str
+    fecha_asignacion: date
+    observaciones: str | None = None
+
+class UsuarioAscensorCreate(UsuarioAscensorBase):
+    pass
+
+class UsuarioAscensorUpdate(BaseModel):
+    tipo_asignacion: str | None = None
+    fecha_desasignacion: date | None = None
+    observaciones: str | None = None
+
+class UsuarioAscensorResponse(UsuarioAscensorBase):
+    id_usuario_ascensor: int
+    fecha_desasignacion: date | None = None
+
+
+    class Config:
+        from_attributes = True
