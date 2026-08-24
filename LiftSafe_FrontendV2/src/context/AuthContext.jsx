@@ -1,7 +1,7 @@
 import { createContext, useContext, useState } from 'react';
-import { DEMO_USERS } from '../constants/demoUsers';
 import { canDo } from '../config/roles';
 
+const BASE_URL = 'http://127.0.0.1:8000';
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
@@ -10,32 +10,56 @@ export function AuthProvider({ children }) {
     return saved ? JSON.parse(saved) : null;
   });
 
-  const login = (email, password) => {
-    const found = DEMO_USERS.find(u => u.email === email && u.password === password);
-    if (!found) return false;
-    const userWithoutPassword = { ...found };
-    delete userWithoutPassword.password;
-    localStorage.setItem('liftsafe_user', JSON.stringify(userWithoutPassword));
-    setUser(userWithoutPassword);
-    return true;
+  const login = async (correo, contrasena) => {
+    try {
+      const res = await fetch(`${BASE_URL}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ correo, contrasena }),
+      });
+
+      if (!res.ok) {
+        return { success: false, message: 'Correo o contraseña incorrectos' };
+      }
+
+      const data = await res.json();
+      localStorage.setItem('token', data.access_token);
+
+      const loggedUser = {
+        name: data.nombre,
+        email: correo,
+        role: data.rol,
+      };
+      localStorage.setItem('liftsafe_user', JSON.stringify(loggedUser));
+      setUser(loggedUser);
+      return { success: true };
+    } catch {
+      return { success: false, message: 'No se pudo conectar con el servidor' };
+    }
   };
 
-  const register = (formData) => {
-    const exists = DEMO_USERS.some(u => u.email === formData.email);
-    if (exists) return { success: false, message: 'El correo ya está registrado' };
-    const newUser = {
-      name: formData.name,
-      email: formData.email,
-      document: formData.document,
-      role: formData.role,
-    };
-    localStorage.setItem('liftsafe_user', JSON.stringify(newUser));
-    setUser(newUser);
-    return { success: true };
+  const register = async (formData) => {
+    try {
+      const res = await fetch(`${BASE_URL}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        return { success: false, message: data.detail || 'No se pudo registrar' };
+      }
+
+      return { success: true };
+    } catch {
+      return { success: false, message: 'No se pudo conectar con el servidor' };
+    }
   };
 
   const logout = () => {
     localStorage.removeItem('liftsafe_user');
+    localStorage.removeItem('token');
     setUser(null);
   };
 

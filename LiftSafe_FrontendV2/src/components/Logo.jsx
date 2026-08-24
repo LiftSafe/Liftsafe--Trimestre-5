@@ -1,5 +1,5 @@
 import { Box } from '@mui/material';
-import logo from '../../../.cursor/projects/empty-window/assets/c__Users_mendi_AppData_Roaming_Cursor_User_workspaceStorage_empty-window_images_logo-2cf7c112-e143-47c0-b146-2648a580955e.png';
+import logo from '../assets/logo.png';
 
 export default function Logo({ width = 180, sx = {} }) {
   return (

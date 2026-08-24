@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from app.database import get_db
-from app.models.models import Inspeccion, Ascensor, Usuario
+from app.models.models import Inspeccion, Ascensor, Usuario, Informe
 from jose import jwt, JWTError
 from app.config import settings
 from datetime import datetime, date
@@ -29,7 +29,13 @@ def mis_inspecciones(request: Request, db: Session = Depends(get_db)):
         return [dict(row) for row in result]
     
     elif rol == 'Inspector':
-        result = db.query(Inspeccion, Ascensor.codigo_interno).join(Ascensor, Inspeccion.id_ascensor == Ascensor.id_ascensor).filter(Inspeccion.id_inspector == user_id).all()
+        result = (
+            db.query(Inspeccion, Ascensor.codigo_interno, Informe.id_informe)
+            .join(Ascensor, Inspeccion.id_ascensor == Ascensor.id_ascensor)
+            .outerjoin(Informe, Informe.id_inspeccion == Inspeccion.id_inspeccion)
+            .filter(Inspeccion.id_inspector == user_id)
+            .all()
+        )
         return [
             {
                 "id_inspeccion": i.id_inspeccion,
@@ -37,13 +43,20 @@ def mis_inspecciones(request: Request, db: Session = Depends(get_db)):
                 "fecha_inicio": i.fecha_inicio,
                 "fecha_fin": i.fecha_fin,
                 "estado": i.estado,
-                "observaciones_generales": i.observaciones_generales
+                "observaciones_generales": i.observaciones_generales,
+                "id_informe": id_informe,
             }
-            for i, codigo in result
+            for i, codigo, id_informe in result
         ]
     
     elif rol == 'Cliente':
-        result = db.query(Inspeccion, Ascensor.codigo_interno).join(Ascensor, Inspeccion.id_ascensor == Ascensor.id_ascensor).filter(Ascensor.id_cliente == user_id).all()
+        result = (
+            db.query(Inspeccion, Ascensor.codigo_interno, Informe.id_informe)
+            .join(Ascensor, Inspeccion.id_ascensor == Ascensor.id_ascensor)
+            .outerjoin(Informe, Informe.id_inspeccion == Inspeccion.id_inspeccion)
+            .filter(Ascensor.id_cliente == user_id)
+            .all()
+        )
         return [
             {
                 "id_inspeccion": i.id_inspeccion,
@@ -51,11 +64,11 @@ def mis_inspecciones(request: Request, db: Session = Depends(get_db)):
                 "fecha_inicio": i.fecha_inicio,
                 "fecha_fin": i.fecha_fin,
                 "estado": i.estado,
-                "observaciones_generales": i.observaciones_generales
+                "observaciones_generales": i.observaciones_generales,
+                "id_informe": id_informe,
             }
-            for i, codigo in result
+            for i, codigo, id_informe in result
         ]
-    
     else:
         raise HTTPException(status_code=403, detail="Rol no autorizado")
     

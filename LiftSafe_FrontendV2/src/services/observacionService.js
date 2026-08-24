@@ -1,0 +1,1 @@
+import { apiGet, apiPost, apiPut, apiDelete } from './apiClient'; export const observacionService = { crear: (data) => apiPost('/observaciones', data), listarPorInforme: (id) => apiGet(`/observaciones/${id}`), modificar: (id, data) => apiPut(`/observaciones/${id}`, data), eliminar: (id) => apiDelete(`/observaciones/${id}`), };
