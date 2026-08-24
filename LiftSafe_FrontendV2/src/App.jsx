@@ -13,6 +13,7 @@ import Buildings from './pages/Buildings';
 import Reports from './pages/Reports';
 import Users from './pages/Users';
 import Settings from './pages/Settings';
+import Solicitudes from './pages/Solicitudes';  // <--- LÍNEA AGREGADA (importación)
 
 const AppRoutes = () => {
   const { user } = useAuth();
@@ -23,6 +24,7 @@ const AppRoutes = () => {
       <Route path="/dashboard" element={user ? <DashboardLayout /> : <Navigate to="/login" />}>
         <Route index element={<DashboardHome />} />
         <Route path="inspecciones" element={<Inspections />} />
+        <Route path="solicitudes" element={<Solicitudes />} />  {/* <--- LÍNEA AGREGADA (ruta) */}
         <Route path="ascensores" element={<Elevators />} />
         <Route path="edificios" element={<Buildings />} />
         <Route path="reportes" element={<Reports />} />

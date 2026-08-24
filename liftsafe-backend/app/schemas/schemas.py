@@ -1,12 +1,15 @@
 from pydantic import BaseModel, EmailStr, field_validator
-from typing import Optional, Literal
+from typing import Optional, List, Literal
 from datetime import datetime, date
+# Si tienes estos archivos, mantenlos, si no, coméntalos o crea las utilidades
 from app.utils.password_validator import validate_password
 from app.utils.auth_deps import DOCUMENT_TYPES, CLIENTE_ROL_ID
 
-
 DocumentType = Literal["CC", "CE", "PA", "RC", "TI", "NIT", "PEP", "PPT", "CD"]
 
+# ==========================================
+# ESQUEMAS DE AUTENTICACIÓN Y USUARIOS (YA EXISTENTES)
+# ==========================================
 class UsuarioLogin(BaseModel):
     correo: EmailStr
     contrasena: str
@@ -131,6 +134,68 @@ class MessageResponse(BaseModel):
 class InspeccionCreate(BaseModel):
     id_ascensor: int
     id_inspector: int
-    fecha_programada: date  # ← Cambiar de datetime a date
+    fecha_programada: date  # Corregido: fecha programada es tipo date
     tipo_servicio: str = "Periódica"
     observaciones: Optional[str] = None
+
+# ==========================================
+# ESQUEMAS DE SOLICITUDES (MÓDULO LUZ)
+# ==========================================
+class SolicitudBase(BaseModel):
+    id_ascensor: int
+    tipo_servicio: str
+    prioridad: str
+    fecha_deseada: Optional[date] = None
+    observaciones: Optional[str] = None
+
+class SolicitudCreate(SolicitudBase):
+    pass
+
+class SolicitudUpdate(BaseModel):
+    tipo_servicio: Optional[str] = None
+    prioridad: Optional[str] = None
+    fecha_deseada: Optional[date] = None
+    observaciones: Optional[str] = None
+    estado: Optional[str] = None
+
+class SolicitudResponse(SolicitudBase):
+    id_solicitud: int
+    id_cliente: int
+    estado: str
+    fecha_solicitud: date
+    fecha_registro: datetime
+    ascensor: Optional[dict] = None
+    cliente: Optional[dict] = None
+
+    class Config:
+        from_attributes = True
+
+# ==========================================
+# ESQUEMAS DE PROGRAMACIÓN (MÓDULO LUZ)
+# ==========================================
+class ProgramacionBase(BaseModel):
+    id_solicitud: int
+    id_inspector: int
+    fecha_programada: date
+    hora_inicio: str  # Se usa string para hora (ej: "08:30")
+    hora_fin_estimada: Optional[str] = None
+
+class ProgramacionCreate(ProgramacionBase):
+    pass
+
+class ProgramacionUpdate(BaseModel):
+    id_inspector: Optional[int] = None
+    fecha_programada: Optional[date] = None
+    hora_inicio: Optional[str] = None
+    estado: Optional[str] = None
+    motivo_cancelacion: Optional[str] = None
+
+class ProgramacionResponse(ProgramacionBase):
+    id_programacion: int
+    estado: str
+    fecha_creacion: datetime
+    solicitud: Optional[dict] = None
+    inspector: Optional[dict] = None
+
+    class Config:
+        from_attributes = True
