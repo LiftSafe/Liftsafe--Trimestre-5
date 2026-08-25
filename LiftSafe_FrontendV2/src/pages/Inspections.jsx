@@ -3,7 +3,7 @@ import {
   Box, Card, CardContent, Button, Chip, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow,
   Dialog, DialogTitle, DialogContent, DialogActions, TextField,
-  Typography, Divider, IconButton, CircularProgress, Alert
+  Typography, Divider, IconButton, CircularProgress, Alert, Paper
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import CloseIcon from '@mui/icons-material/Close';
@@ -37,7 +37,10 @@ const statusColor = {
   Borrador: 'default',
 };
 
-function SignaturePad({ onSave, disabled, label }) {
+// ============================================
+// COMPONENTE SignaturePad - DISEÑO PROFESIONAL
+// ============================================
+function SignaturePad({ onSave, disabled, label, fecha }) {
   const canvasRef = useRef(null);
   const drawing = useRef(false);
 
@@ -45,9 +48,10 @@ function SignaturePad({ onSave, disabled, label }) {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = '#1a237e';
+    ctx.lineWidth = 2.5;
     ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
   }, []);
 
   const getPos = (e) => {
@@ -93,23 +97,45 @@ function SignaturePad({ onSave, disabled, label }) {
   };
 
   return (
-    <Box sx={{ flex: 1, minWidth: 220 }}>
-      <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
+    <Box sx={{ minWidth: 200, maxWidth: 300 }}>
+      <Typography 
+        variant="body2" 
+        color="text.secondary" 
+        sx={{ 
+          fontWeight: 500, 
+          fontSize: '0.85rem', 
+          mb: 0.5,
+          letterSpacing: '0.3px'
+        }}
+      >
         {label}
       </Typography>
-      <Box
+      <Paper
+        elevation={0}
         sx={{
-          border: '1px solid #ccc',
-          borderRadius: 1,
-          bgcolor: disabled ? 'grey.100' : '#fff',
+          border: disabled ? '1px solid #e0e0e0' : '1px solid #c5cae9',
+          borderRadius: 2,
+          bgcolor: disabled ? '#f5f5f5' : '#ffffff',
           touchAction: 'none',
+          overflow: 'hidden',
+          transition: 'all 0.3s ease',
+          '&:hover': {
+            borderColor: disabled ? '#e0e0e0' : '#1a237e',
+            boxShadow: disabled ? 'none' : '0 2px 12px rgba(26,35,126,0.12)',
+          }
         }}
       >
         <canvas
           ref={canvasRef}
           width={280}
-          height={120}
-          style={{ display: 'block', width: '100%', cursor: disabled ? 'not-allowed' : 'crosshair' }}
+          height={90}
+          style={{
+            display: 'block',
+            width: '100%',
+            height: 90,
+            cursor: disabled ? 'not-allowed' : 'crosshair',
+            backgroundColor: disabled ? '#f5f5f5' : '#ffffff',
+          }}
           onMouseDown={startDraw}
           onMouseMove={draw}
           onMouseUp={stopDraw}
@@ -118,17 +144,70 @@ function SignaturePad({ onSave, disabled, label }) {
           onTouchMove={draw}
           onTouchEnd={stopDraw}
         />
-      </Box>
-      {!disabled && (
-        <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
-          <Button size="small" onClick={limpiar}>Limpiar</Button>
-          <Button size="small" variant="contained" onClick={guardar}>Firmar</Button>
+      </Paper>
+      {!disabled ? (
+        <Box sx={{ display: 'flex', gap: 1.5, mt: 1 }}>
+          <Button 
+            variant="outlined" 
+            size="small" 
+            onClick={limpiar}
+            sx={{ 
+              textTransform: 'none', 
+              fontSize: '0.75rem',
+              color: '#666',
+              borderColor: '#d0d0d0',
+              '&:hover': {
+                borderColor: '#1a237e',
+                color: '#1a237e',
+              }
+            }}
+          >
+            Limpiar
+          </Button>
+          <Button 
+            variant="contained" 
+            size="small" 
+            onClick={guardar}
+            sx={{ 
+              textTransform: 'none', 
+              fontSize: '0.75rem',
+              bgcolor: '#1a237e',
+              '&:hover': { bgcolor: '#0d1442' },
+              px: 3
+            }}
+          >
+            Firmar
+          </Button>
+        </Box>
+      ) : (
+        <Box sx={{ mt: 1 }}>
+          <Typography 
+            variant="body2" 
+            color="success.main" 
+            sx={{ 
+              fontWeight: 500,
+              fontSize: '0.8rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 0.5
+            }}
+          >
+            <span style={{ color: '#2e7d32' }}>●</span> Firmado
+            {fecha && (
+              <span style={{ color: '#666', fontWeight: 400, fontSize: '0.7rem', marginLeft: 4 }}>
+                {new Date(fecha).toLocaleString()}
+              </span>
+            )}
+          </Typography>
         </Box>
       )}
     </Box>
   );
 }
 
+// ============================================
+// COMPONENTE PRINCIPAL
+// ============================================
 export default function Inspections() {
   const { user } = useAuth();
   const [inspections, setInspections] = useState([]);
@@ -150,6 +229,8 @@ export default function Inspections() {
     firma_inspector: false,
     firma_cliente: false,
     ambas_firmas: false,
+    fecha_firma_inspector: null,
+    fecha_firma_cliente: null,
   });
   const [fotos, setFotos] = useState([]);
   const [loadingDetail, setLoadingDetail] = useState(false);
@@ -203,7 +284,13 @@ export default function Inspections() {
     setLoadingDetail(true);
     setChecklist([]);
     setFotos([]);
-    setFirmas({ firma_inspector: false, firma_cliente: false, ambas_firmas: false });
+    setFirmas({ 
+      firma_inspector: false, 
+      firma_cliente: false, 
+      ambas_firmas: false,
+      fecha_firma_inspector: null,
+      fecha_firma_cliente: null,
+    });
 
     try {
       const id = row.id_inspeccion || row.id;
@@ -219,9 +306,21 @@ export default function Inspections() {
 
       try {
         const firmasData = await firmaService.verificarFirmas(id);
-        setFirmas(firmasData);
+        setFirmas({
+          firma_inspector: firmasData.firma_inspector || false,
+          firma_cliente: firmasData.firma_cliente || false,
+          ambas_firmas: firmasData.ambas_firmas || false,
+          fecha_firma_inspector: firmasData.fecha_firma_inspector || null,
+          fecha_firma_cliente: firmasData.fecha_firma_cliente || null,
+        });
       } catch {
-        setFirmas({ firma_inspector: false, firma_cliente: false, ambas_firmas: false });
+        setFirmas({ 
+          firma_inspector: false, 
+          firma_cliente: false, 
+          ambas_firmas: false,
+          fecha_firma_inspector: null,
+          fecha_firma_cliente: null,
+        });
       }
 
       if (detalle.id_informe) {
@@ -267,6 +366,7 @@ export default function Inspections() {
       setFotoDescripcion('');
       const fotosData = await fotografiaService.listarPorInforme(selected.id_informe);
       setFotos(Array.isArray(fotosData) ? fotosData : []);
+      alert('Foto subida exitosamente');
     } catch (err) {
       console.error('Error subiendo foto:', err);
       alert('Error al subir la foto');
@@ -290,10 +390,16 @@ export default function Inspections() {
     try {
       await firmaService.firmarInspector(id, { firma: firmaBase64 });
       const firmasData = await firmaService.verificarFirmas(id);
-      setFirmas(firmasData);
+      setFirmas({
+        firma_inspector: firmasData.firma_inspector || false,
+        firma_cliente: firmasData.firma_cliente || false,
+        ambas_firmas: firmasData.ambas_firmas || false,
+        fecha_firma_inspector: firmasData.fecha_firma_inspector || null,
+        fecha_firma_cliente: firmasData.fecha_firma_cliente || null,
+      });
       alert('Firma del inspector registrada');
     } catch (err) {
-      alert(err.message || 'Error al registrar firma');
+      alert('Error al registrar firma: ' + (err.message || ''));
     }
   };
 
@@ -302,10 +408,16 @@ export default function Inspections() {
     try {
       await firmaService.firmarCliente(id, { firma: firmaBase64 });
       const firmasData = await firmaService.verificarFirmas(id);
-      setFirmas(firmasData);
+      setFirmas({
+        firma_inspector: firmasData.firma_inspector || false,
+        firma_cliente: firmasData.firma_cliente || false,
+        ambas_firmas: firmasData.ambas_firmas || false,
+        fecha_firma_inspector: firmasData.fecha_firma_inspector || null,
+        fecha_firma_cliente: firmasData.fecha_firma_cliente || null,
+      });
       alert('Firma del cliente registrada');
     } catch (err) {
-      alert(err.message || 'Error al registrar firma');
+      alert('Error al registrar firma: ' + (err.message || ''));
     }
   };
 
@@ -346,7 +458,7 @@ export default function Inspections() {
               <TableHead>
                 <TableRow sx={{ bgcolor: 'grey.50' }}>
                   <TableCell><strong>ID</strong></TableCell>
-                  <TableCell><strong>Edificio/Ascensor</strong></TableCell>
+                  <TableCell><strong>Ascensor</strong></TableCell>
                   <TableCell><strong>Tipo</strong></TableCell>
                   <TableCell><strong>Inspector</strong></TableCell>
                   <TableCell><strong>Fecha</strong></TableCell>
@@ -389,9 +501,9 @@ export default function Inspections() {
                         />
                       </TableCell>
                       <TableCell>
-                        {row.firma_inspector && row.firma_cliente ? '✅' :
-                          row.firma_inspector ? '⚠️ Inspector' :
-                            row.firma_cliente ? '⚠️ Cliente' : '❌'}
+                        {row.firma_inspector && row.firma_cliente ? '✓' :
+                          row.firma_inspector ? 'Inspector' :
+                            row.firma_cliente ? 'Cliente' : '—'}
                       </TableCell>
                     </TableRow>
                   ))
@@ -433,10 +545,9 @@ export default function Inspections() {
         <DialogTitle>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <Box>
-              <Typography fontWeight={700}>Inspección #{selected?.id_inspeccion || selected?.id}</Typography>
+              <Typography fontWeight={700} fontSize="1.1rem">Inspección #{selected?.id_inspeccion || selected?.id}</Typography>
               <Typography variant="body2" color="text.secondary">
-                {selected?.codigo_ascensor || selected?.elevator || 'N/A'} ·
-                {selected?.tipo_servicio || selected?.type || 'Periódica'}
+                {selected?.codigo_ascensor || selected?.elevator || 'N/A'} · {selected?.tipo_servicio || selected?.type || 'Periódica'}
               </Typography>
             </Box>
             <Chip label={selected?.estado || selected?.status || 'Pendiente'}
@@ -456,37 +567,64 @@ export default function Inspections() {
             <>
               <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, mb: 3 }}>
                 <Box>
-                  <Typography variant="caption" color="text.secondary">Fecha inicio</Typography>
-                  <Typography variant="body2">
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500 }}>Fecha inicio</Typography>
+                  <Typography variant="body2" sx={{ fontSize: '0.9rem' }}>
                     {selected?.fecha_inicio ? new Date(selected.fecha_inicio).toLocaleString() : 'N/A'}
                   </Typography>
                 </Box>
                 <Box>
-                  <Typography variant="caption" color="text.secondary">Observaciones</Typography>
-                  <Typography variant="body2">{selected?.observaciones_generales || 'Sin observaciones'}</Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500 }}>Observaciones</Typography>
+                  <Typography variant="body2" sx={{ fontSize: '0.9rem' }}>{selected?.observaciones_generales || 'Sin observaciones'}</Typography>
                 </Box>
               </Box>
 
               <Divider sx={{ mb: 2 }} />
 
-              <Typography variant="subtitle1" fontWeight={600} gutterBottom color="primary.dark">
+              {/* ========================================== */}
+              {/* FIRMAS DIGITALES - DISEÑO PROFESIONAL */}
+              {/* ========================================== */}
+              <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem', mb: 1.5, color: '#1a237e' }}>
                 Firmas Digitales
               </Typography>
-              <Box sx={{ display: 'flex', gap: 3, mb: 2 }}>
-                <Typography variant="body2" color={firmas?.firma_inspector ? 'success.main' : 'error.main'}>
-                  Inspector: {firmas?.firma_inspector ? 'Firmado' : 'Pendiente'}
+              
+              <Box sx={{ display: 'flex', gap: 4, mb: 2.5 }}>
+                <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
+                  Inspector:{' '}
+                  <span style={{ 
+                    color: firmas?.firma_inspector ? '#2e7d32' : '#d32f2f', 
+                    fontWeight: 600 
+                  }}>
+                    {firmas?.firma_inspector ? 'Firmado' : 'Pendiente'}
+                  </span>
+                  {firmas?.fecha_firma_inspector && (
+                    <span style={{ color: '#666', fontSize: '0.7rem', marginLeft: 6 }}>
+                      {new Date(firmas.fecha_firma_inspector).toLocaleString()}
+                    </span>
+                  )}
                 </Typography>
-                <Typography variant="body2" color={firmas?.firma_cliente ? 'success.main' : 'error.main'}>
-                  Cliente: {firmas?.firma_cliente ? 'Firmado' : 'Pendiente'}
+                <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
+                  Cliente:{' '}
+                  <span style={{ 
+                    color: firmas?.firma_cliente ? '#2e7d32' : '#d32f2f', 
+                    fontWeight: 600 
+                  }}>
+                    {firmas?.firma_cliente ? 'Firmado' : 'Pendiente'}
+                  </span>
+                  {firmas?.fecha_firma_cliente && (
+                    <span style={{ color: '#666', fontSize: '0.7rem', marginLeft: 6 }}>
+                      {new Date(firmas.fecha_firma_cliente).toLocaleString()}
+                    </span>
+                  )}
                 </Typography>
               </Box>
 
-              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 3 }}>
+              <Box sx={{ display: 'flex', gap: 4, flexWrap: 'wrap', mb: 3 }}>
                 {userRol === 'Inspector' && (
                   <SignaturePad
                     label="Firma del inspector"
                     disabled={firmas?.firma_inspector}
                     onSave={firmarComoInspector}
+                    fecha={firmas?.fecha_firma_inspector}
                   />
                 )}
                 {userRol === 'Cliente' && (
@@ -494,13 +632,14 @@ export default function Inspections() {
                     label="Firma del cliente"
                     disabled={firmas?.firma_cliente}
                     onSave={firmarComoCliente}
+                    fecha={firmas?.fecha_firma_cliente}
                   />
                 )}
               </Box>
 
               <Divider sx={{ mb: 2 }} />
 
-              <Typography variant="subtitle1" fontWeight={600} gutterBottom color="primary.dark">
+              <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem', mb: 1.5, color: '#1a237e' }}>
                 Checklist de Inspección
               </Typography>
               {!checklist || checklist.length === 0 ? (
@@ -520,7 +659,7 @@ export default function Inspections() {
 
               <Divider sx={{ mb: 2 }} />
 
-              <Typography variant="subtitle1" fontWeight={600} gutterBottom color="primary.dark">
+              <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem', mb: 1.5, color: '#1a237e' }}>
                 Fotografías ({fotos.length})
               </Typography>
 
@@ -529,34 +668,44 @@ export default function Inspections() {
                   <input type="file" accept="image/jpeg,image/png" style={{ display: 'none' }} id="foto-upload"
                     onChange={(e) => setSelectedFile(e.target.files[0])} />
                   <label htmlFor="foto-upload">
-                    <Button variant="outlined" component="span" startIcon={<PhotoCameraIcon />}>
+                    <Button variant="outlined" component="span" startIcon={<PhotoCameraIcon />} size="small">
                       Seleccionar foto
                     </Button>
                   </label>
                   {selectedFile && <Typography variant="body2">{selectedFile.name}</Typography>}
                   <TextField label="Descripción" size="small" value={fotoDescripcion}
                     onChange={(e) => setFotoDescripcion(e.target.value)} sx={{ flex: 1, minWidth: 150 }} />
-                  <Button variant="contained" onClick={subirFoto} disabled={!selectedFile}>Subir</Button>
+                  <Button variant="contained" onClick={subirFoto} disabled={!selectedFile} size="small">Subir</Button>
                 </Box>
               )}
 
-              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+              <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
                 {!fotos || fotos.length === 0 ? (
                   <Typography variant="body2" color="text.secondary">No hay fotos</Typography>
                 ) : (
                   fotos.map((foto) => (
-                    <Box key={foto.id_foto} sx={{ border: '1px solid #ddd', borderRadius: 1, p: 1, width: 130, position: 'relative' }}>
+                    <Box key={foto.id_foto} sx={{ 
+                      border: '1px solid #e0e0e0', 
+                      borderRadius: 1, 
+                      p: 1, 
+                      width: 130, 
+                      position: 'relative',
+                      bgcolor: '#fafafa'
+                    }}>
                       <img
                         src={`${API_BASE_URL}/${foto.ruta_archivo.replace(/\\/g, '/')}`}
                         alt={foto.descripcion || 'Foto'}
-                        style={{ width: '100%', height: 80, objectFit: 'cover' }}
+                        style={{ width: '100%', height: 80, objectFit: 'cover', borderRadius: '4px' }}
+                        onError={(e) => {
+                          e.target.src = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22%3E%3Crect width=%22100%22 height=%22100%22 fill=%22%23eee%22/%3E%3Ctext x=%2250%22 y=%2250%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%23999%22 font-size=%2212%22%3Esin foto%3C/text%3E%3C/svg%3E';
+                        }}
                       />
-                      <Typography variant="caption" display="block" noWrap>
+                      <Typography variant="caption" display="block" noWrap sx={{ fontSize: '0.65rem', mt: 0.5, color: '#666' }}>
                         {foto.descripcion || 'Sin descripción'}
                       </Typography>
                       {userRol === 'Inspector' && (
                         <IconButton size="small" color="error" onClick={() => eliminarFoto(foto.id_foto)}
-                          sx={{ position: 'absolute', top: 0, right: 0 }}>
+                          sx={{ position: 'absolute', top: 2, right: 2, bgcolor: 'rgba(255,255,255,0.9)' }}>
                           <DeleteIcon fontSize="small" />
                         </IconButton>
                       )}
