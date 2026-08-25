@@ -9,6 +9,8 @@ import AddIcon from '@mui/icons-material/Add';
 import CloseIcon from '@mui/icons-material/Close';
 import DeleteIcon from '@mui/icons-material/Delete';
 import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
+import DrawIcon from '@mui/icons-material/Draw';
+import VerifiedIcon from '@mui/icons-material/Verified';
 import PageHeader from '../components/PageHeader';
 import { useAuth } from '../context/AuthContext';
 import { apiClient } from '../services/apiClient';
@@ -37,22 +39,46 @@ const statusColor = {
   Borrador: 'default',
 };
 
-// ============================================
-// COMPONENTE SignaturePad - DISEÑO PROFESIONAL
-// ============================================
+const PAD_HEIGHT = 200;
+
 function SignaturePad({ onSave, disabled, label, fecha }) {
   const canvasRef = useRef(null);
+  const wrapRef = useRef(null);
   const drawing = useRef(false);
+  const [hasStroke, setHasStroke] = useState(false);
 
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    ctx.strokeStyle = '#1a237e';
-    ctx.lineWidth = 2.5;
+  const configureContext = (ctx) => {
+    ctx.strokeStyle = '#0B1929';
+    ctx.lineWidth = 2.2;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-  }, []);
+  };
+
+  const setupCanvas = () => {
+    const canvas = canvasRef.current;
+    const wrap = wrapRef.current;
+    if (!canvas || !wrap || disabled) return;
+    const dpr = window.devicePixelRatio || 1;
+    const width = Math.max(wrap.clientWidth, 1);
+    canvas.width = Math.floor(width * dpr);
+    canvas.height = Math.floor(PAD_HEIGHT * dpr);
+    canvas.style.width = `${width}px`;
+    canvas.style.height = `${PAD_HEIGHT}px`;
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    configureContext(ctx);
+    setHasStroke(false);
+  };
+
+  useEffect(() => {
+    if (disabled) return undefined;
+    setupCanvas();
+    const wrap = wrapRef.current;
+    if (!wrap) return undefined;
+    const observer = new ResizeObserver(() => setupCanvas());
+    observer.observe(wrap);
+    return () => observer.disconnect();
+  }, [disabled]);
 
   const getPos = (e) => {
     const canvas = canvasRef.current;
@@ -67,6 +93,7 @@ function SignaturePad({ onSave, disabled, label, fecha }) {
     e.preventDefault();
     drawing.current = true;
     const ctx = canvasRef.current.getContext('2d');
+    configureContext(ctx);
     const { x, y } = getPos(e);
     ctx.beginPath();
     ctx.moveTo(x, y);
@@ -79,6 +106,7 @@ function SignaturePad({ onSave, disabled, label, fecha }) {
     const { x, y } = getPos(e);
     ctx.lineTo(x, y);
     ctx.stroke();
+    setHasStroke(true);
   };
 
   const stopDraw = () => {
@@ -88,120 +116,204 @@ function SignaturePad({ onSave, disabled, label, fecha }) {
   const limpiar = () => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    configureContext(ctx);
+    setHasStroke(false);
   };
 
   const guardar = () => {
-    const firma = canvasRef.current.toDataURL('image/png');
-    onSave(firma);
+    if (!hasStroke) {
+      alert('Dibuje su firma antes de confirmar.');
+      return;
+    }
+    onSave(canvasRef.current.toDataURL('image/png'));
   };
 
-  return (
-    <Box sx={{ minWidth: 200, maxWidth: 300 }}>
-      <Typography 
-        variant="body2" 
-        color="text.secondary" 
-        sx={{ 
-          fontWeight: 500, 
-          fontSize: '0.85rem', 
-          mb: 0.5,
-          letterSpacing: '0.3px'
-        }}
-      >
-        {label}
-      </Typography>
+  if (disabled) {
+    return (
       <Paper
         elevation={0}
         sx={{
-          border: disabled ? '1px solid #e0e0e0' : '1px solid #c5cae9',
+          width: '100%',
+          border: '1px solid #D4EDDA',
           borderRadius: 2,
-          bgcolor: disabled ? '#f5f5f5' : '#ffffff',
-          touchAction: 'none',
-          overflow: 'hidden',
-          transition: 'all 0.3s ease',
-          '&:hover': {
-            borderColor: disabled ? '#e0e0e0' : '#1a237e',
-            boxShadow: disabled ? 'none' : '0 2px 12px rgba(26,35,126,0.12)',
-          }
+          bgcolor: '#F6FBF7',
+          p: { xs: 2.5, sm: 3 },
         }}
       >
-        <canvas
-          ref={canvasRef}
-          width={280}
-          height={90}
-          style={{
-            display: 'block',
-            width: '100%',
-            height: 90,
-            cursor: disabled ? 'not-allowed' : 'crosshair',
-            backgroundColor: disabled ? '#f5f5f5' : '#ffffff',
-          }}
-          onMouseDown={startDraw}
-          onMouseMove={draw}
-          onMouseUp={stopDraw}
-          onMouseLeave={stopDraw}
-          onTouchStart={startDraw}
-          onTouchMove={draw}
-          onTouchEnd={stopDraw}
-        />
-      </Paper>
-      {!disabled ? (
-        <Box sx={{ display: 'flex', gap: 1.5, mt: 1 }}>
-          <Button 
-            variant="outlined" 
-            size="small" 
-            onClick={limpiar}
-            sx={{ 
-              textTransform: 'none', 
-              fontSize: '0.75rem',
-              color: '#666',
-              borderColor: '#d0d0d0',
-              '&:hover': {
-                borderColor: '#1a237e',
-                color: '#1a237e',
-              }
-            }}
-          >
-            Limpiar
-          </Button>
-          <Button 
-            variant="contained" 
-            size="small" 
-            onClick={guardar}
-            sx={{ 
-              textTransform: 'none', 
-              fontSize: '0.75rem',
-              bgcolor: '#1a237e',
-              '&:hover': { bgcolor: '#0d1442' },
-              px: 3
-            }}
-          >
-            Firmar
-          </Button>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
+          <VerifiedIcon sx={{ color: '#2e7d32', fontSize: 28 }} />
+          <Box>
+            <Typography fontWeight={700} sx={{ color: '#1B5E20', fontSize: '1rem' }}>
+              {label} registrada
+            </Typography>
+            {fecha && (
+              <Typography variant="body2" color="text.secondary">
+                {new Date(fecha).toLocaleString()}
+              </Typography>
+            )}
+          </Box>
         </Box>
-      ) : (
-        <Box sx={{ mt: 1 }}>
-          <Typography 
-            variant="body2" 
-            color="success.main" 
-            sx={{ 
-              fontWeight: 500,
-              fontSize: '0.8rem',
+        <Typography variant="caption" color="text.secondary">
+          Esta firma queda asociada al registro técnico de la inspección y no puede modificarse.
+        </Typography>
+      </Paper>
+    );
+  }
+
+  return (
+    <Paper
+      elevation={0}
+      sx={{
+        width: '100%',
+        border: '1px solid #D7DEE6',
+        borderRadius: 2,
+        overflow: 'hidden',
+        bgcolor: '#fff',
+      }}
+    >
+      <Box
+        sx={{
+          px: { xs: 2, sm: 3 },
+          py: 1.75,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 2,
+          bgcolor: '#F7F9FC',
+          borderBottom: '1px solid #E8EDF2',
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
+          <Box
+            sx={{
+              width: 36,
+              height: 36,
+              borderRadius: 1.5,
+              bgcolor: '#E8F1FB',
+              color: '#0066CC',
               display: 'flex',
               alignItems: 'center',
-              gap: 0.5
+              justifyContent: 'center',
             }}
           >
-            <span style={{ color: '#2e7d32' }}>●</span> Firmado
-            {fecha && (
-              <span style={{ color: '#666', fontWeight: 400, fontSize: '0.7rem', marginLeft: 4 }}>
-                {new Date(fecha).toLocaleString()}
-              </span>
-            )}
-          </Typography>
+            <DrawIcon fontSize="small" />
+          </Box>
+          <Box>
+            <Typography fontWeight={700} sx={{ fontSize: '0.95rem', color: '#0B1929' }}>
+              {label}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              Dibuje con el mouse o el dedo. La firma certifica el resultado de esta inspección.
+            </Typography>
+          </Box>
         </Box>
-      )}
-    </Box>
+      </Box>
+
+      <Box sx={{ px: { xs: 2, sm: 3 }, pt: 2.5, pb: 1 }}>
+        <Box
+          ref={wrapRef}
+          sx={{
+            position: 'relative',
+            border: '1px dashed #B7C3D0',
+            borderRadius: 1.5,
+            bgcolor: '#FBFCFD',
+            touchAction: 'none',
+            overflow: 'hidden',
+            '&:hover': { borderColor: '#0066CC', bgcolor: '#fff' },
+          }}
+        >
+          <canvas
+            ref={canvasRef}
+            style={{
+              display: 'block',
+              width: '100%',
+              height: PAD_HEIGHT,
+              cursor: 'crosshair',
+            }}
+            onMouseDown={startDraw}
+            onMouseMove={draw}
+            onMouseUp={stopDraw}
+            onMouseLeave={stopDraw}
+            onTouchStart={startDraw}
+            onTouchMove={draw}
+            onTouchEnd={stopDraw}
+          />
+          <Box
+            sx={{
+              position: 'absolute',
+              left: { xs: 24, sm: 48 },
+              right: { xs: 24, sm: 48 },
+              bottom: 44,
+              borderBottom: '1.5px solid #9AA8B8',
+              pointerEvents: 'none',
+            }}
+          />
+          {!hasStroke && (
+            <Typography
+              sx={{
+                position: 'absolute',
+                inset: 0,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                pointerEvents: 'none',
+                color: '#8A97A8',
+                fontStyle: 'italic',
+                letterSpacing: '0.02em',
+                pb: 3,
+              }}
+            >
+              Firme aquí
+            </Typography>
+          )}
+        </Box>
+      </Box>
+
+      <Box
+        sx={{
+          px: { xs: 2, sm: 3 },
+          py: 2,
+          display: 'flex',
+          justifyContent: 'flex-end',
+          gap: 1.5,
+          bgcolor: '#F7F9FC',
+          borderTop: '1px solid #E8EDF2',
+        }}
+      >
+        <Button
+          variant="outlined"
+          onClick={limpiar}
+          sx={{
+            textTransform: 'none',
+            minWidth: 110,
+            color: '#5A6A7A',
+            borderColor: '#C9D3DC',
+            '&:hover': { borderColor: '#0066CC', color: '#0066CC' },
+          }}
+        >
+          Limpiar
+        </Button>
+        <Button
+          variant="contained"
+          onClick={guardar}
+          startIcon={<DrawIcon />}
+          sx={{
+            textTransform: 'none',
+            minWidth: 160,
+            px: 3,
+            bgcolor: '#0066CC',
+            boxShadow: 'none',
+            '&:hover': { bgcolor: '#0052A3', boxShadow: 'none' },
+          }}
+        >
+          Confirmar firma
+        </Button>
+      </Box>
+    </Paper>
   );
 }
 
@@ -542,8 +654,8 @@ export default function Inspections() {
       </Dialog>
 
       <Dialog open={detailOpen} onClose={() => setDetailOpen(false)} maxWidth="lg" fullWidth>
-        <DialogTitle>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <DialogTitle sx={{ pr: 6 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 2 }}>
             <Box>
               <Typography fontWeight={700} fontSize="1.1rem">Inspección #{selected?.id_inspeccion || selected?.id}</Typography>
               <Typography variant="body2" color="text.secondary">
@@ -558,67 +670,58 @@ export default function Inspections() {
           </IconButton>
         </DialogTitle>
 
-        <DialogContent>
+        <DialogContent sx={{ px: { xs: 2.5, sm: 3.5 }, py: 2.5 }}>
           {loadingDetail ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
               <CircularProgress />
             </Box>
           ) : (
             <>
-              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, mb: 3 }}>
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '220px 1fr' }, gap: 2.5, mb: 3 }}>
                 <Box>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500 }}>Fecha inicio</Typography>
-                  <Typography variant="body2" sx={{ fontSize: '0.9rem' }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                    Fecha inicio
+                  </Typography>
+                  <Typography variant="body2" sx={{ mt: 0.5, fontSize: '0.95rem' }}>
                     {selected?.fecha_inicio ? new Date(selected.fecha_inicio).toLocaleString() : 'N/A'}
                   </Typography>
                 </Box>
                 <Box>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500 }}>Observaciones</Typography>
-                  <Typography variant="body2" sx={{ fontSize: '0.9rem' }}>{selected?.observaciones_generales || 'Sin observaciones'}</Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                    Observaciones
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    sx={{ mt: 0.5, fontSize: '0.95rem', lineHeight: 1.65, whiteSpace: 'pre-wrap', color: '#1A2332' }}
+                  >
+                    {selected?.observaciones_generales || 'Sin observaciones'}
+                  </Typography>
                 </Box>
               </Box>
 
-              <Divider sx={{ mb: 2 }} />
+              <Divider sx={{ mb: 2.5 }} />
 
-              {/* ========================================== */}
-              {/* FIRMAS DIGITALES - DISEÑO PROFESIONAL */}
-              {/* ========================================== */}
-              <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem', mb: 1.5, color: '#1a237e' }}>
-                Firmas Digitales
-              </Typography>
-              
-              <Box sx={{ display: 'flex', gap: 4, mb: 2.5 }}>
-                <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
-                  Inspector:{' '}
-                  <span style={{ 
-                    color: firmas?.firma_inspector ? '#2e7d32' : '#d32f2f', 
-                    fontWeight: 600 
-                  }}>
-                    {firmas?.firma_inspector ? 'Firmado' : 'Pendiente'}
-                  </span>
-                  {firmas?.fecha_firma_inspector && (
-                    <span style={{ color: '#666', fontSize: '0.7rem', marginLeft: 6 }}>
-                      {new Date(firmas.fecha_firma_inspector).toLocaleString()}
-                    </span>
-                  )}
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2, mb: 2, flexWrap: 'wrap' }}>
+                <Typography variant="subtitle1" fontWeight={700} sx={{ fontSize: '1rem', color: '#0B1929' }}>
+                  Firmas digitales
                 </Typography>
-                <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
-                  Cliente:{' '}
-                  <span style={{ 
-                    color: firmas?.firma_cliente ? '#2e7d32' : '#d32f2f', 
-                    fontWeight: 600 
-                  }}>
-                    {firmas?.firma_cliente ? 'Firmado' : 'Pendiente'}
-                  </span>
-                  {firmas?.fecha_firma_cliente && (
-                    <span style={{ color: '#666', fontSize: '0.7rem', marginLeft: 6 }}>
-                      {new Date(firmas.fecha_firma_cliente).toLocaleString()}
-                    </span>
-                  )}
-                </Typography>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <Chip
+                    size="small"
+                    label={`Inspector: ${firmas?.firma_inspector ? 'Firmado' : 'Pendiente'}`}
+                    color={firmas?.firma_inspector ? 'success' : 'default'}
+                    variant={firmas?.firma_inspector ? 'filled' : 'outlined'}
+                  />
+                  <Chip
+                    size="small"
+                    label={`Cliente: ${firmas?.firma_cliente ? 'Firmado' : 'Pendiente'}`}
+                    color={firmas?.firma_cliente ? 'success' : 'default'}
+                    variant={firmas?.firma_cliente ? 'filled' : 'outlined'}
+                  />
+                </Box>
               </Box>
 
-              <Box sx={{ display: 'flex', gap: 4, flexWrap: 'wrap', mb: 3 }}>
+              <Box sx={{ mb: 3 }}>
                 {userRol === 'Inspector' && (
                   <SignaturePad
                     label="Firma del inspector"
@@ -634,6 +737,11 @@ export default function Inspections() {
                     onSave={firmarComoCliente}
                     fecha={firmas?.fecha_firma_cliente}
                   />
+                )}
+                {userRol !== 'Inspector' && userRol !== 'Cliente' && (
+                  <Typography variant="body2" color="text.secondary">
+                    Solo el inspector o el cliente pueden registrar su firma en esta inspección.
+                  </Typography>
                 )}
               </Box>
 

@@ -1,4 +1,5 @@
 import { API_BASE_URL } from '../config/api';
+import { decodeDeep } from '../utils/encoding';
 
 async function parseResponse(response) {
   const data = await response.json().catch(() => ({}));
@@ -9,7 +10,7 @@ async function parseResponse(response) {
       : detail || data.message || 'Error en la petición';
     throw new Error(message);
   }
-  return data;
+  return decodeDeep(data);
 }
 
 function getAuthHeaders(isFormData = false) {
