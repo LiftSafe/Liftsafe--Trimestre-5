@@ -1,5 +1,5 @@
 import { createContext, useContext, useState } from 'react';
-import { DEMO_USERS } from '../constants/demoUsers';
+import { loginRequest } from '../services/authService';
 import { canDo } from '../config/roles';
 
 const AuthContext = createContext(null);
@@ -10,36 +10,29 @@ export function AuthProvider({ children }) {
     return saved ? JSON.parse(saved) : null;
   });
 
-  const login = (email, password) => {
-    const found = DEMO_USERS.find(u => u.email === email && u.password === password);
-    if (!found) return false;
-    const userWithoutPassword = { ...found };
-    delete userWithoutPassword.password;
-    localStorage.setItem('liftsafe_user', JSON.stringify(userWithoutPassword));
-    setUser(userWithoutPassword);
-    return true;
-  };
-
-  const register = (formData) => {
-    const exists = DEMO_USERS.some(u => u.email === formData.email);
-    if (exists) return { success: false, message: 'El correo ya está registrado' };
-    const newUser = {
-      name: formData.name,
-      email: formData.email,
-      document: formData.document,
-      role: formData.role,
+  const login = async (correo, contrasena) => {
+    const data = await loginRequest(correo, contrasena);
+    localStorage.setItem('token', data.access_token);
+    const userData = {
+      name: data.nombre,
+      email: correo,
+      rol: data.rol,
+      role: data.rol,
     };
-    localStorage.setItem('liftsafe_user', JSON.stringify(newUser));
-    setUser(newUser);
-    return { success: true };
+    localStorage.setItem('liftsafe_user', JSON.stringify(userData));
+    setUser(userData);
+    return true;
   };
 
   const logout = () => {
     localStorage.removeItem('liftsafe_user');
+    localStorage.removeItem('token');
     setUser(null);
   };
 
-  const hasAction = (action) => canDo(user?.role, action);
+  const register = () => ({ success: false, message: 'Usa el registro de clientes en /register con el backend activo' });
+
+  const hasAction = (action) => canDo(user?.rol || user?.role, action);
 
   return (
     <AuthContext.Provider value={{ user, login, register, logout, isAuthenticated: !!user, hasAction }}>
@@ -48,5 +41,8 @@ export function AuthProvider({ children }) {
   );
 }
 
-// eslint-disable-next-line react-refresh/only-export-components
-export const useAuth = () => useContext(AuthContext);
+export function useAuth() {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth debe usarse dentro de AuthProvider');
+  return ctx;
+}

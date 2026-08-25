@@ -1,60 +1,64 @@
-const API_URL = 'http://localhost:8000';
+import { API_BASE_URL } from '../config/api';
 
-const getHeaders = () => {
+async function parseResponse(response) {
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const detail = data.detail;
+    const message = Array.isArray(detail)
+      ? detail.map((e) => e.msg || e).join(', ')
+      : detail || data.message || 'Error en la petición';
+    throw new Error(message);
+  }
+  return data;
+}
+
+function getAuthHeaders(isFormData = false) {
   const token = localStorage.getItem('token');
-  return {
-    'Content-Type': 'application/json',
-    'Authorization': token ? `Bearer ${token}` : ''
-  };
-};
+  const headers = {};
+  if (token) headers.Authorization = `Bearer ${token}`;
+  if (!isFormData) headers['Content-Type'] = 'application/json';
+  return headers;
+}
+
+export async function apiGet(endpoint) {
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    headers: getAuthHeaders(),
+  });
+  return parseResponse(response);
+}
+
+export async function apiPost(endpoint, data, options = {}) {
+  const isFormData = data instanceof FormData;
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    method: 'POST',
+    headers: { ...getAuthHeaders(isFormData), ...options.headers },
+    body: isFormData ? data : JSON.stringify(data),
+  });
+  return parseResponse(response);
+}
+
+export async function apiPut(endpoint, data) {
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    method: 'PUT',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+  return parseResponse(response);
+}
+
+export async function apiDelete(endpoint) {
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+  });
+  return parseResponse(response);
+}
 
 export const apiClient = {
-  get: async (endpoint) => {
-    const response = await fetch(`${API_URL}${endpoint}`, {
-      headers: getHeaders()
-    });
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || 'Error en la petición');
-    }
-    return response.json();
-  },
-  
-  post: async (endpoint, data) => {
-    const response = await fetch(`${API_URL}${endpoint}`, {
-      method: 'POST',
-      headers: getHeaders(),
-      body: JSON.stringify(data)
-    });
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || 'Error en la petición');
-    }
-    return response.json();
-  },
-  
-  put: async (endpoint, data) => {
-    const response = await fetch(`${API_URL}${endpoint}`, {
-      method: 'PUT',
-      headers: getHeaders(),
-      body: JSON.stringify(data)
-    });
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || 'Error en la petición');
-    }
-    return response.json();
-  },
-  
-  delete: async (endpoint) => {
-    const response = await fetch(`${API_URL}${endpoint}`, {
-      method: 'DELETE',
-      headers: getHeaders()
-    });
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || 'Error en la petición');
-    }
-    return response.json();
-  }
+  get: apiGet,
+  post: apiPost,
+  put: apiPut,
+  delete: apiDelete,
 };
+
+export { API_BASE_URL };

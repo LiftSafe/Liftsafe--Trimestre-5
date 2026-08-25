@@ -157,3 +157,11 @@ class FotografiaResponse(FotografiaBase):
 
     class Config:
         from_attributes = True
+
+# ============ FIRMA ============
+class FirmaRequest(BaseModel):
+    firma: str  # base64
+
+class FirmaResponse(BaseModel):
+    mensaje: str
+    fecha_firma: datetime | None = None

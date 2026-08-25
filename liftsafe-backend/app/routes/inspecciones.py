@@ -2,27 +2,16 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from app.database import get_db
-from app.models.models import Inspeccion, Ascensor, Usuario
-from app.schemas.schemas import InspeccionCreate
+from app.models.models import Inspeccion, Ascensor, Usuario, Informe
+from app.schemas.schemas import InspeccionCreate, FirmaRequest, MessageResponse
 from app.controllers.inspeccion_controller import crear_inspeccion
 from app.utils.auth_deps import get_current_user_role
 from app.config import settings
 from jose import jwt, JWTError
 from datetime import datetime, date
-from pydantic import BaseModel
 from typing import Optional
 
 router = APIRouter(prefix="/inspecciones", tags=["Inspecciones"])
-
-# ============================================
-# MODELO PARA FIRMA (coincide con tu BD)
-# ============================================
-class FirmaRequest(BaseModel):
-    firma: str  # base64
-
-class FirmaResponse(BaseModel):
-    message: str
-    fecha: Optional[datetime] = None
 
 # ============================================
 # AUTENTICACIÓN (ya lo tienes)
@@ -143,9 +132,12 @@ def obtener_inspeccion(
         ascensor = db.query(Ascensor).filter(Ascensor.id_ascensor == inspeccion.id_ascensor).first()
         if ascensor.id_cliente != user_id:
             raise HTTPException(status_code=403, detail="No tienes permiso para ver esta inspección")
-    
+
+    informe = db.query(Informe).filter(Informe.id_inspeccion == inspeccion.id_inspeccion).first()
+
     return {
         "id_inspeccion": inspeccion.id_inspeccion,
+        "id_informe": informe.id_informe if informe else None,
         "id_ascensor": inspeccion.id_ascensor,
         "id_inspector": inspeccion.id_inspector,
         "estado": inspeccion.estado,
@@ -161,7 +153,7 @@ def obtener_inspeccion(
 # ============================================
 # 4. FIRMAR COMO INSPECTOR (NUEVO)
 # ============================================
-@router.put("/{id}/firma-inspector", response_model=FirmaResponse)
+@router.put("/{id}/firma-inspector", response_model=MessageResponse)
 def firmar_inspector(
     id: int,
     data: FirmaRequest,
@@ -188,15 +180,12 @@ def firmar_inspector(
     db.commit()
     db.refresh(inspeccion)
     
-    return {
-        "message": "Firma del inspector registrada exitosamente",
-        "fecha": inspeccion.fecha_firma_inspector
-    }
+    return {"message": "Firma del inspector registrada exitosamente"}
 
 # ============================================
 # 5. FIRMAR COMO CLIENTE (NUEVO)
 # ============================================
-@router.put("/{id}/firma-cliente", response_model=FirmaResponse)
+@router.put("/{id}/firma-cliente", response_model=MessageResponse)
 def firmar_cliente(
     id: int,
     data: FirmaRequest,
@@ -227,10 +216,7 @@ def firmar_cliente(
     db.commit()
     db.refresh(inspeccion)
     
-    return {
-        "message": "Firma del cliente registrada exitosamente",
-        "fecha": inspeccion.fecha_firma_cliente
-    }
+    return {"message": "Firma del cliente registrada exitosamente"}
 
 # ============================================
 # 6. VERIFICAR ESTADO DE FIRMAS (NUEVO)
