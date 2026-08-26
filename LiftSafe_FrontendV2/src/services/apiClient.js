@@ -1,6 +1,9 @@
 import { API_BASE_URL } from '../config/api';
 import { decodeDeep } from '../utils/encoding';
 
+// ============================================
+// DECODIFICACIÓN UTF-8
+// ============================================
 async function parseResponse(response) {
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
@@ -10,9 +13,15 @@ async function parseResponse(response) {
       : detail || data.message || 'Error en la petición';
     throw new Error(message);
   }
+  // Si es 204 No Content, devolver null
+  if (response.status === 204) return null;
+  // Decodificar caracteres UTF-8
   return decodeDeep(data);
 }
 
+// ============================================
+// HEADERS DE AUTENTICACIÓN
+// ============================================
 function getAuthHeaders(isFormData = false) {
   const token = localStorage.getItem('token');
   const headers = {};
@@ -21,6 +30,9 @@ function getAuthHeaders(isFormData = false) {
   return headers;
 }
 
+// ============================================
+// MÉTODOS HTTP
+// ============================================
 export async function apiGet(endpoint) {
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     headers: getAuthHeaders(),
@@ -55,6 +67,9 @@ export async function apiDelete(endpoint) {
   return parseResponse(response);
 }
 
+// ============================================
+// EXPORTACIÓN DEL CLIENTE
+// ============================================
 export const apiClient = {
   get: apiGet,
   post: apiPost,

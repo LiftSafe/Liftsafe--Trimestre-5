@@ -1,7 +1,6 @@
 import { Box } from '@mui/material';
 import logo from '../assets/logo.png';
 
-
 export default function Logo({ width = 180, sx = {} }) {
   return (
     <Box

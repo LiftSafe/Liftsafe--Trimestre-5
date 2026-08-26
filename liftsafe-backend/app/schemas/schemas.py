@@ -135,6 +135,7 @@ class InspeccionCreate(BaseModel):
     tipo_servicio: str = "Periódica"
     observaciones: Optional[str] = None
 
+<<<<<<< HEAD
 # ============================================
 # SCHEMAS DE DAYAN - USUARIO-ASCENSOR
 # ============================================
@@ -158,10 +159,27 @@ class UsuarioAscensorResponse(UsuarioAscensorBase):
     fecha_desasignacion: date | None = None
     usuario: dict | None = None
     ascensor: dict | None = None
+=======
+
+class DetalleChecklistBase(BaseModel):
+    id_inspeccion: int
+    id_item: int
+    resultado: str  # Cumple, No Cumple, No Aplica
+    observacion: Optional[str] = None
+    accion_requerida: Optional[str] = None
+
+class DetalleChecklistCreate(DetalleChecklistBase):
+    pass
+
+class DetalleChecklistResponse(DetalleChecklistBase):
+    id_detalle: int
+    fecha_registro: datetime
+    
 
     class Config:
         from_attributes = True
 
+<<<<<<< HEAD
 # ============================================
 # SCHEMAS DE VALENTINA - FOTOGRAFIAS
 # ============================================
@@ -196,3 +214,54 @@ class FirmaRequest(BaseModel):
 class FirmaResponse(BaseModel):
     mensaje: str
     fecha_firma: datetime | None = None
+=======
+class ChecklistItemResponse(BaseModel):
+    id_item: int
+    id_categoria: int
+    codigo_item: str
+    descripcion: str
+    criterio_cumplimiento: Optional[str] = None
+    nivel_criticidad: str
+    obligatorio: Optional[bool] = None
+    orden_visualizacion: int
+
+    class Config:
+        from_attributes = True
+
+class ChecklistCategoriaResponse(BaseModel):
+    id_categoria: int
+    nombre_categoria: str
+    descripcion: Optional[str] = None
+    orden_visualizacion: int
+    norma_referencia: Optional[str] = None
+    items: list[ChecklistItemResponse] = []
+
+    class Config:
+        from_attributes = True
+
+
+class ObservacionBase(BaseModel):
+    id_informe: int
+    tipo_observacion: str
+    descripcion: str
+    nivel_riesgo: str
+    requiere_atencion_inmediata: bool = False
+    fecha_limite_recomendada: Optional[date] = None
+
+class ObservacionCreate(ObservacionBase):
+    pass
+
+class ObservacionUpdate(BaseModel):
+    tipo_observacion: Optional[str] = None
+    descripcion: Optional[str] = None
+    nivel_riesgo: Optional[str] = None
+    requiere_atencion_inmediata: Optional[bool] = None
+    fecha_limite_recomendada: Optional[date] = None
+
+class ObservacionResponse(ObservacionBase):
+    id_observacion: int
+    fecha_registro: datetime
+
+    class Config:
+        from_attributes = True
+>>>>>>> 18177d26d35979b66edf2bf8306e2fa03f251cad

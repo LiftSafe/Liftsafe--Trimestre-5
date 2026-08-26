@@ -28,7 +28,7 @@ def get_current_user_role(request: Request):
         raise HTTPException(status_code=401, detail="Token inválido")
 
 # ============================================
-# 1. MIS INSPECCIONES (ya lo tienes)
+# 1. MIS INSPECCIONES
 # ============================================
 @router.get("/mis-inspecciones")
 def mis_inspecciones(request: Request, db: Session = Depends(get_db)):
@@ -39,7 +39,13 @@ def mis_inspecciones(request: Request, db: Session = Depends(get_db)):
         return [dict(row) for row in result]
     
     elif rol == 'Inspector':
-        result = db.query(Inspeccion, Ascensor.codigo_interno).join(Ascensor, Inspeccion.id_ascensor == Ascensor.id_ascensor).filter(Inspeccion.id_inspector == user_id).all()
+        result = (
+            db.query(Inspeccion, Ascensor.codigo_interno, Informe.id_informe)
+            .join(Ascensor, Inspeccion.id_ascensor == Ascensor.id_ascensor)
+            .outerjoin(Informe, Informe.id_inspeccion == Inspeccion.id_inspeccion)
+            .filter(Inspeccion.id_inspector == user_id)
+            .all()
+        )
         return [
             {
                 "id_inspeccion": i.id_inspeccion,
@@ -49,13 +55,20 @@ def mis_inspecciones(request: Request, db: Session = Depends(get_db)):
                 "estado": i.estado,
                 "observaciones_generales": i.observaciones_generales,
                 "firma_inspector": bool(i.firma_inspector),
-                "firma_cliente": bool(i.firma_cliente)
+                "firma_cliente": bool(i.firma_cliente),
+                "id_informe": id_informe,
             }
-            for i, codigo in result
+            for i, codigo, id_informe in result
         ]
     
     elif rol == 'Cliente':
-        result = db.query(Inspeccion, Ascensor.codigo_interno).join(Ascensor, Inspeccion.id_ascensor == Ascensor.id_ascensor).filter(Ascensor.id_cliente == user_id).all()
+        result = (
+            db.query(Inspeccion, Ascensor.codigo_interno, Informe.id_informe)
+            .join(Ascensor, Inspeccion.id_ascensor == Ascensor.id_ascensor)
+            .outerjoin(Informe, Informe.id_inspeccion == Inspeccion.id_inspeccion)
+            .filter(Ascensor.id_cliente == user_id)
+            .all()
+        )
         return [
             {
                 "id_inspeccion": i.id_inspeccion,
@@ -65,16 +78,17 @@ def mis_inspecciones(request: Request, db: Session = Depends(get_db)):
                 "estado": i.estado,
                 "observaciones_generales": i.observaciones_generales,
                 "firma_inspector": bool(i.firma_inspector),
-                "firma_cliente": bool(i.firma_cliente)
+                "firma_cliente": bool(i.firma_cliente),
+                "id_informe": id_informe,
             }
-            for i, codigo in result
+            for i, codigo, id_informe in result
         ]
     
     else:
         raise HTTPException(status_code=403, detail="Rol no autorizado")
 
 # ============================================
-# 2. CREAR INSPECCIÓN (ya lo tienes)
+# 2. CREAR INSPECCIÓN
 # ============================================
 @router.post("/crear")
 def crear_nueva_inspeccion(
@@ -151,7 +165,7 @@ def obtener_inspeccion(
     }
 
 # ============================================
-# 4. FIRMAR COMO INSPECTOR (NUEVO)
+# 4. FIRMAR COMO INSPECTOR
 # ============================================
 @router.put("/{id}/firma-inspector", response_model=MessageResponse)
 def firmar_inspector(
@@ -166,15 +180,12 @@ def firmar_inspector(
     if not inspeccion:
         raise HTTPException(status_code=404, detail="Inspección no encontrada")
     
-    # Verificar que el usuario sea el inspector asignado
     if inspeccion.id_inspector != user_id:
         raise HTTPException(status_code=403, detail="No eres el inspector asignado a esta inspección")
     
-    # Verificar que no haya firma previa
     if inspeccion.firma_inspector:
         raise HTTPException(status_code=400, detail="Ya hay una firma del inspector registrada")
     
-    # Guardar firma en la BD
     inspeccion.firma_inspector = data.firma
     inspeccion.fecha_firma_inspector = datetime.now()
     db.commit()
@@ -183,7 +194,7 @@ def firmar_inspector(
     return {"message": "Firma del inspector registrada exitosamente"}
 
 # ============================================
-# 5. FIRMAR COMO CLIENTE (NUEVO)
+# 5. FIRMAR COMO CLIENTE
 # ============================================
 @router.put("/{id}/firma-cliente", response_model=MessageResponse)
 def firmar_cliente(
@@ -198,11 +209,9 @@ def firmar_cliente(
     if not inspeccion:
         raise HTTPException(status_code=404, detail="Inspección no encontrada")
     
-    # Verificar que no haya firma previa
     if inspeccion.firma_cliente:
         raise HTTPException(status_code=400, detail="Ya hay una firma del cliente registrada")
     
-    # Verificar que el usuario sea el cliente del ascensor
     ascensor = db.query(Ascensor).filter(Ascensor.id_ascensor == inspeccion.id_ascensor).first()
     if not ascensor:
         raise HTTPException(status_code=404, detail="Ascensor no encontrado")
@@ -210,7 +219,6 @@ def firmar_cliente(
     if ascensor.id_cliente != user_id:
         raise HTTPException(status_code=403, detail="No eres el cliente propietario de este ascensor")
     
-    # Guardar firma en la BD
     inspeccion.firma_cliente = data.firma
     inspeccion.fecha_firma_cliente = datetime.now()
     db.commit()
@@ -219,7 +227,7 @@ def firmar_cliente(
     return {"message": "Firma del cliente registrada exitosamente"}
 
 # ============================================
-# 6. VERIFICAR ESTADO DE FIRMAS (NUEVO)
+# 6. VERIFICAR ESTADO DE FIRMAS
 # ============================================
 @router.get("/{id}/firmas")
 def verificar_firmas(
@@ -233,7 +241,6 @@ def verificar_firmas(
     if not inspeccion:
         raise HTTPException(status_code=404, detail="Inspección no encontrada")
     
-    # Verificar permisos
     if rol == 'Inspector' and inspeccion.id_inspector != user_id:
         raise HTTPException(status_code=403, detail="No tienes permiso para ver esta inspección")
     
