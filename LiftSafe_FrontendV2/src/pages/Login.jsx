@@ -26,15 +26,16 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const success = login(email, password);
-    if (success) {
-      navigate('/dashboard');
-    } else {
-      setError('Correo o contraseña incorrectos');
-    }
-  };
+  const handleSubmit = async (e) => {
+  e.preventDefault();
+  setError('');
+  const result = await login(email, password);
+  if (result.success) {
+    navigate('/dashboard');
+   } else {
+    setError(result.message || 'Correo o contraseña incorrectos');
+   }
+   };
 
   return (
     <AuthLayout

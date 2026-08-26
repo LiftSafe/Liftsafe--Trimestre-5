@@ -7,7 +7,7 @@ from app.controllers.usuario_controller import get_user_profile, get_admin_stats
 from app.utils.auth_deps import require_admin
 from sqlalchemy import text
 
-router = APIRouter(prefix="/usuarios", tags=["Usuarios"])  # ← ASEGÚRATE QUE ESTÉ
+router = APIRouter(prefix="/usuarios", tags=["Usuarios"])
 
 DOC_LABELS = {"CC": "Cédula de ciudadanía", "NIT": "NIT", "PPE": "PPE", "CE": "Cédula de extranjería"}
 
@@ -53,7 +53,7 @@ def crear_usuario(request: Request, user_data: UsuarioCreate, db: Session = Depe
     )
     db.commit()
     return {"message": f"Usuario {rol.nombre_rol} creado exitosamente"}
-# ... resto del archivo
+
 
 @router.get("/perfil/{user_id}")
 def perfil(user_id: int, db: Session = Depends(get_db)):
@@ -113,23 +113,7 @@ def listado_usuarios(request: Request, db: Session = Depends(get_db)):
         for row in result
     ]
 
-# app/routes/usuarios.py
-# Agregar al final del archivo, antes de los últimos routers
-
-from fastapi import APIRouter, Depends, HTTPException, Request
-from sqlalchemy.orm import Session
-from app.database import get_db
-from app.models.models import Usuario, Rol
-from app.schemas.schemas import UsuarioCreate, MessageResponse
-from app.controllers.usuario_controller import get_user_profile, get_admin_stats, get_cliente_ascensores, get_inspector_inspecciones
-from app.utils.auth_deps import require_admin
-from sqlalchemy import text
-
-router = APIRouter(prefix="/usuarios", tags=["Usuarios"])
-
-# ... (todo tu código existente arriba) ...
-
-# ✅ NUEVO: Eliminar usuario
+# ✅ Eliminar usuario
 @router.delete("/{user_id}", response_model=MessageResponse)
 def eliminar_usuario(user_id: int, request: Request, db: Session = Depends(get_db)):
     require_admin(request)
