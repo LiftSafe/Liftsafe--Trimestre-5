@@ -131,11 +131,13 @@ class MessageResponse(BaseModel):
 class InspeccionCreate(BaseModel):
     id_ascensor: int
     id_inspector: int
-    fecha_programada: date  # ← Cambiar de datetime a date
+    fecha_programada: date
     tipo_servicio: str = "Periódica"
     observaciones: Optional[str] = None
 
-# ============ USUARIO-ASCENSOR ============
+# ============================================
+# SCHEMAS DE DAYAN - USUARIO-ASCENSOR
+# ============================================
 class UsuarioAscensorBase(BaseModel):
     id_usuario: int
     id_ascensor: int
@@ -154,7 +156,43 @@ class UsuarioAscensorUpdate(BaseModel):
 class UsuarioAscensorResponse(UsuarioAscensorBase):
     id_usuario_ascensor: int
     fecha_desasignacion: date | None = None
-
+    usuario: dict | None = None
+    ascensor: dict | None = None
 
     class Config:
         from_attributes = True
+
+# ============================================
+# SCHEMAS DE VALENTINA - FOTOGRAFIAS
+# ============================================
+class FotografiaBase(BaseModel):
+    id_informe: int
+    id_item: int | None = None
+    descripcion: str | None = None
+    tipo_evidencia: str | None = None
+
+class FotografiaCreate(FotografiaBase):
+    pass
+
+class FotografiaResponse(FotografiaBase):
+    id_foto: int
+    nombre_archivo: str
+    ruta_archivo: str
+    tamano_kb: int | None = None
+    fecha_captura: datetime
+    latitud: float | None = None
+    longitud: float | None = None
+    sincronizado: bool
+
+    class Config:
+        from_attributes = True
+
+# ============================================
+# SCHEMAS DE VALENTINA - FIRMA
+# ============================================
+class FirmaRequest(BaseModel):
+    firma: str  # base64
+
+class FirmaResponse(BaseModel):
+    mensaje: str
+    fecha_firma: datetime | None = None

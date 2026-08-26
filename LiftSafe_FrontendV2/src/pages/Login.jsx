@@ -26,12 +26,13 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const success = login(email, password);
-    if (success) {
-      navigate('/dashboard');
-    } else {
+    setError('');
+    try {
+      const success = await login(email, password);
+      if (success) navigate('/dashboard');
+    } catch {
       setError('Correo o contraseña incorrectos');
     }
   };

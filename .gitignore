@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+venv/
+.env
+
+# Node
+node_modules/
+dist/
+.vite/
+
+# IDEs
+.vscode/
+.idea/
+.cursor/
+
+# Otros
+*.log
+fix_config.py
+fix_contrasena.py
