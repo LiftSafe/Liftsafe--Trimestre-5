@@ -158,3 +158,20 @@ class UsuarioAscensorResponse(UsuarioAscensorBase):
 
     class Config:
         from_attributes = True
+
+
+# ============ AUDITORIA ============
+class AuditoriaResponse(BaseModel):
+    id_auditoria: int
+    id_usuario: int | None
+    tabla_afectada: str
+    operacion: str
+    id_registro: int | None
+    datos_anteriores: str | None
+    datos_nuevos: str | None
+    ip_origen: str | None
+    user_agent: str | None
+    fecha_evento: datetime
+
+    class Config:
+        from_attributes = True
