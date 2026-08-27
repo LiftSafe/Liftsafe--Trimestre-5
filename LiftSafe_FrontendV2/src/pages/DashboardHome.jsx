@@ -1,4 +1,5 @@
 import { useAuth } from '../context/AuthContext';
+import { Navigate } from 'react-router-dom';
 import AdminDashboard from './dashboards/AdminDashboard';
 import AsesorDashboard from './dashboards/AsesorDashboard';
 import CoordinadorDashboard from './dashboards/CoordinadorDashboard';
@@ -8,7 +9,12 @@ import ClientDashboard from './dashboards/ClientDashboard';
 
 const DashboardHome = () => {
   const { user } = useAuth();
-  if (!user) return <div>Cargando...</div>;
+  
+  if (!user) return <Navigate to="/login" replace />;
+  if (!user.role) {
+    console.error('Usuario sin rol:', user);
+    return <Navigate to="/login" replace />;
+  }
 
   switch (user.role) {
     case 'Administrador':
@@ -24,7 +30,8 @@ const DashboardHome = () => {
     case 'Cliente':
       return <ClientDashboard />;
     default:
-      return <AdminDashboard />;
+      console.error('Rol desconocido:', user.role);
+      return <Navigate to="/login" replace />;
   }
 };
 

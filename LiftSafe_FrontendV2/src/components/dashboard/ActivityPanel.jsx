@@ -1,4 +1,6 @@
-import { Box, Card, CardContent, Typography, Chip } from '@mui/material';
+// src/components/dashboard/ActivityPanel.jsx
+
+import { Box, Card, CardContent, Typography, Chip, Avatar } from '@mui/material'; // ← AGREGADO: Avatar
 import CheckCircleOutlineOutlinedIcon from '@mui/icons-material/CheckCircleOutlineOutlined';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import WarningAmberOutlinedIcon from '@mui/icons-material/WarningAmberOutlined';
@@ -10,7 +12,7 @@ const TYPE_STYLES = {
   error: { icon: <WarningAmberOutlinedIcon sx={{ fontSize: 18 }} />, color: '#C0392B', bg: '#C0392B12' },
 };
 
-export default function ActivityPanel({ title, subtitle, items, action, accent = '#0066CC' }) {
+export default function ActivityPanel({ title, subtitle, items, action, accent = '#0066CC', showAvatars = false }) {
   return (
     <Card
       sx={{
@@ -32,6 +34,7 @@ export default function ActivityPanel({ title, subtitle, items, action, accent =
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
           {items.map((item) => {
             const style = TYPE_STYLES[item.type] || TYPE_STYLES.info;
+            const itemIcon = item.icon || style.icon;
             return (
               <Box
                 key={item.id || item.title}
@@ -45,9 +48,16 @@ export default function ActivityPanel({ title, subtitle, items, action, accent =
                   '&:last-child': { borderBottom: 0 },
                 }}
               >
-                <Box sx={{ width: 32, height: 32, borderRadius: 2, bgcolor: style.bg, color: style.color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  {style.icon}
-                </Box>
+                {/* ✅ CORREGIDO: Avatar con import, o icono por defecto */}
+                {showAvatars && item.avatar ? (
+                  <Avatar sx={{ width: 32, height: 32, fontSize: 14, bgcolor: item.avatarColor || style.color, color: '#fff' }}>
+                    {item.avatar}
+                  </Avatar>
+                ) : (
+                  <Box sx={{ width: 32, height: 32, borderRadius: 2, bgcolor: style.bg, color: style.color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    {itemIcon}
+                  </Box>
+                )}
                 <Box sx={{ flex: 1, minWidth: 0 }}>
                   <Typography variant="body2" fontWeight={600} noWrap>{item.action || item.title}</Typography>
                   <Typography variant="caption" color="text.secondary" display="block">{item.detail || item.subtitle}</Typography>

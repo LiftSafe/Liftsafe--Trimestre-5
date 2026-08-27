@@ -44,9 +44,10 @@ export default function DashboardLayout() {
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', background: gradients.sidebar }}>
       <Box sx={{ py: 2, px: 2, textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         <Logo width={115} sx={{ filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.5))' }} />
-        <Typography variant="caption" sx={{ color: brand.silver, display: 'block', mt: 0.5, fontSize: 10, letterSpacing: '0.08em' }}>
+        {/* <Typography variant="caption" sx={{ color: brand.silver, display: 'block', mt: 0.5, fontSize: 10, 
+          letterSpacing: '0.08em' }}>
           {user?.role?.toUpperCase()}
-        </Typography>
+        </Typography> */}
       </Box>
       <List sx={{ flex: 1, px: 1.2, py: 1.5 }}>
         {menuItems.map((item) => {
@@ -67,7 +68,10 @@ export default function DashboardLayout() {
               }}
             >
               <ListItemIcon sx={{ minWidth: 34 }}>{ICONS[item.key]}</ListItemIcon>
-              <ListItemText primary={item.text} primaryTypographyProps={{ fontWeight: active ? 600 : 400, fontSize: 13 }} />
+<ListItemText 
+  primary={item.text} 
+  slotProps={{ primary: { fontWeight: active ? 600 : 400, fontSize: 13 } }} 
+/>
             </ListItemButton>
           );
         })}

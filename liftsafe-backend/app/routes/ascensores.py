@@ -1,5 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Security
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from app.database import get_db
 from app.models.models import Ascensor, Usuario
 from jose import jwt, JWTError
@@ -7,11 +9,11 @@ from app.config import settings
 
 router = APIRouter(prefix="/ascensores", tags=["Ascensores"])
 
-def get_current_user_role(request: Request):
-    authorization = request.headers.get('authorization')
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Token no proporcionado")
-    token = authorization.split(" ")[1]
+# ✅ ESQUEMA DE SEGURIDAD
+security = HTTPBearer()
+
+def get_current_user_role(credentials: HTTPAuthorizationCredentials = Security(security)):
+    token = credentials.credentials
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         return payload.get("rol"), payload.get("sub"), payload.get("user_id")
@@ -19,8 +21,11 @@ def get_current_user_role(request: Request):
         raise HTTPException(status_code=401, detail="Token inválido")
 
 @router.get("/listado")
-def listado_ascensores(request: Request, db: Session = Depends(get_db)):
-    rol, correo, user_id = get_current_user_role(request)
+def listado_ascensores(
+    credentials: HTTPAuthorizationCredentials = Security(security),
+    db: Session = Depends(get_db)
+):
+    rol, correo, user_id = get_current_user_role(credentials)
     
     # Admin y Director Técnico ven todo
     if rol in ['Administrador', 'Director Técnico']:
@@ -46,12 +51,13 @@ def listado_ascensores(request: Request, db: Session = Depends(get_db)):
         }
         for a, cliente in ascensores
     ]
-    
-from sqlalchemy import func
 
 @router.get("/edificios")
-def edificios(request: Request, db: Session = Depends(get_db)):
-    rol, correo, user_id = get_current_user_role(request)
+def edificios(
+    credentials: HTTPAuthorizationCredentials = Security(security),
+    db: Session = Depends(get_db)
+):
+    rol, correo, user_id = get_current_user_role(credentials)
     
     # Inspector: edificios donde ha hecho inspecciones
     if rol == 'Inspector':
@@ -92,10 +98,13 @@ def edificios(request: Request, db: Session = Depends(get_db)):
         }
         for r in resultado
     ]
-    
+
 @router.get("/mis-ascensores")
-def mis_ascensores_inspeccionados(request: Request, db: Session = Depends(get_db)):
-    rol, correo, user_id = get_current_user_role(request)
+def mis_ascensores_inspeccionados(
+    credentials: HTTPAuthorizationCredentials = Security(security),
+    db: Session = Depends(get_db)
+):
+    rol, correo, user_id = get_current_user_role(credentials)
     
     if not user_id:
         raise HTTPException(status_code=401, detail="Usuario no identificado")

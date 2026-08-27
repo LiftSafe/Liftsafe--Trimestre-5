@@ -19,8 +19,9 @@ function getFormattedDate() {
   return `${DAYS[now.getDay()]}, ${now.getDate()} de ${MONTHS[now.getMonth()]} ${now.getFullYear()}`;
 }
 
-export default function WelcomeBanner({ name, role }) {
+export default function WelcomeBanner({ name, role, welcomeIcon, actions  }) {
   const meta = ROLE_LABELS[role] || { label: 'Mi panel', color: brand.accent };
+  const firstName = name?.split(' ')[0] || '';
 
   return (
     <Box
@@ -46,20 +47,28 @@ export default function WelcomeBanner({ name, role }) {
         }}
       />
 
-      <Box sx={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2 }}>
-        <Box>
-          <Typography variant="overline" sx={{ color: brand.silverDark, letterSpacing: '0.12em', fontSize: 10 }}>
-            BIENVENIDO
-          </Typography>
-          <Typography variant="h5" fontWeight={800} sx={{ color: '#fff', letterSpacing: '-0.02em' }}>
-            Hola, {name?.split(' ')[0]}
-          </Typography>
-          <Typography variant="body2" sx={{ color: brand.silver, mt: 0.5 }}>
-            {meta.label} · LiftSafe
-          </Typography>
-        </Box>
+<Box sx={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2 }}>
+  <Box>
+    <Typography variant="overline" sx={{ color: brand.silverDark, letterSpacing: '0.12em', fontSize: 10 }}>
+      BIENVENIDO
+    </Typography>
+    <Typography variant="h5" fontWeight={800} sx={{ color: '#fff', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: 1 }}>
+      Hola, {role} {firstName}
+      {welcomeIcon}
+    </Typography>
+    <Typography variant="body2" sx={{ color: brand.silver, mt: 0.5 }}>
+      {meta.label} · LiftSafe
+    </Typography>
+  </Box>
 
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+  {/* ✅ NUEVO: Botones de acción rápida */}
+  {actions && (
+    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+      {actions}
+    </Box>
+  )}
+
+  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
           <Chip
             icon={<CalendarTodayOutlinedIcon sx={{ fontSize: '14px !important', color: `${brand.silver} !important` }} />}
             label={getFormattedDate()}
@@ -72,19 +81,20 @@ export default function WelcomeBanner({ name, role }) {
               fontSize: 11,
             }}
           />
-          <Chip
-            label={role}
-            size="small"
+          {/* Etiqueta del rol, ej: "Administrador", "Asesor", etc. 
+        <Chip
+             label={role}
+             size="small"
             sx={{
               bgcolor: `${meta.color}22`,
               color: meta.color,
               border: `1px solid ${meta.color}55`,
               fontWeight: 700,
               fontSize: 11,
-            }}
-          />
-        </Box>
-      </Box>
-    </Box>
+            }} 
+          /> */}
+        </Box> 
+      </Box> 
+    </Box> 
   );
 }

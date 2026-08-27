@@ -1,4 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
+# app/routes/dashboard.py
+
+from fastapi import APIRouter, Depends, HTTPException, Security
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, extract, text
 from app.database import get_db
@@ -6,13 +9,15 @@ from app.models.models import Inspeccion, Ascensor, Usuario, Informe, Rol
 from app.utils.auth_deps import get_current_user_role
 from datetime import datetime, timedelta
 import logging
-from sqlalchemy import text
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
+security = HTTPBearer()
 
+
+# ============ FUNCIONES AUXILIARES ============
 
 def get_inspecciones_query(db: Session, rol: str, user_id: int):
     """Retorna la query base de inspecciones filtrada por rol"""
@@ -25,8 +30,6 @@ def get_inspecciones_query(db: Session, rol: str, user_id: int):
     elif rol == "Inspector":
         return query.filter(Inspeccion.id_inspector == user_id)
     elif rol == "Asesor":
-        # ✅ CORREGIDO: Buscar clientes del asesor por relación directa
-        # Si no tienes tabla intermedia, ajusta según tu modelo
         return query.join(Ascensor).filter(Ascensor.id_cliente == user_id)
     elif rol == "Cliente":
         return query.join(Ascensor).filter(Ascensor.id_cliente == user_id)
@@ -40,19 +43,12 @@ def get_ascensores_query(db: Session, rol: str, user_id: int):
     
     if rol in ["Administrador", "Director Técnico", "Coordinador"]:
         return query
-    
     elif rol == "Inspector":
-        # ✅ CORREGIDO: Usar Inspeccion en lugar de UsuarioAscensor
         return query.join(Inspeccion).filter(Inspeccion.id_inspector == user_id).distinct()
-    
     elif rol == "Asesor":
-        # ✅ Si el asesor tiene clientes asignados, ajusta según tu modelo
-        # Por ahora, mostramos todos (o filtra si tienes relación asesor-cliente)
         return query
-    
     elif rol == "Cliente":
         return query.filter(Ascensor.id_cliente == user_id)
-    
     else:
         raise HTTPException(status_code=403, detail=f"Rol '{rol}' no autorizado")
 
@@ -70,18 +66,20 @@ def get_usuarios_query(db: Session, rol: str, user_id: int):
             Rol.nombre_rol.in_(["Inspector", "Cliente", "Asesor"])
         )
     elif rol in ["Inspector", "Asesor", "Cliente"]:
-        # ✅ CORREGIDO: Solo su propio perfil
         return query.filter(Usuario.id_usuario == user_id)
     else:
         raise HTTPException(status_code=403, detail=f"Rol '{rol}' no autorizado")
 
+
 # ============ RUTAS DE GRÁFICAS ============
 
 @router.get("/graficas/tendencia")
-def tendencia_inspecciones(request: Request, db: Session = Depends(get_db)):
-    rol, correo, user_id = get_current_user_role(request)
+def tendencia_inspecciones(
+    credentials: HTTPAuthorizationCredentials = Security(security),
+    db: Session = Depends(get_db)
+):
+    rol, correo, user_id = get_current_user_role(credentials)
     
-    # Aplicar filtro por rol
     query = get_inspecciones_query(db, rol, user_id)
     
     resultado = query.with_entities(
@@ -95,8 +93,11 @@ def tendencia_inspecciones(request: Request, db: Session = Depends(get_db)):
 
 
 @router.get("/graficas/estados")
-def estados_inspecciones(request: Request, db: Session = Depends(get_db)):
-    rol, correo, user_id = get_current_user_role(request)
+def estados_inspecciones(
+    credentials: HTTPAuthorizationCredentials = Security(security),
+    db: Session = Depends(get_db)
+):
+    rol, correo, user_id = get_current_user_role(credentials)
     
     query = get_inspecciones_query(db, rol, user_id)
     
@@ -109,10 +110,12 @@ def estados_inspecciones(request: Request, db: Session = Depends(get_db)):
 
 
 @router.get("/graficas/edificios")
-def inspecciones_por_edificio(request: Request, db: Session = Depends(get_db)):
-    rol, correo, user_id = get_current_user_role(request)
+def inspecciones_por_edificio(
+    credentials: HTTPAuthorizationCredentials = Security(security),
+    db: Session = Depends(get_db)
+):
+    rol, correo, user_id = get_current_user_role(credentials)
     
-    # Solo admin, director y coordinador pueden ver esta gráfica
     if rol in ["Inspector", "Asesor", "Cliente"]:
         return {}
     
@@ -128,16 +131,18 @@ def inspecciones_por_edificio(request: Request, db: Session = Depends(get_db)):
     return {r.cliente: r.total for r in resultado}
 
 
-# ============ RUTAS PARA EL FRONTEND ============
+# ============ RUTAS PRINCIPALES ============
 
 @router.get("/stats")
-def get_stats(request: Request, db: Session = Depends(get_db)):
-    rol, correo, user_id = get_current_user_role(request)
+def get_stats(
+    credentials: HTTPAuthorizationCredentials = Security(security),
+    db: Session = Depends(get_db)
+):
+    rol, correo, user_id = get_current_user_role(credentials)
     
     hoy = datetime.now()
     primer_dia_mes = hoy.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     
-    # Contar según rol
     usuarios_query = get_usuarios_query(db, rol, user_id)
     ascensores_query = get_ascensores_query(db, rol, user_id)
     inspecciones_query = get_inspecciones_query(db, rol, user_id)
@@ -157,13 +162,15 @@ def get_stats(request: Request, db: Session = Depends(get_db)):
 
 
 @router.get("/charts")
-def get_charts(request: Request, db: Session = Depends(get_db)):
-    rol, correo, user_id = get_current_user_role(request)
+def get_charts(
+    credentials: HTTPAuthorizationCredentials = Security(security),
+    db: Session = Depends(get_db)
+):
+    rol, correo, user_id = get_current_user_role(credentials)
     
     hoy = datetime.now()
     meses_nombres = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
     
-    # Query base filtrada por rol
     base_query = get_inspecciones_query(db, rol, user_id)
     
     monthly_inspections = []
@@ -181,7 +188,6 @@ def get_charts(request: Request, db: Session = Depends(get_db)):
         else:
             ultimo_dia = datetime(año_objetivo, mes_objetivo + 1, 1)
         
-        # Aplicar filtros de fecha sobre la query base
         total = base_query.filter(
             Inspeccion.fecha_inicio >= primer_dia,
             Inspeccion.fecha_inicio < ultimo_dia
@@ -202,7 +208,6 @@ def get_charts(request: Request, db: Session = Depends(get_db)):
             "pendientes": pendientes
         })
 
-    # Estados de inspecciones filtrados por rol
     estados_result = base_query.with_entities(
         Inspeccion.estado,
         func.count(Inspeccion.id_inspeccion).label('total')
@@ -210,15 +215,15 @@ def get_charts(request: Request, db: Session = Depends(get_db)):
     
     inspection_status_data = []
     colores = {
-        'Aprobada': '#0E7C4A',      # Verde oscuro
-        'Finalizada': '#1ABC9C',    # ✅ Verde aguamarina (DISTINTO)
-        'Pendiente': '#C97B1A',     # Naranja
-        'Borrador': '#F39C12',      # ✅ Amarillo/naranja (DISTINTO)
-        'En Proceso': '#E67E22',    # ✅ Naranja oscuro (DISTINTO)
-        'Observaciones': '#C0392B', # Rojo
-        'No Cumple': '#E74C3C',    # ✅ Rojo intenso (DISTINTO)
-        'Programada': '#0066CC',    # ✅ Azul (DISTINTO)
-        'Completada': '#16A085'     # ✅ Verde azulado (DISTINTO)
+        'Aprobada': '#0E7C4A',
+        'Finalizada': '#1ABC9C',
+        'Pendiente': '#C97B1A',
+        'Borrador': '#F39C12',
+        'En Proceso': '#E67E22',
+        'Observaciones': '#C0392B',
+        'No Cumple': '#E74C3C',
+        'Programada': '#0066CC',
+        'Completada': '#16A085'
     }
     
     for r in estados_result:
@@ -243,10 +248,12 @@ def get_charts(request: Request, db: Session = Depends(get_db)):
 
 
 @router.get("/inspecciones")
-def get_inspecciones(request: Request, db: Session = Depends(get_db)):
-    rol, correo, user_id = get_current_user_role(request)
+def get_inspecciones(
+    credentials: HTTPAuthorizationCredentials = Security(security),
+    db: Session = Depends(get_db)
+):
+    rol, correo, user_id = get_current_user_role(credentials)
     
-    # Aplicar filtro por rol
     inspecciones = get_inspecciones_query(db, rol, user_id).all()
     
     resultado = []
@@ -292,15 +299,16 @@ def get_inspecciones(request: Request, db: Session = Depends(get_db)):
 
 
 @router.get("/edificios")
-def get_edificios(request: Request, db: Session = Depends(get_db)):
-    rol, correo, user_id = get_current_user_role(request)
+def get_edificios(
+    credentials: HTTPAuthorizationCredentials = Security(security),
+    db: Session = Depends(get_db)
+):
+    rol, correo, user_id = get_current_user_role(credentials)
     
-    # Aplicar filtro por rol
     ascensores = get_ascensores_query(db, rol, user_id).options(
         joinedload(Ascensor.cliente)
     ).all()
     
-    # Agrupar por dirección completa
     edificios_dict = {}
     for asc in ascensores:
         direccion = asc.direccion_completa or "Sin dirección"
@@ -322,10 +330,12 @@ def get_edificios(request: Request, db: Session = Depends(get_db)):
 
 
 @router.get("/ascensores")
-def get_ascensores(request: Request, db: Session = Depends(get_db)):
-    rol, correo, user_id = get_current_user_role(request)
+def get_ascensores(
+    credentials: HTTPAuthorizationCredentials = Security(security),
+    db: Session = Depends(get_db)
+):
+    rol, correo, user_id = get_current_user_role(credentials)
     
-    # Aplicar filtro por rol
     ascensores = get_ascensores_query(db, rol, user_id).options(
         joinedload(Ascensor.cliente)
     ).all()
@@ -333,7 +343,6 @@ def get_ascensores(request: Request, db: Session = Depends(get_db)):
     resultado = []
     
     for asc in ascensores:
-        # Obtener última inspección
         ultima_insp = db.query(Inspeccion).filter(
             Inspeccion.id_ascensor == asc.id_ascensor
         ).order_by(Inspeccion.fecha_inicio.desc()).first()
@@ -358,10 +367,12 @@ def get_ascensores(request: Request, db: Session = Depends(get_db)):
 
 
 @router.get("/usuarios")
-def get_usuarios(request: Request, db: Session = Depends(get_db)):
-    rol, correo, user_id = get_current_user_role(request)
+def get_usuarios(
+    credentials: HTTPAuthorizationCredentials = Security(security),
+    db: Session = Depends(get_db)
+):
+    rol, correo, user_id = get_current_user_role(credentials)
     
-    # Aplicar filtro por rol
     if rol == "Administrador":
         result = db.execute(text("""
             SELECT u.*, r.nombre_rol 
@@ -410,13 +421,14 @@ def get_usuarios(request: Request, db: Session = Depends(get_db)):
 
 
 @router.get("/informes")
-def get_informes(request: Request, db: Session = Depends(get_db)):
-    rol, correo, user_id = get_current_user_role(request)
+def get_informes(
+    credentials: HTTPAuthorizationCredentials = Security(security),
+    db: Session = Depends(get_db)
+):
+    rol, correo, user_id = get_current_user_role(credentials)
     
-    # Aplicar filtro por rol
     base_query = get_inspecciones_query(db, rol, user_id)
     
-    # Informes = inspecciones completadas/aprobadas
     informes = base_query.filter(
         Inspeccion.estado.in_(["Aprobada", "Finalizada", "Completada"])
     ).all()
@@ -440,30 +452,27 @@ def get_informes(request: Request, db: Session = Depends(get_db)):
     
     return resultado
 
-from datetime import datetime, timedelta
 
 @router.get("/reports-summary")
-def get_reports_summary(request: Request, db: Session = Depends(get_db)):
-    rol, correo, user_id = get_current_user_role(request)
+def get_reports_summary(
+    credentials: HTTPAuthorizationCredentials = Security(security),
+    db: Session = Depends(get_db)
+):
+    rol, correo, user_id = get_current_user_role(credentials)
     
     hoy = datetime.now()
     treinta_dias = hoy + timedelta(days=30)
     
-    # Base query de inspecciones según rol
     base_query = get_inspecciones_query(db, rol, user_id)
     
-    # Certificados emitidos = informes aprobados/finalizados
     certificados = base_query.filter(
         Inspeccion.estado.in_(['Aprobada', 'Finalizada', 'Completada'])
     ).count()
     
-    # Reportes pendientes = inspecciones no completadas
     pendientes = base_query.filter(
         Inspeccion.estado.in_(['Borrador', 'En Proceso', 'Programada', 'Pendiente'])
     ).count()
     
-    # Por vencer = inspecciones con próxima fecha en 30 días
-    # (asumiendo que la próxima inspección es 30 días después de la última)
     por_vencer = base_query.filter(
         Inspeccion.fecha_inicio != None,
         Inspeccion.fecha_inicio <= treinta_dias,

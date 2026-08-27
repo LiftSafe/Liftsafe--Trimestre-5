@@ -1,86 +1,75 @@
-import { Box, Button, Chip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
-import BusinessOutlinedIcon from '@mui/icons-material/BusinessOutlined';
-import TrendingUpIcon from '@mui/icons-material/TrendingUp';
-import EventOutlinedIcon from '@mui/icons-material/EventOutlined';
+import { Box, Alert, Skeleton } from '@mui/material';
+import PeopleOutlinedIcon from '@mui/icons-material/PeopleOutlined';
+import ElevatorOutlinedIcon from '@mui/icons-material/ElevatorOutlined';
+import AssignmentOutlinedIcon from '@mui/icons-material/AssignmentOutlined';
+import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
 import StatCard from '../../components/StatCard';
 import WelcomeBanner from '../../components/WelcomeBanner';
 import ChartCard from '../../components/dashboard/ChartCard';
-import { SalesPipelineChart } from '../../components/dashboard/DashboardCharts';
-import { salesPipeline } from '../../data/dashboardData';
+import ActivityPanel from '../../components/dashboard/ActivityPanel';
+import { InspectionTrendChart } from '../../components/dashboard/DashboardCharts';
 import { useAuth } from '../../context/AuthContext';
-
-const clientes = [
-  { id: 11, nombre: 'Torres Altas PH', ciudad: 'Bogotá', inspeccionesPendientes: 1, estado: 'Activo' },
-  { id: 12, nombre: 'Ascensores Plus SAS', ciudad: 'Bogotá', inspeccionesPendientes: 0, estado: 'Activo' },
-  { id: 20, nombre: 'Torres del Valle PH', ciudad: 'Barranquilla', inspeccionesPendientes: 2, estado: 'Seguimiento' },
-  { id: 21, nombre: 'Edificio Horizonte', ciudad: 'Medellín', inspeccionesPendientes: 0, estado: 'Activo' },
-  { id: 22, nombre: 'Conjunto Los Pinos', ciudad: 'Cali', inspeccionesPendientes: 3, estado: 'Urgente' },
-];
+import { useDashboardData } from '../../hooks/useDashboardData';
+import { fetchInspecciones, fetchCharts, fetchAscensores } from '../../services/dashboardService';
 
 export default function AsesorDashboard() {
   const { user } = useAuth();
+  const { data: inspecciones = [], loading, error } = useDashboardData(fetchInspecciones);
+  const { data: charts } = useDashboardData(fetchCharts);
+  const { data: ascensores = [] } = useDashboardData(fetchAscensores);
+
+  // Clientes asociados (ascensores)
+  const clientesUnicos = [...new Set(ascensores.map(a => a.client))];
+
+  // Inspecciones de mis clientes
+  const pending = inspecciones.filter((item) => 
+    item.status === 'Programada' || item.status === 'Borrador'
+  );
+  const completed = inspecciones.filter((item) => 
+    item.status === 'Finalizada' || item.status === 'Aprobada'
+  );
+
+  const clientItems = ascensores.slice(0, 5).map((item) => ({
+    id: item.id,
+    title: item.building,
+    subtitle: `Cliente: ${item.client}`,
+    chip: `${item.elevators} ascensores`,
+    chipColor: 'info',
+    type: 'info',
+  }));
+
+  const inspectionItems = pending.slice(0, 5).map((item) => ({
+    id: item.id,
+    title: item.building,
+    subtitle: `${item.elevator} · Programada: ${item.nextDate}`,
+    chip: item.status,
+    chipColor: 'warning',
+    type: 'warning',
+  }));
 
   return (
     <Box>
       <WelcomeBanner name={user?.name} role={user?.role} />
+      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 2, mb: 3 }}>
-        <StatCard title="Clientes activos" value="24" subtitle="En cartera comercial" icon={<BusinessOutlinedIcon />} accent="#E65100" trend={6} />
-        <StatCard title="Contratos renovados" value="5" subtitle="Este mes" icon={<TrendingUpIcon />} accent="#0E7C4A" trend={25} />
-        <StatCard title="Por vencer (30 días)" value="12" subtitle="Requieren seguimiento" icon={<EventOutlinedIcon />} accent="#C97B1A" trend={-3} />
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(4, 1fr)' }, gap: 2, mb: 3 }}>
+        <StatCard title="Clientes" value={String(clientesUnicos.length)} subtitle="Asignados" icon={<PeopleOutlinedIcon />} accent="#0066CC" />
+        <StatCard title="Ascensores" value={String(ascensores.length)} subtitle="En cartera" icon={<ElevatorOutlinedIcon />} accent="#7C5CBF" />
+        <StatCard title="Inspecciones" value={String(inspecciones.length)} subtitle="Total" icon={<AssignmentOutlinedIcon />} accent="#C97B1A" />
+        <StatCard title="Pendientes" value={String(pending.length)} subtitle="Por ejecutar" icon={<DescriptionOutlinedIcon />} accent="#C0392B" />
       </Box>
 
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1fr 1.4fr' }, gap: 2.5 }}>
-        <ChartCard title="Pipeline comercial" subtitle="Clientes por etapa del proceso">
-          <SalesPipelineChart data={salesPipeline} />
+      {loading ? (
+        <Skeleton variant="rounded" height={280} sx={{ borderRadius: 3, mb: 2.5 }} />
+      ) : (
+        <ChartCard title="Inspecciones de mis clientes" subtitle="Tendencia mensual">
+          <InspectionTrendChart data={charts?.monthlyInspections || []} />
         </ChartCard>
+      )}
 
-        <Box
-          sx={{
-            borderRadius: 3,
-            border: '1px solid',
-            borderColor: 'divider',
-            bgcolor: '#fff',
-            overflow: 'hidden',
-          }}
-        >
-          <Box sx={{ p: 2.5, borderBottom: '1px solid', borderColor: 'divider', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Box>
-              <Box component="span" sx={{ fontWeight: 700, fontSize: 15, color: '#0B1929', display: 'block' }}>Seguimiento a clientes</Box>
-              <Box component="span" sx={{ fontSize: 12, color: 'text.secondary' }}>Estado de inspecciones pendientes</Box>
-            </Box>
-            <Button size="small" variant="outlined">Exportar</Button>
-          </Box>
-          <TableContainer>
-            <Table size="small">
-              <TableHead>
-                <TableRow sx={{ bgcolor: 'grey.50' }}>
-                  <TableCell><strong>Cliente</strong></TableCell>
-                  <TableCell><strong>Ciudad</strong></TableCell>
-                  <TableCell align="center"><strong>Pendientes</strong></TableCell>
-                  <TableCell><strong>Estado</strong></TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {clientes.map((cli) => (
-                  <TableRow key={cli.id} hover>
-                    <TableCell sx={{ fontWeight: 600 }}>{cli.nombre}</TableCell>
-                    <TableCell>{cli.ciudad}</TableCell>
-                    <TableCell align="center">{cli.inspeccionesPendientes}</TableCell>
-                    <TableCell>
-                      <Chip
-                        label={cli.estado}
-                        size="small"
-                        color={cli.estado === 'Urgente' ? 'error' : cli.estado === 'Seguimiento' ? 'warning' : 'success'}
-                        variant="outlined"
-                      />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </Box>
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' }, gap: 2.5, mt: 2.5 }}>
+        <ActivityPanel title="Mis clientes" subtitle="Edificios asignados" items={clientItems} accent="#0066CC" />
+        <ActivityPanel title="Inspecciones pendientes" subtitle="Próximas actividades" items={inspectionItems} accent="#C97B1A" />
       </Box>
     </Box>
   );

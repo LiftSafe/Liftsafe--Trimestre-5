@@ -1,13 +1,32 @@
+<<<<<<< HEAD
 import { createContext, useContext, useState } from 'react';
 import { canDo } from '../config/roles';
 import { decodeDeep } from '../utils/encoding';
 import { loginRequest } from '../services/authService';
+=======
+import { createContext, useContext, useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { canDo } from '../config/roles';
+import { loginRequest, registerRequest } from '../services/authService';
+>>>>>>> feature/esteban-local
 
 const BASE_URL = 'http://127.0.0.1:8000';
 const AuthContext = createContext(null);
 
+function buildUserFromLogin(data, correo) {
+  return {
+    name: data.nombre,
+    email: correo,
+    role: data.rol,
+    token: data.access_token,
+  };
+}
+
 export function AuthProvider({ children }) {
+  const navigate = useNavigate();
+  
   const [user, setUser] = useState(() => {
+<<<<<<< HEAD
     const saved = localStorage.getItem('liftsafe_user');
     if (!saved) return null;
     const parsed = decodeDeep(JSON.parse(saved));
@@ -61,6 +80,64 @@ export function AuthProvider({ children }) {
       return { success: true };
     } catch {
       return { success: false, message: 'No se pudo conectar con el servidor' };
+=======
+    try {
+const saved = sessionStorage.getItem('liftsafe_user');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.role && parsed.token) {
+          return parsed;
+        }
+      }
+    } catch (e) {
+      console.error('Error al cargar usuario:', e);
+sessionStorage.removeItem('liftsafe_user');
+sessionStorage.removeItem('liftsafe_token');
+    }
+    return null;
+  });
+
+  // Verificar token al cargar
+  useEffect(() => {
+    if (user) {
+      try {
+        const payload = JSON.parse(atob(user.token.split('.')[1]));
+        const expDate = new Date(payload.exp * 1000);
+        if (expDate < new Date()) {
+          console.log('Token expirado');
+          logout();
+        }
+      } catch (e) {
+        console.error('Error verificando token:', e);
+        logout();
+      }
+    }
+  }, []);
+
+  const login = async (email, password) => {
+    try {
+      const data = await loginRequest(email, password);
+      const userData = buildUserFromLogin(data, email);
+      sessionStorage.setItem('liftsafe_user', JSON.stringify(userData));
+sessionStorage.setItem('liftsafe_token', data.access_token);
+      setUser(userData);
+      return { success: true };
+    } catch (error) {
+      return { success: false, message: error.message || 'Correo o contraseña incorrectos' };
+    }
+  };
+
+  const register = async (formData) => {
+    try {
+      await registerRequest(formData);
+      const loginResult = await login(formData.email, formData.password);
+      if (!loginResult.success) {
+        return { success: true, message: 'Cuenta creada. Inicia sesión.' };
+      }
+      return { success: true };
+    } catch (error) {
+      return { success: false, message: error.message || 'No se pudo registrar' };
+>>>>>>> feature/esteban-local
     }
   };
 
@@ -68,9 +145,15 @@ export function AuthProvider({ children }) {
   // LOGOUT
   // ============================================
   const logout = () => {
+<<<<<<< HEAD
     localStorage.removeItem('liftsafe_user');
     localStorage.removeItem('token');
+=======
+sessionStorage.removeItem('liftsafe_user');
+sessionStorage.removeItem('liftsafe_token');
+>>>>>>> feature/esteban-local
     setUser(null);
+    navigate('/login');
   };
 
   // ============================================
@@ -92,8 +175,12 @@ export function AuthProvider({ children }) {
   );
 }
 
+<<<<<<< HEAD
 export function useAuth() {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error('useAuth debe usarse dentro de AuthProvider');
   return ctx;
 }
+=======
+export const useAuth = () => useContext(AuthContext);
+>>>>>>> feature/esteban-local
