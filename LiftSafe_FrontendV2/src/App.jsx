@@ -13,6 +13,7 @@ import Buildings from './pages/Buildings';
 import Reports from './pages/Reports';
 import Users from './pages/Users';
 import Settings from './pages/Settings';
+import Auditoria from './pages/Auditoria';
 
 const AppRoutes = () => {
   const { user } = useAuth();
@@ -28,6 +29,7 @@ const AppRoutes = () => {
         <Route path="reportes" element={<Reports />} />
         <Route path="usuarios" element={<Users />} />
         <Route path="configuracion" element={<Settings />} />
+        <Route path="auditoria" element={<Auditoria />} />
       </Route>
       <Route path="*" element={<Navigate to="/dashboard" />} />
     </Routes>

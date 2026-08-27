@@ -6,10 +6,11 @@ export const MENU_ITEMS = [
   { key: 'reportes', text: 'Reportes', path: '/dashboard/reportes' },
   { key: 'usuarios', text: 'Usuarios', path: '/dashboard/usuarios' },
   { key: 'configuracion', text: 'Mi cuenta', path: '/dashboard/configuracion' },
+  { key: 'auditoria', text: 'Auditoría', path: '/dashboard/auditoria' },
 ];
 
 export const ROLE_PERMISSIONS = {
-  Administrador: ['dashboard', 'inspecciones', 'ascensores', 'edificios', 'reportes', 'usuarios', 'configuracion'],
+  Administrador: ['dashboard', 'inspecciones', 'ascensores', 'edificios', 'reportes', 'usuarios', 'configuracion', 'auditoria'],
   Asesor: ['dashboard', 'reportes', 'configuracion'],
   Coordinador: ['dashboard', 'inspecciones', 'ascensores', 'edificios', 'reportes', 'configuracion'],
   'Director Técnico': ['dashboard', 'inspecciones', 'reportes', 'configuracion'],
