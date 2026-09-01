@@ -1,38 +1,22 @@
-// src/context/AuthContext.jsx
+// src/context/auth.js
 import { createContext, useContext, useState } from "react";
 import { loginRequest } from "../services/authService";
 
-// ✅ AQUÍ SE CREA Y EXPORTA EL CONTEXTO (lo que necesita useAuth.js)
-export const AuthContext = createContext(null);
-
-// ✅ AQUÍ SE EXPORTA EL PROVIDER
-function readStoredUser() {
-  try {
-    const raw = localStorage.getItem('user');
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-}
+const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(readStoredUser);
-  const [token, setToken] = useState(() => localStorage.getItem('token'));
+  const [user, setUser] = useState(null);
+  const [token, setToken] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const login = async (correo, contrasena) => {
     setIsLoading(true);
     try {
       const data = await loginRequest(correo, contrasena);
-      
-      // Backend devuelte: { access_token, rol, nombre }
       const newToken = data.access_token;
-      
-      // ✅ ARREGLO: Guarda el rol en AMBAS propiedades (rol y role)
       const newUser = { 
         name: data.nombre, 
-        rol: data.rol,   // ✅ Español (lo que devuelve el backend)
-        role: data.rol   // ✅ Inglés (para los archivos que usan role)
+        rol: data.rol 
       };
 
       if (!newToken) {
@@ -67,7 +51,6 @@ export function AuthProvider({ children }) {
   );
 }
 
-// ✅ AQUÍ SE EXPORTA THE HOOK
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) throw new Error('useAuth debe ser usado dentro de un AuthProvider');

@@ -15,7 +15,7 @@ import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import PageHeader from '../components/PageHeader';
 import SearchBar from '../components/SearchBar';
 import ListPagination from '../components/ListPagination';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import { useDashboardData } from '../hooks/useDashboardData';
 import { usePaginatedSearch } from '../hooks/usePaginatedSearch';
 import { fetchInformes, fetchInspecciones } from '../services/dashboardService';
@@ -109,7 +109,6 @@ export default function Reports() {
       <PageHeader
         title={isClient ? 'Mis certificados' : 'Reportes y Certificados'}
         subtitle={isClient ? 'Consulta y descarga los certificados de tus ascensores' : 'Informes técnicos de inspección y certificados emitidos'}
-        breadcrumbs={[{ label: 'Dashboard', path: '/dashboard' }, { label: 'Reportes' }]}
       />
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
       <Box sx={{ mb: 2 }}>

@@ -1,7 +1,8 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
-import { AuthProvider, useAuth } from './context/AuthContext';
+import { AuthProvider } from './context/AuthContext'; // ✅ Solo el Provider
+import { useAuth } from './hooks/useAuth'; // ✅ Solo el Hook
 import theme from './theme/theme';
 import DashboardLayout from './layouts/DashboardLayout';
 import Login from './pages/Login';
@@ -18,7 +19,12 @@ import Settings from './pages/Settings';
 import RoleRoute from './components/RoleRoute';
 
 const ProtectedRoute = ({ children }) => {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth(); // ✅ Importa desde hooks
+
+  if (isLoading) {
+    return null;
+  }
+
   if (!user) return <Navigate to="/login" replace />;
   return children;
 };

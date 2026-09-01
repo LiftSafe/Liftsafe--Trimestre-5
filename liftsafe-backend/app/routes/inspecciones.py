@@ -3,32 +3,14 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from app.database import get_db
-<<<<<<< HEAD
 from app.models.models import Inspeccion, Ascensor, Usuario, Informe
 from app.schemas.schemas import InspeccionCreate, FirmaRequest, MessageResponse
 from app.controllers.inspeccion_controller import crear_inspeccion
 from app.utils.auth_deps import get_current_user_role
 from app.config import settings
-=======
-from app.models.models import Inspeccion, Ascensor, Usuario
->>>>>>> feature/esteban-local
 from jose import jwt, JWTError
-from app.config import settings
 from datetime import datetime, date
-<<<<<<< HEAD
 from typing import Optional
-
-router = APIRouter(prefix="/inspecciones", tags=["Inspecciones"])
-
-# ============================================
-# AUTENTICACIÓN (ya lo tienes)
-# ============================================
-def get_current_user_role(request: Request):
-    authorization = request.headers.get('authorization')
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Token no proporcionado")
-    token = authorization.split(" ")[1]
-=======
 
 router = APIRouter(prefix="/inspecciones", tags=["Inspecciones"])
 
@@ -37,19 +19,15 @@ security = HTTPBearer()
 
 def get_current_user_role(credentials: HTTPAuthorizationCredentials = Security(security)):
     token = credentials.credentials
->>>>>>> feature/esteban-local
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         return payload.get("rol"), payload.get("sub"), payload.get("user_id")
     except JWTError:
         raise HTTPException(status_code=401, detail="Token inválido")
 
-<<<<<<< HEAD
 # ============================================
 # 1. MIS INSPECCIONES
 # ============================================
-=======
->>>>>>> feature/esteban-local
 @router.get("/mis-inspecciones")
 def mis_inspecciones(
     credentials: HTTPAuthorizationCredentials = Security(security),
@@ -76,14 +54,10 @@ def mis_inspecciones(
                 "fecha_inicio": i.fecha_inicio,
                 "fecha_fin": i.fecha_fin,
                 "estado": i.estado,
-<<<<<<< HEAD
                 "observaciones_generales": i.observaciones_generales,
                 "firma_inspector": bool(i.firma_inspector),
                 "firma_cliente": bool(i.firma_cliente),
                 "id_informe": id_informe,
-=======
-                "observaciones_generales": i.observaciones_generales
->>>>>>> feature/esteban-local
             }
             for i, codigo, id_informe in result
         ]
@@ -103,14 +77,10 @@ def mis_inspecciones(
                 "fecha_inicio": i.fecha_inicio,
                 "fecha_fin": i.fecha_fin,
                 "estado": i.estado,
-<<<<<<< HEAD
                 "observaciones_generales": i.observaciones_generales,
                 "firma_inspector": bool(i.firma_inspector),
                 "firma_cliente": bool(i.firma_cliente),
                 "id_informe": id_informe,
-=======
-                "observaciones_generales": i.observaciones_generales
->>>>>>> feature/esteban-local
             }
             for i, codigo, id_informe in result
         ]
@@ -118,15 +88,9 @@ def mis_inspecciones(
     else:
         raise HTTPException(status_code=403, detail="Rol no autorizado")
 
-<<<<<<< HEAD
 # ============================================
 # 2. CREAR INSPECCIÓN
 # ============================================
-=======
-from app.schemas.schemas import InspeccionCreate
-from app.controllers.inspeccion_controller import crear_inspeccion
-
->>>>>>> feature/esteban-local
 @router.post("/crear")
 def crear_nueva_inspeccion(
     data: InspeccionCreate,  # ✅ PRIMERO: parámetro sin valor por defecto
@@ -167,7 +131,6 @@ def crear_nueva_inspeccion(
         }
     except Exception as e:
         db.rollback()
-<<<<<<< HEAD
         raise HTTPException(status_code=500, detail=f"Error al crear inspección: {str(e)}")
 
 # ============================================
@@ -338,6 +301,3 @@ def actualizar_estado(
         "message": "Estado actualizado exitosamente",
         "nuevo_estado": inspeccion.estado
     }
-=======
-        raise HTTPException(status_code=500, detail=f"Error al crear inspección: {str(e)}")
->>>>>>> feature/esteban-local

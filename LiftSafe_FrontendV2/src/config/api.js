@@ -1,11 +1,11 @@
-<<<<<<< HEAD
-export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-=======
 // src/config/api.js
 
 // ✅ USAR VARIABLE DE ENTORNO EN LUGAR DE HARDCODEAR
 export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
+// ============================================
+// ROLES
+// ============================================
 export const ROLE_IDS = {
   Administrador: 1,
   'Director Técnico': 2,
@@ -23,9 +23,9 @@ export const ADMIN_CREATABLE_ROLES = [
   'Asesor',
 ];
 
-// ============ TIPOS DE DOCUMENTO COLOMBIA (MAYORES DE EDAD) ============
-// Fuente: Registraduría Nacional del Estado Civil - Colombia
-
+// ============================================
+// TIPOS DE DOCUMENTO COLOMBIA
+// ============================================
 export const DOCUMENT_TYPES = [
   { 
     value: 'CC', 
@@ -101,4 +101,49 @@ export const ADULT_DOCUMENT_TYPES = DOCUMENT_TYPES.filter(
 export const getDocumentLabel = (value) => {
   return DOCUMENT_TYPES.find(d => d.value === value)?.label || value;
 };
->>>>>>> feature/esteban-local
+
+// ============================================
+// ENDPOINTS
+// ============================================
+export const ENDPOINTS = {
+  // Autenticación
+  LOGIN: `${API_BASE_URL}/auth/login`,
+  REGISTER: `${API_BASE_URL}/auth/register`,
+  RECUPERAR_CLAVE: `${API_BASE_URL}/auth/recuperar-clave`,
+  RESET_CLAVE: `${API_BASE_URL}/auth/reset-clave`,
+  ME: `${API_BASE_URL}/auth/me`,
+  
+  // Inspecciones
+  INSPECCIONES: `${API_BASE_URL}/inspecciones`,
+  MIS_INSPECCIONES: `${API_BASE_URL}/inspecciones/mis-inspecciones`,
+  
+  // Fotografías
+  FOTOGRAFIAS: `${API_BASE_URL}/fotografias`,
+  
+  // Checklist
+  CHECKLIST: `${API_BASE_URL}/checklist`,
+  
+  // Observaciones
+  OBSERVACIONES: `${API_BASE_URL}/observaciones`,
+};
+
+// ============================================
+// HEADERS POR DEFECTO
+// ============================================
+export const getHeaders = () => {
+  const token = localStorage.getItem('token');
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+};
+
+// ============================================
+// HEADERS PARA FORM DATA (subir fotos)
+// ============================================
+export const getFormDataHeaders = () => {
+  const token = localStorage.getItem('token');
+  return {
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+};

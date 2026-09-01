@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import { solicitudService } from '../services/solicitudService';
 import { ascensorService } from '../services/ascensorService';
 

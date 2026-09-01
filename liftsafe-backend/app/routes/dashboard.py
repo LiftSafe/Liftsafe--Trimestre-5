@@ -317,10 +317,12 @@ def get_edificios(
             edificios_dict[direccion] = {
                 "id": direccion,
                 "name": direccion,
-                "address": f"{asc.ubicacion_exacta or 'Sin ubicación'}, {asc.ciudad or 'Sin ciudad'}",
+                "address": direccion,
+                "location": asc.ubicacion_exacta or "",
+                "city": asc.ciudad or "",
                 "elevators": 0,
-                "manager": asc.cliente.nombre_completo if asc.cliente else "Sin gestor",
-                "phone": asc.cliente.telefono if asc.cliente else "Sin teléfono",
+                "manager": asc.cliente.nombre_completo if asc.cliente else "",
+                "phone": asc.cliente.telefono if asc.cliente else "",
                 "status": asc.estado or "Activo"
             }
         

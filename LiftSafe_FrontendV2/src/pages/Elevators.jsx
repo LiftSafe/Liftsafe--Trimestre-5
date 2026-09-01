@@ -10,7 +10,7 @@ import SearchBar from '../components/SearchBar';
 import ListPagination from '../components/ListPagination';
 import { statusColor } from '../utils/statusHelpers';
 import { usePaginatedSearch } from '../hooks/usePaginatedSearch';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import { useDashboardData } from '../hooks/useDashboardData';
 import { fetchAscensores } from '../services/dashboardService';
 
@@ -77,7 +77,6 @@ export default function Elevators() {
       <PageHeader
         title="Ascensores"
         subtitle="Inventario y estado operativo desde la base de datos"
-        breadcrumbs={[{ label: 'Inicio', path: '/dashboard' }, { label: 'Ascensores' }]}
       />
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 2 }}>

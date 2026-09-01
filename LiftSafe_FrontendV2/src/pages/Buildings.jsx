@@ -1,5 +1,4 @@
 // src/pages/Buildings.jsx
-
 import { useState, useMemo } from 'react';
 import {
   Box, Card, CardContent, Typography, Button, Alert, CircularProgress,
@@ -14,7 +13,7 @@ import PageHeader from '../components/PageHeader';
 import SearchBar from '../components/SearchBar';
 import ListPagination from '../components/ListPagination';
 import { brand } from '../theme/colors';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import { useDashboardData } from '../hooks/useDashboardData';
 import { usePaginatedSearch } from '../hooks/usePaginatedSearch';
 import { fetchEdificios } from '../services/dashboardService';
@@ -45,11 +44,15 @@ function getImagenUrl(building) {
   return match ? IMAGENES_POR_EDIFICIO[match] : IMAGEN_DEFAULT;
 }
 
+// Placeholder en gris cuando la foto no existe/no carga
+const PLACEHOLDER_SVG = (w, h, fontSize) =>
+  `data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22${w}%22 height=%22${h}%22%3E%3Crect width=%22${w}%22 height=%22${h}%22 fill=%22%23e3e8ee%22/%3E%3Ctext x=%22${w / 2}%22 y=%22${h / 2}%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%23909dad%22 font-family=%22sans-serif%22 font-size=%22${fontSize}%22%3ESin foto disponible%3C/text%3E%3C/svg%3E`;
+
 export default function Buildings() {
   const { hasAction } = useAuth();
   const { data: buildings, loading, error } = useDashboardData(fetchEdificios);
   const edificios = buildings || [];
-  
+
   const { search, setSearch, page, setPage, paginated, totalCount } = usePaginatedSearch(
     edificios,
     ['name', 'address', 'manager', 'phone', 'status']
@@ -75,7 +78,6 @@ export default function Buildings() {
       <PageHeader
         title="Edificios"
         subtitle="Edificios registrados en el sistema"
-        breadcrumbs={[{ label: 'Inicio', path: '/dashboard' }, { label: 'Edificios' }]}
       />
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
@@ -98,9 +100,9 @@ export default function Buildings() {
               paginated.map((b) => {
                 const imgUrl = getImagenUrl(b);
                 return (
-                  <Card 
-                    key={b.id || b.name} 
-                    sx={{ 
+                  <Card
+                    key={b.id || b.name}
+                    sx={{
                       '&:hover': { borderColor: brand.accent },
                       overflow: 'hidden',
                     }}
@@ -117,9 +119,14 @@ export default function Buildings() {
                         display: 'block',
                         borderBottom: '1px solid',
                         borderColor: 'divider',
+                        bgcolor: 'grey.100',
+                      }}
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = PLACEHOLDER_SVG(400, 160, 14);
                       }}
                     />
-                    
+
                     <CardContent>
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
                         <Typography variant="h6" fontWeight={600}>
@@ -141,15 +148,15 @@ export default function Buildings() {
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                         <PhoneOutlinedIcon fontSize="small" color="action" />
                         <Typography variant="body2">
-                          {b.manager || 'Sin gestor'} — {b.phone || 'Sin teléfono'}
+                          {[b.manager, b.phone].filter(Boolean).join(' · ') || 'Sin contacto'}
                         </Typography>
                       </Box>
 
                       {/* ✅ SOLO UN BOTÓN: Ver detalle */}
                       <Box sx={{ display: 'flex', gap: 1 }}>
-                        <Button 
-                          size="small" 
-                          variant="outlined" 
+                        <Button
+                          size="small"
+                          variant="outlined"
                           fullWidth
                           onClick={() => handleOpenDetail(b)}
                         >
@@ -177,9 +184,9 @@ export default function Buildings() {
         maxWidth="md"
         fullWidth
       >
-        <DialogTitle sx={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
+        <DialogTitle sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
           alignItems: 'center',
           pb: 1
         }}>
@@ -208,13 +215,18 @@ export default function Buildings() {
               borderRadius: 2,
               display: 'block',
               mb: 2,
+              bgcolor: 'grey.100',
+            }}
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.src = PLACEHOLDER_SVG(800, 280, 18);
             }}
           />
 
           {/* Información detallada en grid */}
-          <Box sx={{ 
-            display: 'grid', 
-            gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' }, 
+          <Box sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' },
             gap: 2,
             p: 2,
             bgcolor: 'grey.50',
@@ -243,7 +255,7 @@ export default function Buildings() {
                 UBICACIÓN / CIUDAD
               </Typography>
               <Typography variant="body1">
-                {detailBuilding?.location || '—'}, {detailBuilding?.city || '—'}
+                {[detailBuilding?.location, detailBuilding?.city].filter(Boolean).join(' · ') || '—'}
               </Typography>
             </Box>
 

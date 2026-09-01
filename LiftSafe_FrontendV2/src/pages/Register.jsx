@@ -19,7 +19,7 @@ import BadgeOutlinedIcon from '@mui/icons-material/BadgeOutlined';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import AuthLayout from '../layouts/AuthLayout';
 import PasswordRequirements from '../components/PasswordRequirements';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import { brand } from '../theme/colors';
 import { ADULT_DOCUMENT_TYPES } from '../config/api';
 import { isPasswordValid } from '../utils/passwordValidation';

@@ -21,7 +21,7 @@ import { usePaginatedSearch } from '../hooks/usePaginatedSearch';
 import { useDashboardData } from '../hooks/useDashboardData';
 import { fetchUsuarios } from '../services/dashboardService';
 import { createUserRequest, eliminarUsuario } from '../services/authService'; // ✅ Agregar eliminarUsuario
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import { ADMIN_CREATABLE_ROLES, ADULT_DOCUMENT_TYPES } from '../config/api';
 import { isPasswordValid } from '../utils/passwordValidation';
 
@@ -146,7 +146,6 @@ export default function UsersPage() {
       <PageHeader 
         title="Usuarios" 
         subtitle="Gestión de usuarios del sistema (solo administrador)" 
-        breadcrumbs={[{ label: 'Dashboard', path: '/dashboard' }, { label: 'Usuarios' }]} 
       />
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 2 }}>

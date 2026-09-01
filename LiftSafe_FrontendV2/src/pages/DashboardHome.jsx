@@ -1,4 +1,4 @@
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import { Navigate } from 'react-router-dom';
 import AdminDashboard from './dashboards/AdminDashboard';
 import AsesorDashboard from './dashboards/AsesorDashboard';
@@ -11,12 +11,13 @@ const DashboardHome = () => {
   const { user } = useAuth();
   
   if (!user) return <Navigate to="/login" replace />;
-  if (!user.role) {
+  const role = user.rol || user.role;
+  if (!role) {
     console.error('Usuario sin rol:', user);
     return <Navigate to="/login" replace />;
   }
 
-  switch (user.role) {
+  switch (role) {
     case 'Administrador':
       return <AdminDashboard />;
     case 'Asesor':

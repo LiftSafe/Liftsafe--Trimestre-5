@@ -1,5 +1,6 @@
+// src/config/roles.js
 export const MENU_ITEMS = [
-  { key: 'dashboard', text: 'Inicio', path: '/dashboard' },
+  { key: 'dashboard', text: 'Panel', path: '/dashboard' },
   { key: 'inspecciones', text: 'Inspecciones', path: '/dashboard/inspecciones' },
   { key: 'ascensores', text: 'Ascensores', path: '/dashboard/ascensores' },
   { key: 'edificios', text: 'Edificios', path: '/dashboard/edificios' },
@@ -17,7 +18,6 @@ export const ROLE_PERMISSIONS = {
   Cliente: ['dashboard', 'reportes', 'configuracion'],
 };
 
-// Acciones específicas (opcional, pero la dejas)
 export const ROLE_ACTIONS = {
   createInspection: ['Administrador', 'Inspector'],
   createElevator: ['Administrador'],
@@ -32,14 +32,14 @@ export function getPermissions(role) {
   return ROLE_PERMISSIONS[role] || ['dashboard', 'configuracion'];
 }
 
+export function getMenuForRole(role) {
+  return MENU_ITEMS.filter((item) => getPermissions(role).includes(item.key));
+}
+
 export function canAccess(role, key) {
   return getPermissions(role).includes(key);
 }
 
 export function canDo(role, action) {
   return (ROLE_ACTIONS[action] || []).includes(role);
-}
-
-export function getMenuForRole(role) {
-  return MENU_ITEMS.filter((item) => getPermissions(role).includes(item.key));
 }

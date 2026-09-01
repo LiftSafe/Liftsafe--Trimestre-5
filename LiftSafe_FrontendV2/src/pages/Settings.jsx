@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Box, Card, CardContent, Typography, TextField, Button, Switch, FormControlLabel, Divider, Alert } from '@mui/material';
 import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined';
 import PageHeader from '../components/PageHeader';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 
 export default function Settings() {
   const { user, hasAction } = useAuth();
@@ -18,7 +18,7 @@ export default function Settings() {
 
   return (
     <Box>
-      <PageHeader title="Mi cuenta" subtitle="Datos personales y preferencias" breadcrumbs={[{ label: 'Inicio', path: '/dashboard' }, { label: 'Mi cuenta' }]} />
+      <PageHeader title="Mi cuenta" subtitle="Datos personales y preferencias" />
       {saved && <Alert severity="success" sx={{ mb: 2 }}>Cambios guardados</Alert>}
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: hasAction('manageNotifications') ? '1fr 1fr' : '1fr' }, gap: 2 }}>
         <Card>

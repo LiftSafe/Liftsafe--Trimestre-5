@@ -1,12 +1,11 @@
-<<<<<<< HEAD
-import { API_BASE_URL } from '../config/api';
-import { decodeDeep } from '../utils/encoding';
-=======
 // src/services/authService.js
 
 import { API_BASE_URL, ROLE_IDS } from '../config/api';
->>>>>>> feature/esteban-local
+import { decodeDeep } from '../utils/encoding';
 
+// ============================================
+// PARSE RESPONSE (con decodeDeep de Valentina)
+// ============================================
 async function parseResponse(response) {
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
@@ -16,13 +15,13 @@ async function parseResponse(response) {
       : detail || data.message || 'Error en la solicitud';
     throw new Error(message);
   }
-<<<<<<< HEAD
+  // ✅ DECODIFICAR UTF-8 (Valentina)
   return decodeDeep(data);
-=======
-  return data;
->>>>>>> feature/esteban-local
 }
 
+// ============================================
+// LOGIN (Valentina + Esteban)
+// ============================================
 export async function loginRequest(correo, contrasena) {
   const response = await fetch(`${API_BASE_URL}/auth/login`, {
     method: 'POST',
@@ -31,9 +30,10 @@ export async function loginRequest(correo, contrasena) {
   });
   return parseResponse(response);
 }
-<<<<<<< HEAD
-=======
 
+// ============================================
+// REGISTER (Esteban)
+// ============================================
 export async function registerRequest(formData) {
   const response = await fetch(`${API_BASE_URL}/auth/register`, {
     method: 'POST',
@@ -53,6 +53,9 @@ export async function registerRequest(formData) {
   return parseResponse(response);
 }
 
+// ============================================
+// CREAR USUARIO (Esteban - Admin)
+// ============================================
 export async function createUserRequest(formData, token) {
   const response = await fetch(`${API_BASE_URL}/usuarios`, {
     method: 'POST',
@@ -75,7 +78,9 @@ export async function createUserRequest(formData, token) {
   return parseResponse(response);
 }
 
-// ✅ NUEVO: Eliminar usuario
+// ============================================
+// ELIMINAR USUARIO (Esteban)
+// ============================================
 export async function eliminarUsuario(userId) {
   const token = sessionStorage.getItem('liftsafe_token') || sessionStorage.getItem('token');
   
@@ -95,6 +100,9 @@ export async function eliminarUsuario(userId) {
   return response.json();
 }
 
+// ============================================
+// RECUPERAR CONTRASEÑA (Esteban)
+// ============================================
 export async function recoverPasswordRequest(correo) {
   const response = await fetch(`${API_BASE_URL}/auth/recuperar-clave`, {
     method: 'POST',
@@ -104,6 +112,9 @@ export async function recoverPasswordRequest(correo) {
   return parseResponse(response);
 }
 
+// ============================================
+// RESETEAR CONTRASEÑA (Esteban)
+// ============================================
 export async function resetPasswordRequest(token, nueva_contrasena) {
   const response = await fetch(`${API_BASE_URL}/auth/reset-clave`, {
     method: 'POST',
@@ -113,6 +124,9 @@ export async function resetPasswordRequest(token, nueva_contrasena) {
   return parseResponse(response);
 }
 
+// ============================================
+// RESETEAR CONTRASEÑA CON CÓDIGO (Esteban)
+// ============================================
 export async function resetPasswordWithCodeRequest(correo, code, nueva_contrasena) {
   const response = await fetch(`${API_BASE_URL}/auth/reset-clave`, {
     method: 'POST',
@@ -121,4 +135,3 @@ export async function resetPasswordWithCodeRequest(correo, code, nueva_contrasen
   });
   return parseResponse(response);
 }
->>>>>>> feature/esteban-local

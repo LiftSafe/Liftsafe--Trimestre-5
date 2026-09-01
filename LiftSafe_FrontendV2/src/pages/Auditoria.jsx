@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Box, Typography, Table, TableHead, TableBody, TableRow, TableCell, TextField, MenuItem, Skeleton, Alert, Card, CardContent } from '@mui/material';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import { auditoriaService } from '../services/auditoriaService';
 
 const TABLAS_AUDITABLES = [

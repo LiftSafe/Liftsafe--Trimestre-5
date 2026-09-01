@@ -53,11 +53,11 @@ export default function WelcomeBanner({ name, role, welcomeIcon, actions  }) {
       BIENVENIDO
     </Typography>
     <Typography variant="h5" fontWeight={800} sx={{ color: '#fff', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: 1 }}>
-      Hola, {role} {firstName}
+      Hola{firstName ? `, ${firstName}` : ''}
       {welcomeIcon}
     </Typography>
     <Typography variant="body2" sx={{ color: brand.silver, mt: 0.5 }}>
-      {meta.label} · LiftSafe
+      {meta.label}
     </Typography>
   </Box>
 

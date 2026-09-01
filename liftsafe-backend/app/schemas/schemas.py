@@ -135,12 +135,9 @@ class InspeccionCreate(BaseModel):
     tipo_servicio: str = "Periódica"
     observaciones: Optional[str] = None
 
-<<<<<<< HEAD
-<<<<<<< HEAD
 # ============================================
-# SCHEMAS DE DAYAN - USUARIO-ASCENSOR
+# SCHEMAS DE SOLICITUDES Y PROGRAMACIÓN
 # ============================================
-=======
 class SolicitudBase(BaseModel):
     id_ascensor: int
     tipo_servicio: str
@@ -197,7 +194,9 @@ class ProgramacionResponse(ProgramacionBase):
     class Config:
         from_attributes = True
 
->>>>>>> feature/esteban-local
+# ============================================
+# SCHEMAS DE USUARIO-ASCENSOR (DAYAN)
+# ============================================
 class UsuarioAscensorBase(BaseModel):
     id_usuario: int
     id_ascensor: int
@@ -216,15 +215,15 @@ class UsuarioAscensorUpdate(BaseModel):
 class UsuarioAscensorResponse(UsuarioAscensorBase):
     id_usuario_ascensor: int
     fecha_desasignacion: date | None = None
-<<<<<<< HEAD
     usuario: dict | None = None
     ascensor: dict | None = None
-=======
-=======
 
     class Config:
         from_attributes = True
 
+# ============================================
+# SCHEMAS DE AUDITORÍA
+# ============================================
 class AuditoriaResponse(BaseModel):
     id_auditoria: int
     id_usuario: int | None
@@ -239,16 +238,14 @@ class AuditoriaResponse(BaseModel):
 
     class Config:
         from_attributes = True
->>>>>>> feature/esteban-local
 
+# ============================================
+# SCHEMAS DE CHECKLIST
+# ============================================
 class DetalleChecklistBase(BaseModel):
     id_inspeccion: int
     id_item: int
-<<<<<<< HEAD
     resultado: str  # Cumple, No Cumple, No Aplica
-=======
-    resultado: str
->>>>>>> feature/esteban-local
     observacion: Optional[str] = None
     accion_requerida: Optional[str] = None
 
@@ -258,62 +255,10 @@ class DetalleChecklistCreate(DetalleChecklistBase):
 class DetalleChecklistResponse(DetalleChecklistBase):
     id_detalle: int
     fecha_registro: datetime
-<<<<<<< HEAD
-    
-=======
->>>>>>> feature/esteban-local
 
     class Config:
         from_attributes = True
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-# ============================================
-# SCHEMAS DE VALENTINA - FOTOGRAFIAS
-# ============================================
-=======
->>>>>>> feature/esteban-local
-class FotografiaBase(BaseModel):
-    id_informe: int
-    id_item: int | None = None
-    descripcion: str | None = None
-    tipo_evidencia: str | None = None
-
-class FotografiaCreate(FotografiaBase):
-    pass
-
-class FotografiaResponse(FotografiaBase):
-    id_foto: int
-    nombre_archivo: str
-    ruta_archivo: str
-    tamano_kb: int | None = None
-    fecha_captura: datetime
-    latitud: float | None = None
-    longitud: float | None = None
-    sincronizado: bool
-
-    class Config:
-        from_attributes = True
-
-<<<<<<< HEAD
-# ============================================
-# SCHEMAS DE VALENTINA - FIRMA
-# ============================================
-class FirmaRequest(BaseModel):
-    firma: str  # base64
-=======
-class FirmaRequest(BaseModel):
-    firma: str
->>>>>>> feature/esteban-local
-
-class FirmaResponse(BaseModel):
-    mensaje: str
-    fecha_firma: datetime | None = None
-<<<<<<< HEAD
-=======
-=======
-
->>>>>>> feature/esteban-local
 class ChecklistItemResponse(BaseModel):
     id_item: int
     id_categoria: int
@@ -338,10 +283,44 @@ class ChecklistCategoriaResponse(BaseModel):
     class Config:
         from_attributes = True
 
-<<<<<<< HEAD
+# ============================================
+# SCHEMAS DE FOTOGRAFIAS (VALENTINA)
+# ============================================
+class FotografiaBase(BaseModel):
+    id_informe: int
+    id_item: int | None = None
+    descripcion: str | None = None
+    tipo_evidencia: str | None = None
 
-=======
->>>>>>> feature/esteban-local
+class FotografiaCreate(FotografiaBase):
+    pass
+
+class FotografiaResponse(FotografiaBase):
+    id_foto: int
+    nombre_archivo: str
+    ruta_archivo: str
+    tamano_kb: int | None = None
+    fecha_captura: datetime
+    latitud: float | None = None
+    longitud: float | None = None
+    sincronizado: bool
+
+    class Config:
+        from_attributes = True
+
+# ============================================
+# SCHEMAS DE FIRMA
+# ============================================
+class FirmaRequest(BaseModel):
+    firma: str  # base64
+
+class FirmaResponse(BaseModel):
+    mensaje: str
+    fecha_firma: datetime | None = None
+
+# ============================================
+# SCHEMAS DE OBSERVACIONES
+# ============================================
 class ObservacionBase(BaseModel):
     id_informe: int
     tipo_observacion: str
@@ -366,7 +345,3 @@ class ObservacionResponse(ObservacionBase):
 
     class Config:
         from_attributes = True
-<<<<<<< HEAD
->>>>>>> 18177d26d35979b66edf2bf8306e2fa03f251cad
-=======
->>>>>>> feature/esteban-local

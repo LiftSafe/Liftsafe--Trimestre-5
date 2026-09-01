@@ -26,10 +26,10 @@ export function useDashboardData(fetchFunction) {
         if (mounted) {
           console.error('Error en useDashboardData:', err);
           
+          // ✅ CORREGIDO: Busca el token en localStorage (NO en sessionStorage)
           if (err.message?.includes('401') || err.message?.includes('Unauthorized') || err.message?.includes('expired')) {
-            sessionStorage.removeItem('liftsafe_token');
-            sessionStorage.removeItem('token');
-            sessionStorage.removeItem('user');
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
             navigate('/login', { replace: true });
             return;
           }
