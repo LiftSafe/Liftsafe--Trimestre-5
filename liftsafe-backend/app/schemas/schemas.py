@@ -199,3 +199,25 @@ class ProgramacionResponse(ProgramacionBase):
 
     class Config:
         from_attributes = True
+
+
+        # ============ NOTIFICACIONES ============
+
+class NotificacionBase(BaseModel):
+    id_usuario_destino: int
+    mensaje: str
+    leida: bool = False
+
+class NotificacionCreate(NotificacionBase):
+    pass
+
+class NotificacionUpdate(BaseModel):
+    leida: bool | None = None
+
+class NotificacionResponse(NotificacionBase):
+    id_notificacion: int
+    fecha_creacion: datetime
+
+    class Config:
+        from_attributes = True
+        

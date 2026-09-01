@@ -12,7 +12,7 @@ const handleResponse = async (response) => {
     return response.json();
 };
 
-export const apiGet = (endpoint) => {
+const apiGet = (endpoint) => {
     return fetch(`${API_URL}${endpoint}`, {
         method: 'GET',
         headers: {
@@ -22,34 +22,18 @@ export const apiGet = (endpoint) => {
     }).then(handleResponse);
 };
 
-export const apiPost = (endpoint, data) => {
-    return fetch(`${API_URL}${endpoint}`, {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${getToken()}`,
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-    }).then(handleResponse);
-};
-
-export const apiPut = (endpoint, data) => {
+const apiPut = (endpoint) => {
     return fetch(`${API_URL}${endpoint}`, {
         method: 'PUT',
         headers: {
             'Authorization': `Bearer ${getToken()}`,
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify(data),
     }).then(handleResponse);
 };
 
-export const apiDelete = (endpoint) => {
-    return fetch(`${API_URL}${endpoint}`, {
-        method: 'DELETE',
-        headers: {
-            'Authorization': `Bearer ${getToken()}`,
-            'Content-Type': 'application/json',
-        },
-    }).then(handleResponse);
+export const notificacionService = {
+    listar: () => apiGet('/notificaciones'),
+    marcarLeida: (id) => apiPut(`/notificaciones/${id}/leer`),
+    marcarTodasLeidas: () => apiPut('/notificaciones/leer-todas'),
 };
