@@ -10,8 +10,4 @@ export default function Logo({ width = 180, sx = {} }) {
       sx={{ width, height: 'auto', display: 'block', mx: 'auto', ...sx }}
     />
   );
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> c8306d785873f7353c3912678d3673587c1f0869
