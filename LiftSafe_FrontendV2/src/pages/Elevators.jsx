@@ -2,8 +2,8 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import IconButton from '@mui/material/IconButton';
-import { useState } from 'react';
-import { Box, Card, CardContent, Chip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, Alert, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, Typography } from '@mui/material';
+import { useState, useEffect } from 'react';
+import { Box, Card, CardContent, Chip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, Alert, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, Typography, TextField, MenuItem } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import PageHeader from '../components/PageHeader';
 import SearchBar from '../components/SearchBar';
@@ -13,6 +13,8 @@ import { usePaginatedSearch } from '../hooks/usePaginatedSearch';
 import { useAuth } from '../hooks/useAuth';
 import { useDashboardData } from '../hooks/useDashboardData';
 import { fetchAscensores } from '../services/dashboardService';
+import { ascensorService } from '../services/ascensorService';
+import { clienteService } from '../services/clienteService';
 
 // ========== COMPONENTE CONFIRM DIALOG ==========
 function ConfirmDialog({
@@ -41,6 +43,26 @@ function ConfirmDialog({
   );
 }
 
+const TIPOS_ASCENSOR = ['Eléctrico', 'Hidráulico', 'Panorámico', 'Montacargas'];
+const ESTADOS_ASCENSOR = ['Activo', 'En mantenimiento', 'Fuera de servicio'];
+
+const FORM_VACIO = {
+  id_cliente: '',
+  codigo_interno: '',
+  marca: '',
+  modelo: '',
+  numero_serie: '',
+  tipo_ascensor: 'Eléctrico',
+  capacidad_kg: '',
+  capacidad_personas: '',
+  numero_pisos: '',
+  velocidad_ms: '',
+  ubicacion_exacta: '',
+  direccion_completa: '',
+  ciudad: '',
+  estado: 'Activo',
+};
+
 export default function Elevators() {
   const { hasAction } = useAuth();
   const { data: elevators = [], loading, error, refetch } = useDashboardData(fetchAscensores);
@@ -52,6 +74,20 @@ export default function Elevators() {
   // ✅ Estados para ConfirmDialog
   const [deleteDialog, setDeleteDialog] = useState({ open: false, row: null });
   const [deleting, setDeleting] = useState(false);
+
+  // ✅ Estados para el formulario de crear/editar
+  const [formOpen, setFormOpen] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [form, setForm] = useState(FORM_VACIO);
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState('');
+  const [clientes, setClientes] = useState([]);
+
+  useEffect(() => {
+    if (formOpen) {
+      clienteService.listar().then(setClientes).catch(() => setClientes([]));
+    }
+  }, [formOpen]);
 
   const handleDeleteClick = (row) => {
     setDeleteDialog({ open: true, row });
@@ -72,6 +108,70 @@ export default function Elevators() {
     }
   };
 
+  const abrirCrear = () => {
+    setEditingId(null);
+    setForm(FORM_VACIO);
+    setFormError('');
+    setFormOpen(true);
+  };
+
+  const abrirEditar = (row) => {
+    setEditingId(row.id);
+    setForm({
+      id_cliente: '',
+      codigo_interno: '',
+      marca: row.brand || '',
+      modelo: row.model || '',
+      numero_serie: '',
+      tipo_ascensor: row.type || 'Eléctrico',
+      capacidad_kg: row.capacity || '',
+      capacidad_personas: '',
+      numero_pisos: row.floors || '',
+      velocidad_ms: '',
+      ubicacion_exacta: row.location || '',
+      direccion_completa: row.building || '',
+      ciudad: row.city || '',
+      estado: row.status || 'Activo',
+    });
+    setFormError('');
+    setFormOpen(true);
+  };
+
+  const guardar = async () => {
+    setSaving(true);
+    setFormError('');
+    try {
+      if (editingId) {
+        // Al editar solo se envían los campos modificables (sin id_cliente/codigo_interno/numero_serie)
+        const { id_cliente, codigo_interno, numero_serie, ...datosEditables } = form;
+        const payload = {
+          ...datosEditables,
+          capacidad_kg: Number(datosEditables.capacidad_kg) || undefined,
+          capacidad_personas: datosEditables.capacidad_personas ? Number(datosEditables.capacidad_personas) : undefined,
+          numero_pisos: Number(datosEditables.numero_pisos) || undefined,
+          velocidad_ms: datosEditables.velocidad_ms ? Number(datosEditables.velocidad_ms) : undefined,
+        };
+        await ascensorService.modificar(editingId, payload);
+      } else {
+        const payload = {
+          ...form,
+          id_cliente: Number(form.id_cliente),
+          capacidad_kg: Number(form.capacidad_kg),
+          capacidad_personas: form.capacidad_personas ? Number(form.capacidad_personas) : undefined,
+          numero_pisos: Number(form.numero_pisos),
+          velocidad_ms: form.velocidad_ms ? Number(form.velocidad_ms) : undefined,
+        };
+        await ascensorService.crear(payload);
+      }
+      setFormOpen(false);
+      if (refetch) refetch();
+    } catch (err) {
+      setFormError(err.message || 'No se pudo guardar el ascensor');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <Box>
       <PageHeader
@@ -81,7 +181,11 @@ export default function Elevators() {
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 2 }}>
         <SearchBar value={search} onChange={setSearch} placeholder="Buscar ascensor..." />
-        {hasAction('createElevator') && <Button variant="contained" startIcon={<AddIcon />}>Registrar ascensor</Button>}
+        {hasAction('createElevator') && (
+          <Button variant="contained" startIcon={<AddIcon />} onClick={abrirCrear}>
+            Registrar ascensor
+          </Button>
+        )}
       </Box>
       <Card>
         <CardContent sx={{ p: 0 }}>
@@ -116,20 +220,18 @@ export default function Elevators() {
                         <TableCell>
                           <Chip label={row.status} color={statusColor[row.status] || 'default'} size="small" />
                         </TableCell>
-                        
+
                         <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
-                          <IconButton 
-                            size="small" 
+                          <IconButton
+                            size="small"
                             color="primary"
-                            onClick={() => {
-                              console.log('Editar ascensor:', row.id);
-                            }}
+                            onClick={() => abrirEditar(row)}
                             title="Editar ascensor"
                           >
                             <EditIcon fontSize="small" />
                           </IconButton>
-                          <IconButton 
-                            size="small" 
+                          <IconButton
+                            size="small"
                             color="error"
                             onClick={() => handleDeleteClick(row)}
                             title="Eliminar ascensor"
@@ -168,6 +270,71 @@ export default function Elevators() {
         confirmColor="error"
         loading={deleting}
       />
+
+      {/* ✅ FORMULARIO CREAR / EDITAR ASCENSOR */}
+      <Dialog open={formOpen} onClose={() => setFormOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle fontWeight={700}>
+          {editingId ? 'Editar ascensor' : 'Registrar ascensor'}
+        </DialogTitle>
+        <DialogContent>
+          {formError && <Alert severity="error" sx={{ mb: 2 }}>{formError}</Alert>}
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2, mt: 1 }}>
+            {!editingId && (
+              <TextField
+                select label="Cliente" fullWidth required sx={{ gridColumn: '1 / -1' }}
+                value={form.id_cliente}
+                onChange={(e) => setForm({ ...form, id_cliente: e.target.value })}
+              >
+                {clientes.map((c) => (
+                  <MenuItem key={c.id_usuario} value={c.id_usuario}>{c.nombre_completo}</MenuItem>
+                ))}
+              </TextField>
+            )}
+            {!editingId && (
+              <TextField label="Código interno" fullWidth required
+                value={form.codigo_interno}
+                onChange={(e) => setForm({ ...form, codigo_interno: e.target.value })} />
+            )}
+            {!editingId && (
+              <TextField label="Número de serie" fullWidth required
+                value={form.numero_serie}
+                onChange={(e) => setForm({ ...form, numero_serie: e.target.value })} />
+            )}
+            <TextField label="Marca" fullWidth required
+              value={form.marca} onChange={(e) => setForm({ ...form, marca: e.target.value })} />
+            <TextField label="Modelo" fullWidth required
+              value={form.modelo} onChange={(e) => setForm({ ...form, modelo: e.target.value })} />
+            <TextField select label="Tipo" fullWidth
+              value={form.tipo_ascensor} onChange={(e) => setForm({ ...form, tipo_ascensor: e.target.value })}>
+              {TIPOS_ASCENSOR.map((t) => <MenuItem key={t} value={t}>{t}</MenuItem>)}
+            </TextField>
+            <TextField select label="Estado" fullWidth
+              value={form.estado} onChange={(e) => setForm({ ...form, estado: e.target.value })}>
+              {ESTADOS_ASCENSOR.map((e2) => <MenuItem key={e2} value={e2}>{e2}</MenuItem>)}
+            </TextField>
+            <TextField label="Capacidad (kg)" type="number" fullWidth required
+              value={form.capacidad_kg} onChange={(e) => setForm({ ...form, capacidad_kg: e.target.value })} />
+            <TextField label="Capacidad (personas)" type="number" fullWidth
+              value={form.capacidad_personas} onChange={(e) => setForm({ ...form, capacidad_personas: e.target.value })} />
+            <TextField label="Número de pisos" type="number" fullWidth required
+              value={form.numero_pisos} onChange={(e) => setForm({ ...form, numero_pisos: e.target.value })} />
+            <TextField label="Velocidad (m/s)" type="number" fullWidth
+              value={form.velocidad_ms} onChange={(e) => setForm({ ...form, velocidad_ms: e.target.value })} />
+            <TextField label="Ubicación exacta" fullWidth required sx={{ gridColumn: '1 / -1' }}
+              value={form.ubicacion_exacta} onChange={(e) => setForm({ ...form, ubicacion_exacta: e.target.value })} />
+            <TextField label="Dirección completa" fullWidth required sx={{ gridColumn: '1 / -1' }}
+              value={form.direccion_completa} onChange={(e) => setForm({ ...form, direccion_completa: e.target.value })} />
+            <TextField label="Ciudad" fullWidth required
+              value={form.ciudad} onChange={(e) => setForm({ ...form, ciudad: e.target.value })} />
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={() => setFormOpen(false)} disabled={saving}>Cancelar</Button>
+          <Button variant="contained" onClick={guardar} disabled={saving}>
+            {saving ? 'Guardando...' : 'Guardar'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

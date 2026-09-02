@@ -675,25 +675,39 @@ export default function Inspections() {
   };
 
   const calificarItem = async (item, resultado) => {
-    setSavingItem(item.id_item);
-    try {
-      await checklistService.calificar({
-        id_inspeccion: selected.id_inspeccion,
-        id_item: item.id_item,
-        resultado,
-      });
-      setDetalles((prev) => ({
-        ...prev,
-        [item.id_item]: { resultado },
-      }));
-      showSnackbar('Calificación guardada', 'success');
-    } catch (err) {
-      setChecklistError(err.message || 'No se pudo guardar la calificación');
-      showSnackbar('Error al guardar calificación', 'error');
-    } finally {
-      setSavingItem(null);
-    }
-  };
+  setSavingItem(item.id_item);
+
+  const idInspeccion = selected?.id_inspeccion || selected?.id;
+
+  if (!idInspeccion) {
+    showSnackbar('Error: no se pudo determinar el ID de la inspección', 'error');
+    setSavingItem(null);
+    return;
+  }
+
+  try {
+    await checklistService.calificar({
+      id_inspeccion: idInspeccion,
+      id_item: item.id_item,
+      resultado: resultado,
+      observacion: null,
+      accion_requerida: null,
+    });
+
+    setDetalles((prev) => ({
+      ...prev,
+      [item.id_item]: { resultado },
+    }));
+
+    showSnackbar('Calificación guardada', 'success');
+  } catch (err) {
+    console.error('Error al calificar:', err);
+    setChecklistError(err.message || 'No se pudo guardar la calificación');
+    showSnackbar('Error al guardar calificación', 'error');
+  } finally {
+    setSavingItem(null);
+  }
+};
 
   const eliminarCalificacion = async (item) => {
     const idDetalle = detalles[item.id_item]?.id_detalle;

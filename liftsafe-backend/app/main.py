@@ -3,6 +3,17 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from app.routes import auth, vistas, usuarios, ascensores, inspecciones, dashboard, fotografias, usuario_ascensor, checklist, observaciones
 import os
+from fastapi import FastAPI
+
+app = FastAPI()
+
+@app.middleware("http")
+async def force_utf8(request, call_next):
+    response = await call_next(request)
+    content_type = response.headers.get("content-type", "")
+    if "application/json" in content_type and "charset" not in content_type:
+        response.headers["content-type"] = content_type + "; charset=utf-8"
+    return response
 
 app = FastAPI(
     title="LiftSafe API",
