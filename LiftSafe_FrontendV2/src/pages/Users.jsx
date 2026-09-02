@@ -20,7 +20,7 @@ import { statusColor } from '../utils/statusHelpers';
 import { usePaginatedSearch } from '../hooks/usePaginatedSearch';
 import { useDashboardData } from '../hooks/useDashboardData';
 import { fetchUsuarios } from '../services/dashboardService';
-import { createUserRequest, eliminarUsuario } from '../services/authService'; // ✅ Agregar eliminarUsuario
+import { createUserRequest, updateUserRequest, eliminarUsuario } from '../services/authService';
 import { useAuth } from '../context/AuthContext';
 import { ADMIN_CREATABLE_ROLES, ADULT_DOCUMENT_TYPES } from '../config/api';
 import { isPasswordValid } from '../utils/passwordValidation';
@@ -33,6 +33,19 @@ const emptyForm = {
   document: '',
   businessName: '',
   phone: '',
+  password: '',
+  confirm: '',
+};
+
+const emptyEditForm = {
+  name: '',
+  email: '',
+  role: 'Inspector',
+  documentType: 'CC',
+  document: '',
+  businessName: '',
+  phone: '',
+  status: 'Activo',
   password: '',
   confirm: '',
 };
@@ -76,6 +89,13 @@ export default function UsersPage() {
   const [form, setForm] = useState(emptyForm);
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
+
+  // ✅ Estados para edición (Felipe - RF-002)
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editForm, setEditForm] = useState(emptyEditForm);
+  const [editingUserId, setEditingUserId] = useState(null);
+  const [editError, setEditError] = useState('');
+  const [editSaving, setEditSaving] = useState(false);
 
   // ✅ Estados para eliminación
   const [deleteDialog, setDeleteDialog] = useState({ open: false, user: null });
@@ -121,6 +141,58 @@ export default function UsersPage() {
       setSaving(false);
     }
   };
+  // ✅ EDITAR USUARIO (Felipe - RF-002)
+  const handleEditChange = (e) => setEditForm({ ...editForm, [e.target.name]: e.target.value });
+
+  const handleEditClick = (u) => {
+    setEditingUserId(u.id);
+    setEditForm({
+      name: u.name || '',
+      email: u.email || '',
+      role: u.role || 'Inspector',
+      documentType: u.tipo_documento || 'CC',
+      document: u.tipo_documento === 'NIT' ? (u.nit || '') : (u.documento_identidad || ''),
+      businessName: u.razon_social || '',
+      phone: u.phone || '',
+      status: u.status || 'Activo',
+      password: '',
+      confirm: '',
+    });
+    setEditError('');
+    setEditDialogOpen(true);
+  };
+
+  const handleEditSave = async () => {
+    if (!editForm.name || !editForm.email || !editForm.document) {
+      setEditError('Completa los campos obligatorios');
+      return;
+    }
+    if (editForm.password || editForm.confirm) {
+      if (!isPasswordValid(editForm.password)) {
+        setEditError('La nueva contraseña no cumple los requisitos de seguridad');
+        return;
+      }
+      if (editForm.password !== editForm.confirm) {
+        setEditError('Las contraseñas no coinciden');
+        return;
+      }
+    }
+    setEditSaving(true);
+    setEditError('');
+    try {
+      await updateUserRequest(editingUserId, editForm);
+      setEditDialogOpen(false);
+      setEditForm(emptyEditForm);
+      setEditingUserId(null);
+      refetch();
+      showSnackbar('Usuario actualizado exitosamente', 'success');
+    } catch (err) {
+      setEditError(err.message || 'No se pudo actualizar el usuario');
+    } finally {
+      setEditSaving(false);
+    }
+  };
+
  // ✅ ELIMINAR USUARIO REAL
   const handleDeleteClick = (u) => {
     setDeleteDialog({ open: true, user: u });
@@ -195,9 +267,7 @@ export default function UsersPage() {
                           <IconButton 
                             size="small" 
                             color="primary"
-                            onClick={() => {
-                              console.log('Editar usuario:', u.id);
-                            }}
+                            onClick={() => handleEditClick(u)}
                             title="Editar usuario"
                           >
                             <EditIcon fontSize="small" />
@@ -257,6 +327,48 @@ export default function UsersPage() {
           <Button onClick={() => setDialogOpen(false)}>Cancelar</Button>
           <Button variant="contained" onClick={handleCreate} disabled={saving}>
             {saving ? 'Creando...' : 'Crear usuario'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* MODAL EDITAR USUARIO (Felipe - RF-002) */}
+      <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle fontWeight={700}>Editar usuario</DialogTitle>
+        <DialogContent>
+          {editError && <Alert severity="error" sx={{ mb: 2 }}>{editError}</Alert>}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+            <TextField label="Nombre completo" name="name" value={editForm.name} onChange={handleEditChange} fullWidth />
+            <TextField label="Correo electrónico" name="email" type="email" value={editForm.email} onChange={handleEditChange} fullWidth />
+            <TextField select label="Rol" name="role" value={editForm.role} onChange={handleEditChange} fullWidth>
+              {ADMIN_CREATABLE_ROLES.map((r) => <MenuItem key={r} value={r}>{r}</MenuItem>)}
+            </TextField>
+            <TextField select label="Estado" name="status" value={editForm.status} onChange={handleEditChange} fullWidth>
+              <MenuItem value="Activo">Activo</MenuItem>
+              <MenuItem value="Inactivo">Inactivo</MenuItem>
+              <MenuItem value="Suspendido">Suspendido</MenuItem>
+            </TextField>
+            <TextField select label="Tipo de documento" name="documentType" value={editForm.documentType} onChange={handleEditChange} fullWidth>
+              {ADULT_DOCUMENT_TYPES.map((doc) => (
+                <MenuItem key={doc.value} value={doc.value}>{doc.label}</MenuItem>
+              ))}
+            </TextField>
+            <TextField label={editForm.documentType === 'NIT' ? 'Número de NIT' : 'Número de documento'} name="document" value={editForm.document} onChange={handleEditChange} fullWidth />
+            {editForm.documentType === 'NIT' && (
+              <TextField label="Razón social" name="businessName" value={editForm.businessName} onChange={handleEditChange} fullWidth />
+            )}
+            <TextField label="Teléfono" name="phone" value={editForm.phone} onChange={handleEditChange} fullWidth />
+            <Typography variant="caption" color="text.secondary">
+              Deja la contraseña en blanco si no deseas cambiarla.
+            </Typography>
+            <TextField label="Nueva contraseña (opcional)" name="password" type="password" value={editForm.password} onChange={handleEditChange} fullWidth />
+            {editForm.password && <PasswordRequirements password={editForm.password} />}
+            <TextField label="Confirmar nueva contraseña" name="confirm" type="password" value={editForm.confirm} onChange={handleEditChange} fullWidth />
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={() => setEditDialogOpen(false)}>Cancelar</Button>
+          <Button variant="contained" onClick={handleEditSave} disabled={editSaving}>
+            {editSaving ? 'Guardando...' : 'Guardar cambios'}
           </Button>
         </DialogActions>
       </Dialog>

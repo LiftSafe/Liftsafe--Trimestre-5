@@ -3,7 +3,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.models import Usuario, Rol
-from app.schemas.schemas import UsuarioCreate, MessageResponse, UsuarioUpdate
+from app.schemas.schemas import UsuarioCreate, UsuarioUpdate, MessageResponse
 from app.controllers.usuario_controller import get_user_profile, get_admin_stats, get_cliente_ascensores, get_inspector_inspecciones
 from app.utils.auth_deps import require_admin
 from sqlalchemy import text
@@ -132,7 +132,72 @@ def listado_usuarios(request: Request, db: Session = Depends(get_db)):
     ]
 
 # ============================================
-# 5. ELIMINAR USUARIO (solo Admin)
+# 5. EDITAR USUARIO (solo Admin) - VERSIÓN FUSIONADA
+# ============================================
+@router.put("/{user_id}", response_model=MessageResponse)
+def editar_usuario(
+    user_id: int,
+    user_data: UsuarioUpdate,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    require_admin(request)
+
+    user = db.query(Usuario).filter(Usuario.id_usuario == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    # Validar correo único si se está cambiando
+    if user_data.correo is not None and user_data.correo != user.correo:
+        existing = db.query(Usuario).filter(Usuario.correo == user_data.correo).first()
+        if existing:
+            raise HTTPException(status_code=400, detail="El correo ya está registrado por otro usuario")
+        user.correo = user_data.correo
+
+    # Validar rol si se está cambiando
+    if user_data.id_rol is not None:
+        rol = db.query(Rol).filter(Rol.id_rol == user_data.id_rol).first()
+        if not rol:
+            raise HTTPException(status_code=400, detail="Rol no válido")
+        # No permitir quitarle el rol de Administrador al último admin
+        admin_rol = db.query(Rol).filter(Rol.nombre_rol == "Administrador").first()
+        if admin_rol and user.id_rol == admin_rol.id_rol and user_data.id_rol != admin_rol.id_rol:
+            total_admins = db.query(Usuario).filter(Usuario.id_rol == admin_rol.id_rol).count()
+            if total_admins <= 1:
+                raise HTTPException(status_code=400, detail="No se puede quitar el rol al último administrador")
+        user.id_rol = user_data.id_rol
+
+    # Actualizar campos simples
+    if user_data.nombre_completo is not None:
+        user.nombre_completo = user_data.nombre_completo
+    if user_data.telefono is not None:
+        user.telefono = user_data.telefono
+    if user_data.tipo_documento is not None:
+        user.tipo_documento = user_data.tipo_documento
+    if user_data.documento_identidad is not None:
+        user.documento_identidad = user_data.documento_identidad
+    if user_data.nit is not None:
+        user.nit = user_data.nit
+    if user_data.razon_social is not None:
+        user.razon_social = user_data.razon_social
+    if user_data.estado is not None:
+        user.estado = user_data.estado
+
+    db.commit()
+
+    # La contraseña se maneja aparte porque va encriptada con AES_ENCRYPT
+    if user_data.contrasena:
+        db.execute(
+            text("UPDATE usuario SET contrasena_encriptada = AES_ENCRYPT(:contrasena, 'LiftSafeSecretKey2026!') WHERE id_usuario = :id"),
+            {"contrasena": user_data.contrasena, "id": user_id}
+        )
+        db.commit()
+
+    db.refresh(user)
+    return {"message": f"Usuario '{user.nombre_completo}' actualizado exitosamente"}
+
+# ============================================
+# 6. ELIMINAR USUARIO (solo Admin)
 # ============================================
 @router.delete("/{user_id}", response_model=MessageResponse)
 def eliminar_usuario(
@@ -159,47 +224,3 @@ def eliminar_usuario(
     db.commit()
     
     return {"message": f"Usuario '{user.nombre_completo}' eliminado exitosamente"}
-
-# ============================================
-# 6. EDITAR USUARIO (solo Admin)
-# ============================================
-@router.put("/{user_id}", response_model=MessageResponse)
-def editar_usuario(
-    user_id: int,
-    request: Request,
-    user_data: UsuarioUpdate,
-    db: Session = Depends(get_db)
-):
-    require_admin(request)
-    
-    user = db.query(Usuario).filter(Usuario.id_usuario == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="Usuario no encontrado")
-    
-    # Validar que el correo no esté duplicado
-    if user_data.correo is not None and user_data.correo != user.correo:
-        existing = db.query(Usuario).filter(Usuario.correo == user_data.correo).first()
-        if existing:
-            raise HTTPException(status_code=400, detail="El correo ya está registrado")
-        user.correo = user_data.correo
-    
-    if user_data.nombre_completo is not None:
-        user.nombre_completo = user_data.nombre_completo
-    if user_data.telefono is not None:
-        user.telefono = user_data.telefono
-    if user_data.tipo_documento is not None:
-        user.tipo_documento = user_data.tipo_documento
-    if user_data.documento_identidad is not None:
-        user.documento_identidad = user_data.documento_identidad
-    if user_data.nit is not None:
-        user.nit = user_data.nit
-    if user_data.razon_social is not None:
-        user.razon_social = user_data.razon_social
-    if user_data.id_rol is not None:
-        rol = db.query(Rol).filter(Rol.id_rol == user_data.id_rol).first()
-        if not rol:
-            raise HTTPException(status_code=400, detail="Rol no válido")
-        user.id_rol = user_data.id_rol
-    
-    db.commit()
-    return {"message": f"Usuario '{user.nombre_completo}' actualizado exitosamente"}

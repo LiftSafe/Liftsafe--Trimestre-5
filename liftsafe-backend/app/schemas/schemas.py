@@ -115,6 +115,35 @@ class UsuarioCreate(BaseModel):
             raise ValueError("Tipo de documento no válido")
         return v
 
+# ============================================
+# SCHEMA DE FELIPE - EDITAR USUARIO
+# ============================================
+class UsuarioUpdate(BaseModel):
+    nombre_completo: Optional[str] = None
+    correo: Optional[EmailStr] = None
+    telefono: Optional[str] = None
+    tipo_documento: Optional[str] = None
+    documento_identidad: Optional[str] = None
+    nit: Optional[str] = None
+    razon_social: Optional[str] = None
+    id_rol: Optional[int] = None
+    estado: Optional[str] = None
+    contrasena: Optional[str] = None
+
+    @field_validator("contrasena")
+    @classmethod
+    def check_password_opt(cls, v):
+        if v:
+            validate_password(v)
+        return v
+
+    @field_validator("tipo_documento")
+    @classmethod
+    def check_doc_type_opt(cls, v):
+        if v is not None and v not in DOCUMENT_TYPES:
+            raise ValueError("Tipo de documento no válido")
+        return v
+
 class RecuperarClaveRequest(BaseModel):
     correo: EmailStr
 
@@ -159,6 +188,8 @@ class UsuarioAscensorUpdate(BaseModel):
 class UsuarioAscensorResponse(UsuarioAscensorBase):
     id_usuario_ascensor: int
     fecha_desasignacion: date | None = None
+    usuario: dict | None = None
+    ascensor: dict | None = None
 
     class Config:
         from_attributes = True
@@ -270,7 +301,7 @@ class NotificacionResponse(NotificacionBase):
 class DetalleChecklistBase(BaseModel):
     id_inspeccion: int
     id_item: int
-    resultado: str
+    resultado: str  # Cumple, No Cumple, No Aplica
     observacion: Optional[str] = None
     accion_requerida: Optional[str] = None
 
@@ -369,7 +400,7 @@ class FotografiaUpdate(BaseModel):
 # ESQUEMAS DE FIRMA (VALENTINA)
 # ==========================================
 class FirmaRequest(BaseModel):
-    firma: str
+    firma: str  # base64
 
 class FirmaResponse(BaseModel):
     mensaje: str
@@ -418,20 +449,3 @@ class InspeccionUpdate(BaseModel):
     fecha_fin: Optional[datetime] = None
     firma_inspector: Optional[str] = None
     firma_cliente: Optional[str] = None
-
-class UsuarioUpdate(BaseModel):
-    nombre_completo: Optional[str] = None
-    correo: Optional[EmailStr] = None
-    telefono: Optional[str] = None
-    tipo_documento: Optional[DocumentType] = None
-    documento_identidad: Optional[str] = None
-    nit: Optional[str] = None
-    razon_social: Optional[str] = None
-    id_rol: Optional[int] = None
-
-    @field_validator("tipo_documento")
-    @classmethod
-    def check_doc_type(cls, v: Optional[str]) -> Optional[str]:
-        if v is not None and v not in DOCUMENT_TYPES:
-            raise ValueError("Tipo de documento no válido")
-        return 

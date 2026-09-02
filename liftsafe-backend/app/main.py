@@ -1,15 +1,28 @@
 # instalar las librerias 
 # pip install -r requirements.txt
 
+import os
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+
 from app.routes import (
-    auth, vistas, usuarios, ascensores, inspecciones, dashboard,
-    fotografias, usuario_ascensor, checklist, observaciones,
-    informes, auditoria, programacion, solicitudes
+    auth,
+    vistas,
+    usuarios,
+    ascensores,
+    inspecciones,
+    dashboard,
+    fotografias,
+    usuario_ascensor,
+    checklist,
+    observaciones,
+    informes,
+    auditoria,
+    programacion,
+    solicitudes,
 )
-import os
 
 app = FastAPI(
     title="LiftSafe API",
