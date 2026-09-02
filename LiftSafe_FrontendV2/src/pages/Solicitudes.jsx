@@ -1,309 +1,479 @@
 import { useState, useEffect } from 'react';
+import {
+  Box,
+  Card,
+  CardContent,
+  Typography,
+  Button,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Chip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  MenuItem,
+  CircularProgress,
+  Alert,
+  Grid,
+  Paper
+} from '@mui/material';
+import {
+  Add as AddIcon,
+  Delete as DeleteIcon,
+  Edit as EditIcon,
+  Assignment as AssignmentIcon,
+  Pending as PendingIcon,
+  CheckCircle as CheckCircleIcon,
+  Schedule as ScheduleIcon,
+  Cancel as CancelIcon
+} from '@mui/icons-material';
+import PageHeader from '../components/PageHeader';
 import { useAuth } from '../context/AuthContext';
 import { solicitudService } from '../services/solicitudService';
 import { ascensorService } from '../services/ascensorService';
 
+const TIPOS_SERVICIO = [
+  'Inspección Periódica',
+  'Inspección Inicial',
+  'Inspección Extraordinaria',
+  'Post-mantenimiento'
+];
+
+const PRIORIDADES = ['Baja', 'Media', 'Alta', 'Crítica'];
+
+const ESTADOS = {
+  'Pendiente': 'warning',
+  'Programada': 'info',
+  'Aprobada': 'success',
+  'Finalizada': 'success',
+  'Cancelada': 'error'
+};
+
 export default function Solicitudes() {
-    const { user } = useAuth();
-    const [solicitudes, setSolicitudes] = useState([]);
-<<<<<<< HEAD
-    const [ascensores, setAscensores] = useState([]);
-=======
-<<<<<<< HEAD
-    const [ascensores, setAscensores] = useState([]);
-=======
-    // ✅ ASCENSORES DE PRUEBA (para que el desplegable funcione)
-    const [ascensores, setAscensores] = useState([
-        { id_ascensor: 1, codigo_interno: 'ASC-001', marca: 'Otis', modelo: 'Gen2-MRL' },
-        { id_ascensor: 2, codigo_interno: 'ASC-002', marca: 'Schindler', modelo: '3300 MRL' }
-    ]);
->>>>>>> feature/luz
->>>>>>> c8306d785873f7353c3912678d3673587c1f0869
-    const [showForm, setShowForm] = useState(false);
-    const [loading, setLoading] = useState(true);
-    const [formData, setFormData] = useState({
+  const { user } = useAuth();
+  const [solicitudes, setSolicitudes] = useState([]);
+  const [ascensores, setAscensores] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [formData, setFormData] = useState({
+    id_ascensor: '',
+    tipo_servicio: 'Inspección Periódica',
+    prioridad: 'Media',
+    fecha_deseada: '',
+    observaciones: ''
+  });
+  const [formErrors, setFormErrors] = useState({});
+  const [submitLoading, setSubmitLoading] = useState(false);
+
+  const esCliente = user?.rol === 'Cliente';
+  const esAdmin = user?.rol === 'Administrador';
+  const esCoordinador = user?.rol === 'Coordinador';
+
+  const cargarDatos = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const solicitudesData = await solicitudService.listar();
+      setSolicitudes(solicitudesData || []);
+      
+      // ✅ Intentar cargar ascensores del backend, si falla usa los de prueba
+      try {
+        const ascensoresData = await ascensorService.listar();
+        if (ascensoresData && ascensoresData.length > 0) {
+          setAscensores(ascensoresData);
+        } else {
+          setAscensores([
+            { id_ascensor: 1, codigo_interno: 'ASC-001', marca: 'Otis', modelo: 'Gen2-MRL' },
+            { id_ascensor: 2, codigo_interno: 'ASC-002', marca: 'Schindler', modelo: '3300 MRL' }
+          ]);
+        }
+      } catch {
+        console.log('Usando ascensores de prueba (backend no respondió)');
+        setAscensores([
+          { id_ascensor: 1, codigo_interno: 'ASC-001', marca: 'Otis', modelo: 'Gen2-MRL' },
+          { id_ascensor: 2, codigo_interno: 'ASC-002', marca: 'Schindler', modelo: '3300 MRL' }
+        ]);
+      }
+    } catch (err) {
+      console.error('Error cargando datos:', err);
+      setError('Error al cargar las solicitudes. Verifica tu conexión.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ✅ useEffect CORREGIDO (sin llamar setState directamente)
+  useEffect(() => {
+    const fetchData = async () => {
+      await cargarDatos();
+    };
+    fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleOpenDialog = (solicitud = null) => {
+    if (solicitud) {
+      setEditingId(solicitud.id_solicitud);
+      setFormData({
+        id_ascensor: solicitud.id_ascensor || '',
+        tipo_servicio: solicitud.tipo_servicio || 'Inspección Periódica',
+        prioridad: solicitud.prioridad || 'Media',
+        fecha_deseada: solicitud.fecha_deseada || '',
+        observaciones: solicitud.observaciones || ''
+      });
+    } else {
+      setEditingId(null);
+      setFormData({
         id_ascensor: '',
         tipo_servicio: 'Inspección Periódica',
         prioridad: 'Media',
         fecha_deseada: '',
         observaciones: ''
-    });
+      });
+    }
+    setFormErrors({});
+    setShowForm(true);
+  };
 
-    useEffect(() => {
-        cargarDatos();
-    }, []);
+  const handleCloseDialog = () => {
+    setShowForm(false);
+    setEditingId(null);
+    setFormErrors({});
+  };
 
-    const cargarDatos = async () => {
-        setLoading(true);
-        try {
-            const solicitudesData = await solicitudService.listar();
-            setSolicitudes(solicitudesData);
-            
-<<<<<<< HEAD
-            if (user?.rol === 'Cliente') {
-                const ascensoresData = await ascensorService.listar();
-                setAscensores(ascensoresData);
-=======
-<<<<<<< HEAD
-            if (user?.rol === 'Cliente') {
-                const ascensoresData = await ascensorService.listar();
-                setAscensores(ascensoresData);
-=======
-            // Intentar cargar ascensores del backend, si falla usa los de prueba
-            try {
-                const ascensoresData = await ascensorService.listar();
-                if (ascensoresData && ascensoresData.length > 0) {
-                    setAscensores(ascensoresData);
-                }
-            } catch (e) {
-                console.log('Usando ascensores de prueba (backend no respondió)');
->>>>>>> feature/luz
->>>>>>> c8306d785873f7353c3912678d3673587c1f0869
-            }
-        } catch (error) {
-            console.error('Error cargando solicitudes:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+  };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        try {
-            await solicitudService.crear(formData);
-            setShowForm(false);
-            setFormData({
-                id_ascensor: '',
-                tipo_servicio: 'Inspección Periódica',
-                prioridad: 'Media',
-                fecha_deseada: '',
-                observaciones: ''
-            });
-            await cargarDatos();
-        } catch (error) {
-            console.error('Error creando solicitud:', error);
-            alert('Error al crear la solicitud: ' + (error.message || 'Intenta de nuevo'));
-        }
-    };
+  const validateForm = () => {
+    const errors = {};
+    if (!formData.id_ascensor) errors.id_ascensor = 'Selecciona un ascensor';
+    if (!formData.tipo_servicio) errors.tipo_servicio = 'Selecciona un tipo de servicio';
+    if (!formData.prioridad) errors.prioridad = 'Selecciona una prioridad';
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
 
-    const total = solicitudes.length;
-    const pendientes = solicitudes.filter(s => s.estado === 'Pendiente').length;
-    const programadas = solicitudes.filter(s => s.estado === 'Programada').length;
-    const finalizadas = solicitudes.filter(s => s.estado === 'Finalizada').length;
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!validateForm()) return;
 
+    setSubmitLoading(true);
+    try {
+      const payload = {
+        ...formData,
+        id_ascensor: Number(formData.id_ascensor)
+      };
+
+      if (editingId) {
+        await solicitudService.modificar(editingId, payload);
+      } else {
+        await solicitudService.crear(payload);
+      }
+
+      handleCloseDialog();
+      await cargarDatos();
+    } catch (err) {
+      console.error('Error guardando solicitud:', err);
+      setError(err.message || 'Error al guardar la solicitud');
+    } finally {
+      setSubmitLoading(false);
+    }
+  };
+
+  const handleCancelar = async (id) => {
+    if (!window.confirm('¿Cancelar esta solicitud?')) return;
+    try {
+      await solicitudService.cancelar(id);
+      await cargarDatos();
+    } catch (err) {
+      console.error('Error cancelando solicitud:', err);
+      setError(err.message || 'Error al cancelar la solicitud');
+    }
+  };
+
+  const handleEliminar = async (id) => {
+    if (!window.confirm('¿Eliminar esta solicitud? Esta acción no se puede deshacer.')) return;
+    try {
+      await solicitudService.eliminar(id);
+      await cargarDatos();
+    } catch (err) {
+      console.error('Error eliminando solicitud:', err);
+      setError(err.message || 'Error al eliminar la solicitud');
+    }
+  };
+
+  // Estadísticas
+  const total = solicitudes.length;
+  const pendientes = solicitudes.filter(s => s.estado === 'Pendiente').length;
+  const programadas = solicitudes.filter(s => s.estado === 'Programada').length;
+  const finalizadas = solicitudes.filter(s => s.estado === 'Finalizada' || s.estado === 'Aprobada').length;
+
+  if (loading) {
     return (
-        <div style={{ padding: '20px' }}>
-            <h1 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '10px' }}>
-                Solicitudes de Inspección
-            </h1>
-            <p style={{ color: '#666', marginBottom: '20px' }}>
-                Gestiona las solicitudes de inspección de ascensores
-            </p>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '20px' }}>
-                <div style={{ background: '#f0f4ff', padding: '15px', borderRadius: '8px', border: '1px solid #e0e0e0' }}>
-                    <div style={{ fontSize: '14px', color: '#666' }}>Total</div>
-                    <div style={{ fontSize: '28px', fontWeight: 'bold' }}>{total}</div>
-                </div>
-                <div style={{ background: '#fff8e1', padding: '15px', borderRadius: '8px', border: '1px solid #e0e0e0' }}>
-                    <div style={{ fontSize: '14px', color: '#666' }}>Pendientes</div>
-                    <div style={{ fontSize: '28px', fontWeight: 'bold' }}>{pendientes}</div>
-                </div>
-                <div style={{ background: '#e8f5e9', padding: '15px', borderRadius: '8px', border: '1px solid #e0e0e0' }}>
-                    <div style={{ fontSize: '14px', color: '#666' }}>Programadas</div>
-                    <div style={{ fontSize: '28px', fontWeight: 'bold' }}>{programadas}</div>
-                </div>
-                <div style={{ background: '#f3e5f5', padding: '15px', borderRadius: '8px', border: '1px solid #e0e0e0' }}>
-                    <div style={{ fontSize: '14px', color: '#666' }}>Finalizadas</div>
-                    <div style={{ fontSize: '28px', fontWeight: 'bold' }}>{finalizadas}</div>
-                </div>
-            </div>
-
-<<<<<<< HEAD
-            {user?.rol === 'Cliente' && (
-=======
-<<<<<<< HEAD
-            {user?.rol === 'Cliente' && (
-=======
-            {/* BOTÓN DE NUEVA SOLICITUD */}
-            {user && (
->>>>>>> feature/luz
->>>>>>> c8306d785873f7353c3912678d3673587c1f0869
-                <button
-                    onClick={() => setShowForm(true)}
-                    style={{
-                        background: '#1976d2',
-                        color: 'white',
-                        padding: '10px 20px',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        marginBottom: '20px'
-                    }}
-                >
-                    + Nueva Solicitud
-                </button>
-            )}
-
-            {showForm && (
-                <div style={{ marginBottom: '20px', padding: '20px', border: '1px solid #ccc', borderRadius: '8px', background: '#f9f9f9' }}>
-                    <h2 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '15px' }}>Nueva Solicitud de Inspección</h2>
-                    <form onSubmit={handleSubmit}>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-                            <div>
-                                <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>Ascensor *</label>
-                                <select
-                                    value={formData.id_ascensor}
-                                    onChange={(e) => setFormData({...formData, id_ascensor: e.target.value})}
-                                    style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }}
-                                    required
-                                >
-                                    <option value="">Seleccionar ascensor...</option>
-                                    {ascensores.map(a => (
-                                        <option key={a.id_ascensor} value={a.id_ascensor}>
-                                            {a.codigo_interno || a.marca} - {a.marca} {a.modelo}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div>
-                                <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>Tipo de servicio *</label>
-                                <select
-                                    value={formData.tipo_servicio}
-                                    onChange={(e) => setFormData({...formData, tipo_servicio: e.target.value})}
-                                    style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }}
-                                >
-                                    <option value="Inspección Periódica">Inspección Periódica</option>
-                                    <option value="Inspección Inicial">Inspección Inicial</option>
-                                    <option value="Inspección Extraordinaria">Inspección Extraordinaria</option>
-                                    <option value="Post-mantenimiento">Post-mantenimiento</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>Prioridad *</label>
-                                <select
-                                    value={formData.prioridad}
-                                    onChange={(e) => setFormData({...formData, prioridad: e.target.value})}
-                                    style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }}
-                                >
-                                    <option value="Baja">Baja</option>
-                                    <option value="Media">Media</option>
-                                    <option value="Alta">Alta</option>
-                                    <option value="Crítica">Crítica</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>Fecha deseada</label>
-                                <input
-                                    type="date"
-                                    value={formData.fecha_deseada}
-                                    onChange={(e) => setFormData({...formData, fecha_deseada: e.target.value})}
-                                    style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }}
-                                />
-                            </div>
-                            <div style={{ gridColumn: 'span 2' }}>
-                                <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>Observaciones</label>
-                                <textarea
-                                    placeholder="Observaciones adicionales..."
-                                    value={formData.observaciones}
-                                    onChange={(e) => setFormData({...formData, observaciones: e.target.value})}
-                                    style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }}
-                                    rows="2"
-                                />
-                            </div>
-                        </div>
-                        <div style={{ marginTop: '15px' }}>
-                            <button
-                                type="submit"
-                                style={{
-                                    background: '#4caf50',
-                                    color: 'white',
-                                    padding: '10px 20px',
-                                    border: 'none',
-                                    borderRadius: '4px',
-                                    cursor: 'pointer'
-                                }}
-                            >
-                                Guardar
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setShowForm(false)}
-                                style={{
-                                    background: '#9e9e9e',
-                                    color: 'white',
-                                    padding: '10px 20px',
-                                    border: 'none',
-                                    borderRadius: '4px',
-                                    cursor: 'pointer',
-                                    marginLeft: '10px'
-                                }}
-                            >
-                                Cancelar
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            )}
-
-            <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <thead>
-                        <tr style={{ background: '#e0e0e0' }}>
-                            <th style={{ padding: '10px', border: '1px solid #ccc', textAlign: 'left' }}>ID</th>
-                            <th style={{ padding: '10px', border: '1px solid #ccc', textAlign: 'left' }}>Ascensor</th>
-                            <th style={{ padding: '10px', border: '1px solid #ccc', textAlign: 'left' }}>Cliente</th>
-                            <th style={{ padding: '10px', border: '1px solid #ccc', textAlign: 'left' }}>Tipo</th>
-                            <th style={{ padding: '10px', border: '1px solid #ccc', textAlign: 'left' }}>Prioridad</th>
-                            <th style={{ padding: '10px', border: '1px solid #ccc', textAlign: 'left' }}>Estado</th>
-                            <th style={{ padding: '10px', border: '1px solid #ccc', textAlign: 'left' }}>Fecha</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {loading ? (
-                            <tr><td colSpan="7" style={{ padding: '20px', textAlign: 'center' }}>Cargando...</td></tr>
-                        ) : solicitudes.length === 0 ? (
-                            <tr><td colSpan="7" style={{ padding: '20px', textAlign: 'center' }}>No hay solicitudes registradas</td></tr>
-                        ) : (
-                            solicitudes.map(s => (
-                                <tr key={s.id_solicitud} style={{ borderBottom: '1px solid #eee' }}>
-                                    <td style={{ padding: '10px', border: '1px solid #ccc' }}>{s.id_solicitud}</td>
-                                    <td style={{ padding: '10px', border: '1px solid #ccc' }}>{s.ascensor?.codigo_interno || '-'}</td>
-                                    <td style={{ padding: '10px', border: '1px solid #ccc' }}>{s.cliente?.nombre_completo || '-'}</td>
-                                    <td style={{ padding: '10px', border: '1px solid #ccc' }}>{s.tipo_servicio}</td>
-                                    <td style={{ padding: '10px', border: '1px solid #ccc' }}>
-                                        <span style={{
-                                            padding: '4px 8px',
-                                            borderRadius: '4px',
-                                            color: 'white',
-                                            fontSize: '12px',
-                                            background: s.prioridad === 'Crítica' ? '#d32f2f' :
-                                                       s.prioridad === 'Alta' ? '#ed6c02' :
-                                                       s.prioridad === 'Media' ? '#f9a825' : '#757575'
-                                        }}>
-                                            {s.prioridad}
-                                        </span>
-                                    </td>
-                                    <td style={{ padding: '10px', border: '1px solid #ccc' }}>
-                                        <span style={{
-                                            padding: '4px 8px',
-                                            borderRadius: '4px',
-                                            color: 'white',
-                                            fontSize: '12px',
-                                            background: s.estado === 'Pendiente' ? '#f9a825' :
-                                                       s.estado === 'Programada' ? '#1976d2' :
-                                                       s.estado === 'Finalizada' ? '#388e3c' : '#757575'
-                                        }}>
-                                            {s.estado}
-                                        </span>
-                                    </td>
-                                    <td style={{ padding: '10px', border: '1px solid #ccc' }}>{s.fecha_solicitud}</td>
-                                </tr>
-                            ))
-                        )}
-                    </tbody>
-                </table>
-            </div>
-        </div>
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+        <CircularProgress />
+      </Box>
     );
+  }
+
+  return (
+    <Box>
+      <PageHeader
+        title="Solicitudes de Inspección"
+        subtitle="Gestiona las solicitudes de inspección de ascensores"
+      />
+
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+          {error}
+        </Alert>
+      )}
+
+      {/* Tarjetas de estadísticas */}
+      <Grid container spacing={3} sx={{ mb: 3 }}>
+        <Grid item xs={12} sm={6} md={3}>
+          <Paper sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
+            <AssignmentIcon sx={{ color: '#1976d2', fontSize: 32 }} />
+            <Box>
+              <Typography variant="h4" fontWeight={700}>{total}</Typography>
+              <Typography variant="body2" color="text.secondary">Total</Typography>
+            </Box>
+          </Paper>
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <Paper sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
+            <PendingIcon sx={{ color: '#ed6c02', fontSize: 32 }} />
+            <Box>
+              <Typography variant="h4" fontWeight={700}>{pendientes}</Typography>
+              <Typography variant="body2" color="text.secondary">Pendientes</Typography>
+            </Box>
+          </Paper>
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <Paper sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
+            <ScheduleIcon sx={{ color: '#2e7d32', fontSize: 32 }} />
+            <Box>
+              <Typography variant="h4" fontWeight={700}>{programadas}</Typography>
+              <Typography variant="body2" color="text.secondary">Programadas</Typography>
+            </Box>
+          </Paper>
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <Paper sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
+            <CheckCircleIcon sx={{ color: '#9c27b0', fontSize: 32 }} />
+            <Box>
+              <Typography variant="h4" fontWeight={700}>{finalizadas}</Typography>
+              <Typography variant="body2" color="text.secondary">Finalizadas</Typography>
+            </Box>
+          </Paper>
+        </Grid>
+      </Grid>
+
+      {/* Botón de nueva solicitud */}
+      {user && (
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => handleOpenDialog()}
+          >
+            Nueva solicitud
+          </Button>
+        </Box>
+      )}
+
+      {/* Tabla de solicitudes */}
+      <Card>
+        <CardContent sx={{ p: 0 }}>
+          <TableContainer>
+            <Table>
+              <TableHead>
+                <TableRow sx={{ bgcolor: 'grey.50' }}>
+                  <TableCell><strong>ID</strong></TableCell>
+                  <TableCell><strong>Ascensor</strong></TableCell>
+                  <TableCell><strong>Cliente</strong></TableCell>
+                  <TableCell><strong>Tipo</strong></TableCell>
+                  <TableCell><strong>Prioridad</strong></TableCell>
+                  <TableCell><strong>Fecha</strong></TableCell>
+                  <TableCell><strong>Estado</strong></TableCell>
+                  <TableCell align="right"><strong>Acciones</strong></TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {solicitudes.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={8} align="center" sx={{ py: 4 }}>
+                      No hay solicitudes registradas
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  solicitudes.map((s) => (
+                    <TableRow key={s.id_solicitud} hover>
+                      <TableCell>{s.id_solicitud}</TableCell>
+                      <TableCell>{s.ascensor?.codigo_interno || 'N/A'}</TableCell>
+                      <TableCell>{s.cliente?.nombre_completo || 'N/A'}</TableCell>
+                      <TableCell>{s.tipo_servicio}</TableCell>
+                      <TableCell>
+                        <Chip
+                          label={s.prioridad}
+                          size="small"
+                          color={
+                            s.prioridad === 'Crítica' ? 'error' :
+                            s.prioridad === 'Alta' ? 'warning' :
+                            s.prioridad === 'Media' ? 'info' : 'default'
+                          }
+                        />
+                      </TableCell>
+                      <TableCell>{s.fecha_solicitud}</TableCell>
+                      <TableCell>
+                        <Chip
+                          label={s.estado}
+                          size="small"
+                          color={ESTADOS[s.estado] || 'default'}
+                        />
+                      </TableCell>
+                      <TableCell align="right">
+                        {/* Editar (solo pendientes) */}
+                        {(esCliente || esAdmin || esCoordinador) && s.estado === 'Pendiente' && (
+                          <Button
+                            size="small"
+                            startIcon={<EditIcon />}
+                            onClick={() => handleOpenDialog(s)}
+                            sx={{ mr: 1 }}
+                          >
+                            Editar
+                          </Button>
+                        )}
+                        {/* Cancelar (solo pendientes) */}
+                        {s.estado === 'Pendiente' && (
+                          <Button
+                            size="small"
+                            color="warning"
+                            startIcon={<CancelIcon />}
+                            onClick={() => handleCancelar(s.id_solicitud)}
+                            sx={{ mr: 1 }}
+                          >
+                            Cancelar
+                          </Button>
+                        )}
+                        {/* Eliminar (solo admin) */}
+                        {esAdmin && (
+                          <Button
+                            size="small"
+                            color="error"
+                            startIcon={<DeleteIcon />}
+                            onClick={() => handleEliminar(s.id_solicitud)}
+                          >
+                            Eliminar
+                          </Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </CardContent>
+      </Card>
+
+      {/* Dialog para crear/editar solicitud */}
+      <Dialog open={showForm} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          {editingId ? 'Editar solicitud' : 'Nueva solicitud de inspección'}
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
+            <TextField
+              select
+              label="Ascensor *"
+              name="id_ascensor"
+              value={formData.id_ascensor}
+              onChange={handleChange}
+              error={!!formErrors.id_ascensor}
+              helperText={formErrors.id_ascensor}
+              fullWidth
+            >
+              <MenuItem value="">Seleccionar ascensor...</MenuItem>
+              {ascensores.map((a) => (
+                <MenuItem key={a.id_ascensor} value={a.id_ascensor}>
+                  {a.codigo_interno} - {a.marca} {a.modelo}
+                </MenuItem>
+              ))}
+            </TextField>
+
+            <TextField
+              select
+              label="Tipo de servicio *"
+              name="tipo_servicio"
+              value={formData.tipo_servicio}
+              onChange={handleChange}
+              error={!!formErrors.tipo_servicio}
+              helperText={formErrors.tipo_servicio}
+              fullWidth
+            >
+              {TIPOS_SERVICIO.map((tipo) => (
+                <MenuItem key={tipo} value={tipo}>{tipo}</MenuItem>
+              ))}
+            </TextField>
+
+            <TextField
+              select
+              label="Prioridad *"
+              name="prioridad"
+              value={formData.prioridad}
+              onChange={handleChange}
+              error={!!formErrors.prioridad}
+              helperText={formErrors.prioridad}
+              fullWidth
+            >
+              {PRIORIDADES.map((pri) => (
+                <MenuItem key={pri} value={pri}>{pri}</MenuItem>
+              ))}
+            </TextField>
+
+            <TextField
+              label="Fecha deseada"
+              name="fecha_deseada"
+              type="date"
+              value={formData.fecha_deseada}
+              onChange={handleChange}
+              fullWidth
+              InputLabelProps={{ shrink: true }}
+            />
+
+            <TextField
+              label="Observaciones"
+              name="observaciones"
+              value={formData.observaciones}
+              onChange={handleChange}
+              multiline
+              rows={3}
+              fullWidth
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={handleCloseDialog}>Cancelar</Button>
+          <Button
+            variant="contained"
+            onClick={handleSubmit}
+            disabled={submitLoading}
+          >
+            {submitLoading ? 'Guardando...' : editingId ? 'Actualizar' : 'Crear'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
+  );
 }
