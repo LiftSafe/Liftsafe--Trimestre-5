@@ -1,24 +1,15 @@
 from pydantic import BaseModel, EmailStr, field_validator
-<<<<<<< HEAD
-from typing import Optional, Literal
-=======
 from typing import Optional, List, Literal
->>>>>>> c8306d785873f7353c3912678d3673587c1f0869
 from datetime import datetime, date
 from app.utils.password_validator import validate_password
 from app.utils.auth_deps import DOCUMENT_TYPES, CLIENTE_ROL_ID
 
-<<<<<<< HEAD
 
-DocumentType = Literal["CC", "CE", "PA", "RC", "TI", "NIT", "PEP", "PPT", "CD"]
-
-=======
 DocumentType = Literal["CC", "CE", "PA", "RC", "TI", "NIT", "PEP", "PPT", "CD"]
 
 # ==========================================
 # ESQUEMAS DE AUTENTICACIÓN Y USUARIOS
 # ==========================================
->>>>>>> c8306d785873f7353c3912678d3673587c1f0869
 class UsuarioLogin(BaseModel):
     correo: EmailStr
     contrasena: str
@@ -147,8 +138,6 @@ class InspeccionCreate(BaseModel):
     tipo_servicio: str = "Periódica"
     observaciones: Optional[str] = None
 
-<<<<<<< HEAD
-=======
 # ==========================================
 # ESQUEMAS DE USUARIO-ASCENSOR (DAYAN)
 # ==========================================
@@ -195,7 +184,6 @@ class AuditoriaResponse(BaseModel):
 # ==========================================
 # ESQUEMAS DE SOLICITUDES (LUZ)
 # ==========================================
->>>>>>> c8306d785873f7353c3912678d3673587c1f0869
 class SolicitudBase(BaseModel):
     id_ascensor: int
     tipo_servicio: str
@@ -225,12 +213,9 @@ class SolicitudResponse(SolicitudBase):
     class Config:
         from_attributes = True
 
-<<<<<<< HEAD
-=======
 # ==========================================
 # ESQUEMAS DE PROGRAMACIÓN (LUZ)
 # ==========================================
->>>>>>> c8306d785873f7353c3912678d3673587c1f0869
 class ProgramacionBase(BaseModel):
     id_solicitud: int
     id_inspector: int
@@ -258,44 +243,30 @@ class ProgramacionResponse(ProgramacionBase):
     class Config:
         from_attributes = True
 
-<<<<<<< HEAD
-class UsuarioAscensorBase(BaseModel):
-    id_usuario: int
-    id_ascensor: int
-    tipo_asignacion: str
-    fecha_asignacion: date
-    observaciones: str | None = None
+# ==========================================
+# ESQUEMAS DE NOTIFICACIONES (LUZ)
+# ==========================================
+class NotificacionBase(BaseModel):
+    id_usuario_destino: int
+    mensaje: str
+    leida: bool = False
 
-class UsuarioAscensorCreate(UsuarioAscensorBase):
+class NotificacionCreate(NotificacionBase):
     pass
 
-class UsuarioAscensorUpdate(BaseModel):
-    tipo_asignacion: str | None = None
-    fecha_desasignacion: date | None = None
-    observaciones: str | None = None
+class NotificacionUpdate(BaseModel):
+    leida: bool | None = None
 
-class UsuarioAscensorResponse(UsuarioAscensorBase):
-    id_usuario_ascensor: int
-    fecha_desasignacion: date | None = None
+class NotificacionResponse(NotificacionBase):
+    id_notificacion: int
+    fecha_creacion: datetime
 
     class Config:
         from_attributes = True
 
-class AuditoriaResponse(BaseModel):
-    id_auditoria: int
-    id_usuario: int | None
-    tabla_afectada: str
-    operacion: str
-    id_registro: int | None
-    datos_anteriores: str | None
-    datos_nuevos: str | None
-    ip_origen: str | None
-    user_agent: str | None
-    fecha_evento: datetime
-
-    class Config:
-        from_attributes = True
-
+# ==========================================
+# ESQUEMAS DE CHECKLIST (FELIPE)
+# ==========================================
 class DetalleChecklistBase(BaseModel):
     id_inspeccion: int
     id_item: int
@@ -313,6 +284,61 @@ class DetalleChecklistResponse(DetalleChecklistBase):
     class Config:
         from_attributes = True
 
+class ChecklistItemResponse(BaseModel):
+    id_item: int
+    id_categoria: int
+    codigo_item: str
+    descripcion: str
+    criterio_cumplimiento: Optional[str] = None
+    nivel_criticidad: str
+    obligatorio: Optional[bool] = None
+    orden_visualizacion: int
+
+    class Config:
+        from_attributes = True
+
+class ChecklistCategoriaResponse(BaseModel):
+    id_categoria: int
+    nombre_categoria: str
+    descripcion: Optional[str] = None
+    orden_visualizacion: int
+    norma_referencia: Optional[str] = None
+    items: list[ChecklistItemResponse] = []
+
+    class Config:
+        from_attributes = True
+
+# ==========================================
+# ESQUEMAS DE OBSERVACIONES (FELIPE)
+# ==========================================
+class ObservacionBase(BaseModel):
+    id_informe: int
+    tipo_observacion: str
+    descripcion: str
+    nivel_riesgo: str
+    requiere_atencion_inmediata: bool = False
+    fecha_limite_recomendada: Optional[date] = None
+
+class ObservacionCreate(ObservacionBase):
+    pass
+
+class ObservacionUpdate(BaseModel):
+    tipo_observacion: Optional[str] = None
+    descripcion: Optional[str] = None
+    nivel_riesgo: Optional[str] = None
+    requiere_atencion_inmediata: Optional[bool] = None
+    fecha_limite_recomendada: Optional[date] = None
+
+class ObservacionResponse(ObservacionBase):
+    id_observacion: int
+    fecha_registro: datetime
+
+    class Config:
+        from_attributes = True
+
+# ==========================================
+# ESQUEMAS DE FOTOGRAFÍAS (VALENTINA)
+# ==========================================
 class FotografiaBase(BaseModel):
     id_informe: int
     id_item: int | None = None
@@ -339,6 +365,9 @@ class FotografiaUpdate(BaseModel):
     descripcion: Optional[str] = None
     tipo_evidencia: Optional[str] = None
 
+# ==========================================
+# ESQUEMAS DE FIRMA (VALENTINA)
+# ==========================================
 class FirmaRequest(BaseModel):
     firma: str
 
@@ -346,56 +375,9 @@ class FirmaResponse(BaseModel):
     mensaje: str
     fecha_firma: datetime | None = None
 
-class ChecklistItemResponse(BaseModel):
-    id_item: int
-    id_categoria: int
-    codigo_item: str
-    descripcion: str
-    criterio_cumplimiento: Optional[str] = None
-    nivel_criticidad: str
-    obligatorio: Optional[bool] = None
-    orden_visualizacion: int
-
-    class Config:
-        from_attributes = True
-
-class ChecklistCategoriaResponse(BaseModel):
-    id_categoria: int
-    nombre_categoria: str
-    descripcion: Optional[str] = None
-    orden_visualizacion: int
-    norma_referencia: Optional[str] = None
-    items: list[ChecklistItemResponse] = []
-
-    class Config:
-        from_attributes = True
-
-class ObservacionBase(BaseModel):
-    id_informe: int
-    tipo_observacion: str
-    descripcion: str
-    nivel_riesgo: str
-    requiere_atencion_inmediata: bool = False
-    fecha_limite_recomendada: Optional[date] = None
-
-class ObservacionCreate(ObservacionBase):
-    pass
-
-class ObservacionUpdate(BaseModel):
-    tipo_observacion: Optional[str] = None
-    descripcion: Optional[str] = None
-    nivel_riesgo: Optional[str] = None
-    requiere_atencion_inmediata: Optional[bool] = None
-    fecha_limite_recomendada: Optional[date] = None
-
-class ObservacionResponse(ObservacionBase):
-    id_observacion: int
-    fecha_registro: datetime
-
-    class Config:
-        from_attributes = True
-
-
+# ==========================================
+# ESQUEMAS DE ACTUALIZACIÓN (EQUIPO)
+# ==========================================
 class AscensorCreate(BaseModel):
     id_cliente: int
     codigo_interno: str
@@ -412,7 +394,6 @@ class AscensorCreate(BaseModel):
     ciudad: str
     estado: str
     fecha_instalacion: Optional[date] = None
-
 
 class AscensorUpdate(BaseModel):
     id_cliente: Optional[int] = None
@@ -431,14 +412,12 @@ class AscensorUpdate(BaseModel):
     estado: Optional[str] = None
     fecha_instalacion: Optional[date] = None
 
-
 class InspeccionUpdate(BaseModel):
     estado: Optional[str] = None
     observaciones_generales: Optional[str] = None
     fecha_fin: Optional[datetime] = None
     firma_inspector: Optional[str] = None
     firma_cliente: Optional[str] = None
-
 
 class UsuarioUpdate(BaseModel):
     nombre_completo: Optional[str] = None
@@ -455,26 +434,4 @@ class UsuarioUpdate(BaseModel):
     def check_doc_type(cls, v: Optional[str]) -> Optional[str]:
         if v is not None and v not in DOCUMENT_TYPES:
             raise ValueError("Tipo de documento no válido")
-        return v
-=======
-# ==========================================
-# ESQUEMAS DE NOTIFICACIONES (LUZ)
-# ==========================================
-class NotificacionBase(BaseModel):
-    id_usuario_destino: int
-    mensaje: str
-    leida: bool = False
-
-class NotificacionCreate(NotificacionBase):
-    pass
-
-class NotificacionUpdate(BaseModel):
-    leida: bool | None = None
-
-class NotificacionResponse(NotificacionBase):
-    id_notificacion: int
-    fecha_creacion: datetime
-
-    class Config:
-        from_attributes = True
->>>>>>> c8306d785873f7353c3912678d3673587c1f0869
+        return 

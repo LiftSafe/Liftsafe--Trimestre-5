@@ -6,11 +6,7 @@ import os
 import shutil
 from app.database import get_db
 from app.models.models import Fotografia, Informe
-<<<<<<< HEAD
 from app.schemas.schemas import FotografiaResponse, MessageResponse, FotografiaUpdate
-=======
-from app.schemas.schemas import FotografiaResponse, MessageResponse
->>>>>>> c8306d785873f7353c3912678d3673587c1f0869
 from app.utils.auth_deps import get_current_user_role
 
 router = APIRouter(prefix="/fotografias", tags=["Fotografias"])
@@ -21,7 +17,9 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 MAX_FILE_SIZE = 10 * 1024 * 1024
 ALLOWED_TYPES = {"image/jpeg", "image/png"}
 
-
+# ============================================
+# 1. SUBIR FOTO
+# ============================================
 @router.post("/", response_model=FotografiaResponse, status_code=status.HTTP_201_CREATED)
 def subir_foto(
     request: Request,
@@ -66,7 +64,9 @@ def subir_foto(
     db.refresh(nueva_foto)
     return nueva_foto
 
-
+# ============================================
+# 2. LISTAR FOTOS DE UN INFORME
+# ============================================
 @router.get("/informe/{id_informe}", response_model=List[FotografiaResponse])
 def listar_fotos_informe(
     id_informe: int,
@@ -76,7 +76,9 @@ def listar_fotos_informe(
     get_current_user_role(request)
     return db.query(Fotografia).filter(Fotografia.id_informe == id_informe).all()
 
-
+# ============================================
+# 3. ELIMINAR FOTO
+# ============================================
 @router.delete("/{id_foto}", response_model=MessageResponse)
 def eliminar_foto(
     id_foto: int,
@@ -96,10 +98,11 @@ def eliminar_foto(
 
     db.delete(foto)
     db.commit()
-    return {"message": "Foto eliminada"}
-<<<<<<< HEAD
+    return {"message": "Foto eliminada exitosamente"}
 
-
+# ============================================
+# 4. ACTUALIZAR DESCRIPCIÓN DE FOTO (HEAD - CRUD completo)
+# ============================================
 @router.put("/{id_foto}", response_model=FotografiaResponse)
 def actualizar_foto(
     id_foto: int,
@@ -123,5 +126,3 @@ def actualizar_foto(
     db.commit()
     db.refresh(foto)
     return foto
-=======
->>>>>>> c8306d785873f7353c3912678d3673587c1f0869

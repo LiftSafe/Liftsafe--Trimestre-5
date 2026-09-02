@@ -3,7 +3,8 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.database import get_db
-from app.models.models import Ascensor, Usuario
+from app.models.models import Ascensor, Usuario, Inspeccion
+from app.schemas.schemas import AscensorCreate, AscensorUpdate, MessageResponse
 from jose import jwt, JWTError
 from app.config import settings
 
@@ -20,6 +21,9 @@ def get_current_user_role(credentials: HTTPAuthorizationCredentials = Security(s
     except JWTError:
         raise HTTPException(status_code=401, detail="Token inválido")
 
+# ============================================
+# 1. LISTADO DE ASCENSORES
+# ============================================
 @router.get("/listado")
 def listado_ascensores(
     credentials: HTTPAuthorizationCredentials = Security(security),
@@ -52,6 +56,9 @@ def listado_ascensores(
         for a, cliente in ascensores
     ]
 
+# ============================================
+# 2. EDIFICIOS - AGRUPACIÓN POR CLIENTE
+# ============================================
 @router.get("/edificios")
 def edificios(
     credentials: HTTPAuthorizationCredentials = Security(security),
@@ -61,7 +68,6 @@ def edificios(
     
     # Inspector: edificios donde ha hecho inspecciones
     if rol == 'Inspector':
-        from app.models.models import Inspeccion
         resultado = db.query(
             Usuario.nombre_completo.label('cliente'),
             Usuario.direccion,
@@ -99,6 +105,9 @@ def edificios(
         for r in resultado
     ]
 
+# ============================================
+# 3. MIS ASCENSORES (para Inspector)
+# ============================================
 @router.get("/mis-ascensores")
 def mis_ascensores_inspeccionados(
     credentials: HTTPAuthorizationCredentials = Security(security),
@@ -110,7 +119,6 @@ def mis_ascensores_inspeccionados(
         raise HTTPException(status_code=401, detail="Usuario no identificado")
     
     # Buscar ascensores que el inspector ha inspeccionado
-    from app.models.models import Inspeccion
     ascensores = db.query(Ascensor, Usuario.nombre_completo).\
         join(Inspeccion, Ascensor.id_ascensor == Inspeccion.id_ascensor).\
         join(Usuario, Ascensor.id_cliente == Usuario.id_usuario).\
@@ -130,12 +138,11 @@ def mis_ascensores_inspeccionados(
             "cliente": cliente
         }
         for a, cliente in ascensores
-<<<<<<< HEAD
     ]
 
-
-from app.schemas.schemas import AscensorCreate, AscensorUpdate, MessageResponse
-
+# ============================================
+# 4. CREAR ASCENSOR (HEAD - CRUD)
+# ============================================
 @router.post("/", response_model=MessageResponse)
 def crear_ascensor(
     data: AscensorCreate,
@@ -179,7 +186,9 @@ def crear_ascensor(
     db.refresh(nuevo)
     return {"message": "Ascensor creado exitosamente", "id_ascensor": nuevo.id_ascensor}
 
-
+# ============================================
+# 5. EDITAR ASCENSOR (HEAD - CRUD)
+# ============================================
 @router.put("/{id_ascensor}", response_model=MessageResponse)
 def editar_ascensor(
     id_ascensor: int,
@@ -244,7 +253,9 @@ def editar_ascensor(
     db.refresh(ascensor)
     return {"message": "Ascensor actualizado exitosamente"}
 
-
+# ============================================
+# 6. ELIMINAR ASCENSOR (HEAD - CRUD)
+# ============================================
 @router.delete("/{id_ascensor}", response_model=MessageResponse)
 def eliminar_ascensor(
     id_ascensor: int,
@@ -267,6 +278,3 @@ def eliminar_ascensor(
     db.delete(ascensor)
     db.commit()
     return {"message": "Ascensor eliminado exitosamente"}
-=======
-    ]
->>>>>>> c8306d785873f7353c3912678d3673587c1f0869

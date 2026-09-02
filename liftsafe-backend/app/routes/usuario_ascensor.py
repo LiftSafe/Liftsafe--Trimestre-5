@@ -11,13 +11,16 @@ router = APIRouter(prefix="/usuario-ascensor", tags=["Usuario-Ascensor"])
 
 INSPECTOR_ROL_ID = 4
 
-
+# ============================================
+# 1. ASIGNAR INSPECTOR A ASCENSOR (solo Admin)
+# ============================================
 @router.post("/", response_model=UsuarioAscensorResponse, status_code=status.HTTP_201_CREATED)
 def asignar_inspector_ascensor(
     data: UsuarioAscensorCreate,
     db: Session = Depends(get_db),
     rol: str = Depends(require_admin)
 ):
+    # Validar que el usuario existe y es Inspector
     usuario = db.query(Usuario).filter(
         Usuario.id_usuario == data.id_usuario,
         Usuario.id_rol == INSPECTOR_ROL_ID
@@ -25,10 +28,12 @@ def asignar_inspector_ascensor(
     if not usuario:
         raise HTTPException(status_code=404, detail="Inspector no encontrado")
 
+    # Validar que el ascensor existe
     ascensor = db.query(Ascensor).filter(Ascensor.id_ascensor == data.id_ascensor).first()
     if not ascensor:
         raise HTTPException(status_code=404, detail="Ascensor no encontrado")
 
+    # Verificar si ya existe asignación activa
     existente = db.query(UsuarioAscensor).filter(
         UsuarioAscensor.id_usuario == data.id_usuario,
         UsuarioAscensor.id_ascensor == data.id_ascensor,
@@ -49,7 +54,9 @@ def asignar_inspector_ascensor(
     db.refresh(nueva)
     return nueva
 
-
+# ============================================
+# 2. LISTAR ASIGNACIONES
+# ============================================
 @router.get("/", response_model=List[UsuarioAscensorResponse])
 def listar_asignaciones(
     db: Session = Depends(get_db),
@@ -57,11 +64,16 @@ def listar_asignaciones(
 ):
     rol, sub, user_id = current_user
     query = db.query(UsuarioAscensor)
+    
+    # Si es inspector, solo ve sus propias asignaciones
     if rol == "Inspector":
         query = query.filter(UsuarioAscensor.id_usuario == user_id)
+    
     return query.all()
 
-
+# ============================================
+# 3. OBTENER ASIGNACIÓN POR ID
+# ============================================
 @router.get("/{id}", response_model=UsuarioAscensorResponse)
 def obtener_asignacion(
     id: int,
@@ -71,9 +83,12 @@ def obtener_asignacion(
     asignacion = db.query(UsuarioAscensor).filter(UsuarioAscensor.id_usuario_ascensor == id).first()
     if not asignacion:
         raise HTTPException(status_code=404, detail="Asignación no encontrada")
+    
     return asignacion
 
-
+# ============================================
+# 4. DESASIGNAR (baja lógica, solo Admin)
+# ============================================
 @router.put("/{id}/desasignar", response_model=MessageResponse)
 def desasignar_inspector(
     id: int,
@@ -84,16 +99,18 @@ def desasignar_inspector(
     asignacion = db.query(UsuarioAscensor).filter(UsuarioAscensor.id_usuario_ascensor == id).first()
     if not asignacion:
         raise HTTPException(status_code=404, detail="Asignación no encontrada")
+    
     if asignacion.fecha_desasignacion:
         raise HTTPException(status_code=400, detail="Ya está desasignado")
 
     asignacion.fecha_desasignacion = data.fecha_desasignacion or date.today()
     asignacion.observaciones = data.observaciones or asignacion.observaciones
     db.commit()
-<<<<<<< HEAD
     return {"message": "Inspector desasignado correctamente"}
 
-
+# ============================================
+# 5. ELIMINAR ASIGNACIÓN (HEAD - CRUD completo)
+# ============================================
 @router.delete("/{id}", response_model=MessageResponse)
 def eliminar_asignacion(
     id: int,
@@ -107,6 +124,3 @@ def eliminar_asignacion(
     db.delete(asignacion)
     db.commit()
     return {"message": "Asignación eliminada exitosamente"}
-=======
-    return {"message": "Inspector desasignado correctamente"}
->>>>>>> c8306d785873f7353c3912678d3673587c1f0869

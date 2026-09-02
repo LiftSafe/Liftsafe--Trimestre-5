@@ -28,7 +28,6 @@ class Usuario(Base):
     correo = Column(String(120), nullable=False, unique=True)
     contrasena_encriptada = Column(LargeBinary, nullable=True, comment="AES_ENCRYPT de MySQL")
     telefono = Column(String(255), nullable=True)
-    # ... resto
     tipo_documento = Column(String(10), nullable=True, comment="CC, CE, PA, RC, TI, NIT, PEP, PPT, CD")
     documento_identidad = Column(String(255), nullable=True)
     razon_social = Column(String(255), nullable=True)
@@ -44,8 +43,9 @@ class Usuario(Base):
     inspecciones = relationship("Inspeccion", back_populates="inspector_rel", foreign_keys="Inspeccion.id_inspector")
     asignaciones = relationship("UsuarioAscensor", back_populates="usuario")
     informes_revisados = relationship("Informe", back_populates="revisor", foreign_keys="Informe.id_revisor")
+    notificaciones = relationship("Notificacion", back_populates="usuario_destino", foreign_keys="Notificacion.id_usuario_destino")
 
-# ============ MODELO ASCENSOR (ACTUALIZADO CON TODOS LOS CAMPOS) ============
+# ============ MODELO ASCENSOR ============
 
 class Ascensor(Base):
     __tablename__ = "ascensor"
@@ -309,13 +309,9 @@ class Auditoria(Base):
     datos_nuevos = Column(Text, nullable=True, comment="Valores después del cambio (JSON)")
     ip_origen = Column(String(45), nullable=True)
     user_agent = Column(String(255), nullable=True)
-<<<<<<< HEAD
-    fecha_evento = Column(DateTime, nullable=False, default=datetime.utcnow)
-=======
     fecha_evento = Column(DateTime, nullable=False, default=datetime.utcnow)
 
-
-    # ============ MODELO NOTIFICACION ============
+# ============ MODELO NOTIFICACION (LUZ) ============
 
 class Notificacion(Base):
     __tablename__ = "notificacion"
@@ -329,5 +325,4 @@ class Notificacion(Base):
                            comment="Fecha y hora de creación")
     
     # Relación con usuario
-    usuario_destino = relationship("Usuario", foreign_keys=[id_usuario_destino])
->>>>>>> c8306d785873f7353c3912678d3673587c1f0869
+    usuario_destino = relationship("Usuario", back_populates="notificaciones", foreign_keys=[id_usuario_destino])

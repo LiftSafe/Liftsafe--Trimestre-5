@@ -7,10 +7,7 @@ from app.models.models import Informe, Inspeccion
 from app.schemas.schemas import MessageResponse
 from app.controllers.informe_controller import generar_pdf_informe
 from datetime import datetime
-<<<<<<< HEAD
 import os
-=======
->>>>>>> c8306d785873f7353c3912678d3673587c1f0869
 from jose import jwt, JWTError
 from app.config import settings
 
@@ -30,7 +27,9 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Security(securi
     except JWTError as e:
         raise HTTPException(status_code=401, detail=f"Token invalido: {str(e)}")
 
-# 1. Generar informe PDF
+# ============================================
+# 1. GENERAR INFORME PDF (ESTEBAN)
+# ============================================
 @router.post("/{id_inspeccion}/generar", response_model=MessageResponse)
 def generar_informe(
     id_inspeccion: int,
@@ -40,6 +39,7 @@ def generar_informe(
     inspeccion = db.query(Inspeccion).filter(Inspeccion.id_inspeccion == id_inspeccion).first()
     if not inspeccion:
         raise HTTPException(status_code=404, detail="Inspeccion no encontrada")
+    
     if not inspeccion.firma_inspector or not inspeccion.firma_cliente:
         raise HTTPException(status_code=400, detail="Faltan firmas para generar el informe")
     
@@ -68,7 +68,9 @@ def generar_informe(
     db.commit()
     return {"message": "Informe generado correctamente", "ruta": pdf_path}
 
-# 2. Listar informes
+# ============================================
+# 2. LISTAR INFORMES (ESTEBAN)
+# ============================================
 @router.get("/", response_model=List[dict])
 def listar_informes(
     db: Session = Depends(get_db),
@@ -76,7 +78,9 @@ def listar_informes(
 ):
     return db.query(Informe).all()
 
-# 3. Obtener informe por inspeccion
+# ============================================
+# 3. OBTENER INFORME POR INSPECCIÓN (ESTEBAN)
+# ============================================
 @router.get("/inspeccion/{id_inspeccion}")
 def obtener_informe_por_inspeccion(
     id_inspeccion: int,
@@ -88,7 +92,9 @@ def obtener_informe_por_inspeccion(
         raise HTTPException(status_code=404, detail="Informe no encontrado")
     return informe
 
-# 4. Enviar informe
+# ============================================
+# 4. ENVIAR INFORME (ESTEBAN)
+# ============================================
 @router.put("/{id}/enviar", response_model=MessageResponse)
 def enviar_informe(
     id: int,
@@ -98,21 +104,24 @@ def enviar_informe(
     informe = db.query(Informe).filter(Informe.id_informe == id).first()
     if not informe:
         raise HTTPException(status_code=404, detail="Informe no encontrado")
+    
     if informe.estado != "Generado":
         raise HTTPException(status_code=400, detail="El informe debe estar generado")
     
     informe.estado = "Enviado"
     db.commit()
     return {"message": "Informe enviado correctamente"}
-<<<<<<< HEAD
 
-
+# ============================================
+# 5. ELIMINAR INFORME (HEAD - CRUD completo)
+# ============================================
 @router.delete("/{id}", response_model=MessageResponse)
 def eliminar_informe(
     id: int,
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
+    # Solo Administrador o Director Técnico pueden eliminar
     if current_user["rol"] not in ['Administrador', 'Director Técnico']:
         raise HTTPException(status_code=403, detail="No autorizado para eliminar informes")
     
@@ -127,5 +136,3 @@ def eliminar_informe(
     db.delete(informe)
     db.commit()
     return {"message": "Informe eliminado exitosamente"}
-=======
->>>>>>> c8306d785873f7353c3912678d3673587c1f0869

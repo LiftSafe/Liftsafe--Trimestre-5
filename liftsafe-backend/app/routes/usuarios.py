@@ -3,11 +3,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.models import Usuario, Rol
-<<<<<<< HEAD
 from app.schemas.schemas import UsuarioCreate, MessageResponse, UsuarioUpdate
-=======
-from app.schemas.schemas import UsuarioCreate, MessageResponse
->>>>>>> c8306d785873f7353c3912678d3673587c1f0869
 from app.controllers.usuario_controller import get_user_profile, get_admin_stats, get_cliente_ascensores, get_inspector_inspecciones
 from app.utils.auth_deps import require_admin
 from sqlalchemy import text
@@ -26,6 +22,9 @@ def format_document(user: Usuario) -> str:
         return f"{label}: {doc}" if doc else label
     return doc
 
+# ============================================
+# 1. CREAR USUARIO
+# ============================================
 @router.post("", response_model=MessageResponse)
 def crear_usuario(
     request: Request,
@@ -65,6 +64,9 @@ def crear_usuario(
     db.commit()
     return {"message": f"Usuario {rol.nombre_rol} creado exitosamente"}
 
+# ============================================
+# 2. OBTENER PERFIL DE USUARIO
+# ============================================
 @router.get("/perfil/{user_id}")
 def perfil(user_id: int, db: Session = Depends(get_db)):
     result = db.execute(text("""
@@ -86,6 +88,9 @@ def perfil(user_id: int, db: Session = Depends(get_db)):
         "estado": result["estado"]
     }
 
+# ============================================
+# 3. DASHBOARDS
+# ============================================
 @router.get("/dashboard/admin")
 def dashboard_admin(db: Session = Depends(get_db)):
     return get_admin_stats(db)
@@ -98,6 +103,9 @@ def dashboard_cliente(client_id: int, db: Session = Depends(get_db)):
 def dashboard_inspector(inspector_id: int, db: Session = Depends(get_db)):
     return get_inspector_inspecciones(db, inspector_id)
 
+# ============================================
+# 4. LISTADO DE USUARIOS (solo Admin)
+# ============================================
 @router.get("/listado")
 def listado_usuarios(request: Request, db: Session = Depends(get_db)):
     require_admin(request)
@@ -123,11 +131,9 @@ def listado_usuarios(request: Request, db: Session = Depends(get_db)):
         for row in result
     ]
 
-<<<<<<< HEAD
-# ✅ Eliminar usuario
-=======
-# ✅ NUEVO: Eliminar usuario
->>>>>>> c8306d785873f7353c3912678d3673587c1f0869
+# ============================================
+# 5. ELIMINAR USUARIO (solo Admin)
+# ============================================
 @router.delete("/{user_id}", response_model=MessageResponse)
 def eliminar_usuario(
     user_id: int,
@@ -152,10 +158,11 @@ def eliminar_usuario(
     db.delete(user)
     db.commit()
     
-<<<<<<< HEAD
     return {"message": f"Usuario '{user.nombre_completo}' eliminado exitosamente"}
 
-
+# ============================================
+# 6. EDITAR USUARIO (solo Admin)
+# ============================================
 @router.put("/{user_id}", response_model=MessageResponse)
 def editar_usuario(
     user_id: int,
@@ -196,6 +203,3 @@ def editar_usuario(
     
     db.commit()
     return {"message": f"Usuario '{user.nombre_completo}' actualizado exitosamente"}
-=======
-    return {"message": f"Usuario '{user.nombre_completo}' eliminado exitosamente"}
->>>>>>> c8306d785873f7353c3912678d3673587c1f0869
