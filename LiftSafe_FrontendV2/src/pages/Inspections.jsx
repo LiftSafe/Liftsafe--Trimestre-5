@@ -1,41 +1,38 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Box, Card, CardContent, Button, Chip, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow,
   Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem,
-  Typography, IconButton, CircularProgress, Alert, Paper,
-  Checkbox, FormControlLabel, Radio, RadioGroup, FormControl, Snackbar
+  Typography, Divider, IconButton, CircularProgress, Alert, Paper,
+  Radio, RadioGroup, FormControl, FormControlLabel, Checkbox,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import CloseIcon from '@mui/icons-material/Close';
 import DeleteIcon from '@mui/icons-material/Delete';
-import EditIcon from '@mui/icons-material/Edit';
-import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
 import DrawIcon from '@mui/icons-material/Draw';
 import VerifiedIcon from '@mui/icons-material/Verified';
-import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
-
 import PageHeader from '../components/PageHeader';
-import SearchBar from '../components/SearchBar';
-import ListPagination from '../components/ListPagination';
-import { statusColor } from '../utils/statusHelpers';
 import { brand } from '../theme/colors';
-import { useAuth } from '../hooks/useAuth';
+import { useAuth } from '../context/AuthContext';
+import { apiClient } from '../services/apiClient';
 import { fotografiaService } from '../services/fotografiaService';
 import { firmaService } from '../services/firmaService';
-import { observacionService } from '../services/observacionService';
 import { checklistService } from '../services/checklistService';
+import { observacionService } from '../services/observacionService';
 import { API_BASE_URL } from '../config/api';
-import { useDashboardData } from '../hooks/useDashboardData';
-import { usePaginatedSearch } from '../hooks/usePaginatedSearch';
-import { fetchInspecciones, fetchEdificios, fetchAscensores, crearInspeccion } from '../services/dashboardService';
 
-const PAD_HEIGHT = 200;
 const NIVELES_RIESGO = ['Bajo', 'Medio', 'Alto', 'Crítico'];
 const TIPOS_OBSERVACION = ['Preventiva', 'Correctiva', 'Urgente'];
 
-const statusColorMap = {
+const inspeccionService = {
+  listar: () => apiClient.get('/inspecciones/mis-inspecciones'),
+  obtener: (id) => apiClient.get(`/inspecciones/${id}`),
+  crear: (data) => apiClient.post('/inspecciones/crear', data),
+  actualizarEstado: (id, estado) => apiClient.put(`/inspecciones/${id}/estado?estado=${estado}`),
+};
+
+const statusColor = {
   Programada: 'warning',
   'En Progreso': 'info',
   Completada: 'success',
@@ -45,116 +42,8 @@ const statusColorMap = {
   Borrador: 'default',
 };
 
-// ============================================
-// COMPONENTE CONFIRM DIALOG
-// ============================================
-function ConfirmDialog({
-  open,
-  onClose,
-  onConfirm,
-  title = 'Confirmar acción',
-  message = '¿Estás seguro de que deseas continuar?',
-  confirmText = 'Aceptar',
-  cancelText = 'Cancelar',
-  confirmColor = 'error',
-  loading = false,
-}) {
-  return (
-    <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
-      <DialogTitle sx={{ pb: 1 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <WarningAmberIcon color={confirmColor} />
-          <Typography fontWeight={700}>{title}</Typography>
-        </Box>
-      </DialogTitle>
-      <DialogContent>
-        <Typography color="text.secondary">{message}</Typography>
-      </DialogContent>
-      <DialogActions sx={{ px: 3, pb: 2 }}>
-        <Button onClick={onClose} disabled={loading}>
-          {cancelText}
-        </Button>
-        <Button
-          variant="contained"
-          color={confirmColor}
-          onClick={onConfirm}
-          disabled={loading}
-        >
-          {loading ? 'Eliminando...' : confirmText}
-        </Button>
-      </DialogActions>
-    </Dialog>
-  );
-}
+const PAD_HEIGHT = 200;
 
-// ============================================
-// COMPONENTE SECTION CARD
-// ============================================
-function SectionCard({ step, title, subtitle, action, children }) {
-  return (
-    <Box
-      sx={{
-        mb: 2.5,
-        border: '1px solid #E2E8F0',
-        borderRadius: 2.5,
-        overflow: 'hidden',
-        bgcolor: '#fff',
-      }}
-    >
-      <Box
-        sx={{
-          px: 2.5,
-          py: 1.75,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 2,
-          bgcolor: '#F7F9FC',
-          borderBottom: '1px solid #E8EDF2',
-          flexWrap: 'wrap',
-        }}
-      >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          {step != null && (
-            <Box
-              sx={{
-                width: 28,
-                height: 28,
-                borderRadius: '8px',
-                bgcolor: brand.accent,
-                color: '#fff',
-                fontSize: 13,
-                fontWeight: 700,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}
-            >
-              {step}
-            </Box>
-          )}
-          <Box>
-            <Typography fontWeight={700} sx={{ color: brand.navy, fontSize: '0.95rem' }}>
-              {title}
-            </Typography>
-            {subtitle && (
-              <Typography variant="caption" color="text.secondary">
-                {subtitle}
-              </Typography>
-            )}
-          </Box>
-        </Box>
-        {action}
-      </Box>
-      <Box sx={{ p: { xs: 2, sm: 2.5 } }}>{children}</Box>
-    </Box>
-  );
-}
-
-// ============================================
-// COMPONENTE SIGNATURE PAD
-// ============================================
 function SignaturePad({ onSave, disabled, label, fecha }) {
   const canvasRef = useRef(null);
   const wrapRef = useRef(null);
@@ -168,7 +57,7 @@ function SignaturePad({ onSave, disabled, label, fecha }) {
     ctx.lineJoin = 'round';
   };
 
-  const setupCanvas = useCallback(() => {
+  const setupCanvas = () => {
     const canvas = canvasRef.current;
     const wrap = wrapRef.current;
     if (!canvas || !wrap || disabled) return;
@@ -182,17 +71,17 @@ function SignaturePad({ onSave, disabled, label, fecha }) {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     configureContext(ctx);
     setHasStroke(false);
-  }, [disabled]);
+  };
 
   useEffect(() => {
-    if (disabled) return;
+    if (disabled) return undefined;
     setupCanvas();
     const wrap = wrapRef.current;
-    if (!wrap) return;
+    if (!wrap) return undefined;
     const observer = new ResizeObserver(() => setupCanvas());
     observer.observe(wrap);
     return () => observer.disconnect();
-  }, [disabled, setupCanvas]);
+  }, [disabled]);
 
   const getPos = (e) => {
     const canvas = canvasRef.current;
@@ -435,42 +324,23 @@ function SignaturePad({ onSave, disabled, label, fecha }) {
 // COMPONENTE PRINCIPAL
 // ============================================
 export default function Inspections() {
-  const { user, hasAction } = useAuth();
-  const { data: rows = [], loading, error, refetch } = useDashboardData(fetchInspecciones);
-  const { search, setSearch, page, setPage, paginated, totalCount } = usePaginatedSearch(
-    rows,
-    ['building', 'elevator', 'brand', 'model', 'type', 'inspector', 'status', 'date']
-  );
+  const { user } = useAuth();
+  const userRol = user?.rol || user?.role;
 
-  // Estados del modal de nueva inspección
-  const [open, setOpen] = useState(false);
+  const [inspections, setInspections] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const [openCreate, setOpenCreate] = useState(false);
+  const [newInspection, setNewInspection] = useState({
+    id_ascensor: '',
+    id_inspector: '',
+    fecha_programada: '',
+    observaciones_generales: '',
+  });
+
   const [detailOpen, setDetailOpen] = useState(false);
   const [selected, setSelected] = useState(null);
-  const [edificios, setEdificios] = useState([]);
-  const [ascensores, setAscensores] = useState([]);
-  const [edificioSeleccionado, setEdificioSeleccionado] = useState('');
-  const [ascensorSeleccionado, setAscensorSeleccionado] = useState('');
-  const [tipoInspeccion, setTipoInspeccion] = useState('Periódica');
-  const [fechaProgramada, setFechaProgramada] = useState('');
-  const [fechaError, setFechaError] = useState('');
-  const [observaciones, setObservaciones] = useState('');
-  const [loadingModal, setLoadingModal] = useState(false);
-
-  // Estados del detalle (Valentina + Felipe)
-  const [categorias, setCategorias] = useState([]);
-  const [detalles, setDetalles] = useState({});
-  const [loadingChecklist, setLoadingChecklist] = useState(false);
-  const [checklistError, setChecklistError] = useState('');
-  const [savingItem, setSavingItem] = useState(null);
-  const [observacionesList, setObservacionesList] = useState([]);
-  const [obsError, setObsError] = useState('');
-  const [nuevaObs, setNuevaObs] = useState({
-    tipo_observacion: 'Preventiva',
-    descripcion: '',
-    nivel_riesgo: 'Bajo',
-    requiere_atencion_inmediata: false,
-  });
-  const [creandoObs, setCreandoObs] = useState(false);
   const [firmas, setFirmas] = useState({
     firma_inspector: false,
     firma_cliente: false,
@@ -479,165 +349,68 @@ export default function Inspections() {
     fecha_firma_cliente: null,
   });
   const [fotos, setFotos] = useState([]);
-  const [loadingDetail] = useState(false);
+  const [loadingDetail, setLoadingDetail] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [fotoDescripcion, setFotoDescripcion] = useState('');
 
-  // Estados de snackbar y confirm dialog (Esteban)
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
-  const [deleteDialog, setDeleteDialog] = useState({ open: false, row: null });
-  const [deleting, setDeleting] = useState(false);
+  // ---- Checklist (Felipe) ----
+  const [categorias, setCategorias] = useState([]);
+  const [detalles, setDetalles] = useState({}); // { [id_item]: { id_detalle, resultado } }
+  const [loadingChecklist, setLoadingChecklist] = useState(false);
+  const [checklistError, setChecklistError] = useState('');
+  const [savingItem, setSavingItem] = useState(null);
 
-  const userRol = user?.rol || user?.role;
+  // ---- Observaciones (Felipe) ----
+  const [observaciones, setObservaciones] = useState([]);
+  const [obsError, setObsError] = useState('');
+  const [nuevaObs, setNuevaObs] = useState({
+    tipo_observacion: 'Preventiva',
+    descripcion: '',
+    nivel_riesgo: 'Bajo',
+    requiere_atencion_inmediata: false,
+  });
+  const [creandoObs, setCreandoObs] = useState(false);
 
-  // ============================================
-  // FUNCIONES DE SNACKBAR (Esteban)
-  // ============================================
-  const showSnackbar = (message, severity = 'info') => {
-    setSnackbar({ open: true, message, severity });
-  };
-
-  const handleCloseSnackbar = () => {
-    setSnackbar({ ...snackbar, open: false });
-  };
-
-  // ============================================
-  // FUNCIONES DE ESTEBAN (crear inspección, edificios)
-  // ============================================
-  const getHoy = () => {
-    const hoy = new Date();
-    const year = hoy.getFullYear();
-    const month = String(hoy.getMonth() + 1).padStart(2, '0');
-    const day = String(hoy.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
-
-  const validarFecha = (fecha) => {
-    if (!fecha) {
-      setFechaError('');
-      return false;
-    }
-    const hoy = getHoy();
-    if (fecha < hoy) {
-      setFechaError('La fecha no puede ser anterior a hoy');
-      return false;
-    }
-    setFechaError('');
-    return true;
-  };
-
-  const handleFechaChange = (e) => {
-    const nuevaFecha = e.target.value;
-    const hoy = getHoy();
-    if (nuevaFecha && nuevaFecha < hoy) {
-      setFechaProgramada('');
-      setFechaError('La fecha no puede ser anterior a hoy');
-      return;
-    }
-    setFechaProgramada(nuevaFecha);
-    setFechaError('');
-  };
-
-  const cargarEdificios = async () => {
-    setLoadingModal(true);
+  const cargarInspecciones = async (showLoading = false) => {
+    if (showLoading) setLoading(true);
+    setError(null);
     try {
-      const data = await fetchEdificios();
-      setEdificios(data || []);
+      const data = await inspeccionService.listar();
+      setInspections(Array.isArray(data) ? data : []);
     } catch (err) {
-      console.error('Error cargando edificios:', err);
+      console.error('Error cargando inspecciones:', err);
+      setError('Error al cargar las inspecciones. Verifica tu conexión con el backend.');
     } finally {
-      setLoadingModal(false);
+      if (showLoading) setLoading(false);
     }
   };
 
-  const handleEdificioChange = async (edificioId) => {
-    setEdificioSeleccionado(edificioId);
-    setAscensorSeleccionado('');
-    if (!edificioId) {
-      setAscensores([]);
-      return;
-    }
-    setLoadingModal(true);
-    try {
-      const todosAscensores = await fetchAscensores();
-      const ascensoresFiltrados = todosAscensores.filter((a) => a.building === edificioId);
-      setAscensores(ascensoresFiltrados);
-    } catch (err) {
-      console.error('Error cargando ascensores:', err);
-    } finally {
-      setLoadingModal(false);
-    }
-  };
+  useEffect(() => {
+    let cancelled = false;
 
-  const limpiarFormulario = () => {
-    setEdificioSeleccionado('');
-    setAscensorSeleccionado('');
-    setTipoInspeccion('Periódica');
-    setFechaProgramada('');
-    setFechaError('');
-    setObservaciones('');
-    setAscensores([]);
-  };
+    (async () => {
+      try {
+        const data = await inspeccionService.listar();
+        if (!cancelled) {
+          setInspections(Array.isArray(data) ? data : []);
+          setError(null);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          console.error('Error cargando inspecciones:', err);
+          setError('Error al cargar las inspecciones. Verifica tu conexión con el backend.');
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
 
-  const handleCrearInspeccion = async () => {
-    if (!edificioSeleccionado || !ascensorSeleccionado || !fechaProgramada) {
-      showSnackbar('Por favor complete todos los campos obligatorios', 'warning');
-      return;
-    }
-    if (!validarFecha(fechaProgramada)) {
-      showSnackbar(fechaError || 'La fecha programada no es válida', 'error');
-      return;
-    }
-    const ascensor = ascensores.find((a) => a.id === ascensorSeleccionado);
-    if (!ascensor) {
-      showSnackbar('Ascensor no válido', 'error');
-      return;
-    }
-    const data = {
-      id_ascensor: parseInt(ascensorSeleccionado),
-      id_inspector: 1,
-      fecha_programada: fechaProgramada,
-      tipo_servicio: tipoInspeccion,
-      observaciones: observaciones,
+    return () => {
+      cancelled = true;
     };
-    try {
-      setLoadingModal(true);
-      await crearInspeccion(data);
-      setOpen(false);
-      limpiarFormulario();
-      if (refetch) refetch();
-      showSnackbar('Inspección creada exitosamente', 'success');
-    } catch (err) {
-      console.error('Error creando inspección:', err);
-      showSnackbar(err.message || 'Error al crear inspección', 'error');
-    } finally {
-      setLoadingModal(false);
-    }
-  };
+  }, []);
 
-  const handleDeleteClick = (row) => {
-    setDeleteDialog({ open: true, row });
-  };
-
-  const handleDeleteConfirm = async () => {
-    if (!deleteDialog.row) return;
-    setDeleting(true);
-    try {
-      console.log('Eliminar inspección:', deleteDialog.row.id);
-      showSnackbar('Inspección eliminada correctamente', 'success');
-      if (refetch) refetch();
-    } catch (err) {
-      showSnackbar(err.message || 'Error al eliminar la inspección', 'error');
-    } finally {
-      setDeleting(false);
-      setDeleteDialog({ open: false, row: null });
-    }
-  };
-
-  // ============================================
-  // FUNCIONES DE FELIPE (checklist y observaciones)
-  // ============================================
-  const cargarChecklist = async (idInspeccion) => {
+  async function cargarChecklist(idInspeccion) {
     setLoadingChecklist(true);
     setChecklistError('');
     try {
@@ -656,141 +429,92 @@ export default function Inspections() {
     } finally {
       setLoadingChecklist(false);
     }
-  };
+  }
 
-  const cargarObservaciones = async (idInforme) => {
+  async function cargarObservaciones(idInforme) {
     setObsError('');
     if (!idInforme) {
-      setObservacionesList([]);
-      setObsError('Esta inspección no tiene informe generado');
+      setObservaciones([]);
+      setObsError('Esta inspección todavía no tiene un informe generado, así que no se pueden registrar observaciones.');
       return;
     }
     try {
       const obs = await observacionService.listarPorInforme(idInforme);
-      setObservacionesList(obs || []);
+      setObservaciones(obs || []);
     } catch (err) {
-      setObservacionesList([]);
+      setObservaciones([]);
       setObsError(err.message || 'No se pudieron cargar las observaciones');
     }
-  };
+  }
 
-  const calificarItem = async (item, resultado) => {
-    setSavingItem(item.id_item);
+  const abrirDetalle = async (row) => {
+    setSelected(row);
+    setDetailOpen(true);
+    setLoadingDetail(true);
+    setFotos([]);
+    setFirmas({
+      firma_inspector: false,
+      firma_cliente: false,
+      ambas_firmas: false,
+      fecha_firma_inspector: null,
+      fecha_firma_cliente: null,
+    });
+    setNuevaObs({ tipo_observacion: 'Preventiva', descripcion: '', nivel_riesgo: 'Bajo', requiere_atencion_inmediata: false });
+
     try {
-      const payload = {
-        id_inspeccion: selected.id_inspeccion,
-        id_item: item.id_item,
-        resultado: resultado,
-        observacion: '',
-        accion_requerida: '',
-      };
-      console.log('📤 Enviando calificación:', payload);
-      await checklistService.calificar(payload);
-      setDetalles((prev) => ({
-        ...prev,
-        [item.id_item]: { resultado },
-      }));
-      showSnackbar('Calificación guardada', 'success');
+      const id = row.id_inspeccion || row.id;
+      const detalle = await inspeccionService.obtener(id);
+      setSelected(detalle);
+
+      try {
+        const firmasData = await firmaService.verificarFirmas(id);
+        setFirmas({
+          firma_inspector: firmasData.firma_inspector || false,
+          firma_cliente: firmasData.firma_cliente || false,
+          ambas_firmas: firmasData.ambas_firmas || false,
+          fecha_firma_inspector: firmasData.fecha_firma_inspector || null,
+          fecha_firma_cliente: firmasData.fecha_firma_cliente || null,
+        });
+      } catch {
+        setFirmas({
+          firma_inspector: false,
+          firma_cliente: false,
+          ambas_firmas: false,
+          fecha_firma_inspector: null,
+          fecha_firma_cliente: null,
+        });
+      }
+
+      if (detalle.id_informe) {
+        try {
+          const fotosData = await fotografiaService.listarPorInforme(detalle.id_informe);
+          setFotos(Array.isArray(fotosData) ? fotosData : []);
+        } catch {
+          setFotos([]);
+        }
+      }
+
+      await Promise.all([
+        cargarChecklist(id),
+        cargarObservaciones(detalle.id_informe),
+      ]);
     } catch (err) {
-      console.error('Error al calificar:', err);
-      setChecklistError(err.message || 'No se pudo guardar la calificación');
-      showSnackbar('Error al guardar calificación: ' + err.message, 'error');
+      console.error('Error cargando detalle:', err);
     } finally {
-      setSavingItem(null);
+      setLoadingDetail(false);
     }
   };
 
-  const eliminarCalificacion = async (item) => {
-    const idDetalle = detalles[item.id_item]?.id_detalle;
-    if (!idDetalle) return;
-    setSavingItem(item.id_item);
+  const crearInspeccion = async () => {
     try {
-      await checklistService.eliminar(idDetalle);
-      setDetalles((prev) => {
-        const copia = { ...prev };
-        delete copia[item.id_item];
-        return copia;
-      });
-      showSnackbar('Calificación eliminada', 'success');
+      await inspeccionService.crear(newInspection);
+      setOpenCreate(false);
+      setNewInspection({ id_ascensor: '', id_inspector: '', fecha_programada: '', observaciones_generales: '' });
+      await cargarInspecciones();
+      alert('Inspección creada exitosamente');
     } catch (err) {
-      setChecklistError(err.message || 'No se pudo eliminar la calificación');
-      showSnackbar('Error al eliminar calificación', 'error');
-    } finally {
-      setSavingItem(null);
-    }
-  };
-
-  const crearObservacion = async () => {
-    if (!nuevaObs.descripcion.trim()) return;
-    setCreandoObs(true);
-    try {
-      await observacionService.crear({
-        id_informe: selected.id_informe,
-        ...nuevaObs,
-      });
-      setNuevaObs({
-        tipo_observacion: 'Preventiva',
-        descripcion: '',
-        nivel_riesgo: 'Bajo',
-        requiere_atencion_inmediata: false,
-      });
-      await cargarObservaciones(selected.id_informe);
-      showSnackbar('Observación creada', 'success');
-    } catch (err) {
-      setObsError(err.message || 'No se pudo crear la observación');
-      showSnackbar('Error al crear observación', 'error');
-    } finally {
-      setCreandoObs(false);
-    }
-  };
-
-  const eliminarObservacion = async (idObservacion) => {
-    try {
-      await observacionService.eliminar(idObservacion);
-      await cargarObservaciones(selected.id_informe);
-      showSnackbar('Observación eliminada', 'success');
-    } catch (err) {
-      setObsError(err.message || 'No se pudo eliminar la observación');
-      showSnackbar('Error al eliminar observación', 'error');
-    }
-  };
-
-  // ============================================
-  // FUNCIONES DE VALENTINA (fotos y firma)
-  // ============================================
-  const firmarComoInspector = async (firmaBase64) => {
-    const id = selected?.id_inspeccion || selected?.id;
-    try {
-      await firmaService.firmarInspector(id, { firma: firmaBase64 });
-      const firmasData = await firmaService.verificarFirmas(id);
-      setFirmas({
-        firma_inspector: firmasData.firma_inspector || false,
-        firma_cliente: firmasData.firma_cliente || false,
-        ambas_firmas: firmasData.ambas_firmas || false,
-        fecha_firma_inspector: firmasData.fecha_firma_inspector || null,
-        fecha_firma_cliente: firmasData.fecha_firma_cliente || null,
-      });
-      showSnackbar('Firma del inspector registrada', 'success');
-    } catch (err) {
-      showSnackbar('Error al registrar firma: ' + (err.message || ''), 'error');
-    }
-  };
-
-  const firmarComoCliente = async (firmaBase64) => {
-    const id = selected?.id_inspeccion || selected?.id;
-    try {
-      await firmaService.firmarCliente(id, { firma: firmaBase64 });
-      const firmasData = await firmaService.verificarFirmas(id);
-      setFirmas({
-        firma_inspector: firmasData.firma_inspector || false,
-        firma_cliente: firmasData.firma_cliente || false,
-        ambas_firmas: firmasData.ambas_firmas || false,
-        fecha_firma_inspector: firmasData.fecha_firma_inspector || null,
-        fecha_firma_cliente: firmasData.fecha_firma_cliente || null,
-      });
-      showSnackbar('Firma del cliente registrada', 'success');
-    } catch (err) {
-      showSnackbar('Error al registrar firma: ' + (err.message || ''), 'error');
+      console.error('Error creando inspección:', err);
+      alert('Error al crear la inspección');
     }
   };
 
@@ -809,10 +533,10 @@ export default function Inspections() {
       setFotoDescripcion('');
       const fotosData = await fotografiaService.listarPorInforme(selected.id_informe);
       setFotos(Array.isArray(fotosData) ? fotosData : []);
-      showSnackbar('Foto subida exitosamente', 'success');
+      alert('Foto subida exitosamente');
     } catch (err) {
       console.error('Error subiendo foto:', err);
-      showSnackbar('Error al subir la foto', 'error');
+      alert('Error al subir la foto');
     }
   };
 
@@ -822,260 +546,232 @@ export default function Inspections() {
       await fotografiaService.eliminar(idFoto);
       const fotosData = await fotografiaService.listarPorInforme(selected.id_informe);
       setFotos(Array.isArray(fotosData) ? fotosData : []);
-      showSnackbar('Foto eliminada', 'success');
     } catch (err) {
       console.error('Error eliminando foto:', err);
-      showSnackbar('Error al eliminar la foto', 'error');
+      alert('Error al eliminar la foto');
     }
   };
 
-  // ============================================
-  // FUNCIÓN PARA ABRIR DETALLE
-  // ============================================
-  const handleOpenDetail = (row) => {
-    setSelected(row);
-    setDetailOpen(true);
-    const idInspeccion = row.id_inspeccion || row.id;
-    const idInforme = row.id_informe;
-    if (idInspeccion) cargarChecklist(idInspeccion);
-    if (idInforme) cargarObservaciones(idInforme);
+  const firmarComoInspector = async (firmaBase64) => {
+    const id = selected?.id_inspeccion || selected?.id;
+    try {
+      await firmaService.firmarInspector(id, { firma: firmaBase64 });
+      const firmasData = await firmaService.verificarFirmas(id);
+      setFirmas({
+        firma_inspector: firmasData.firma_inspector || false,
+        firma_cliente: firmasData.firma_cliente || false,
+        ambas_firmas: firmasData.ambas_firmas || false,
+        fecha_firma_inspector: firmasData.fecha_firma_inspector || null,
+        fecha_firma_cliente: firmasData.fecha_firma_cliente || null,
+      });
+      alert('Firma del inspector registrada');
+    } catch (err) {
+      alert('Error al registrar firma: ' + (err.message || ''));
+    }
   };
 
-  // ============================================
-  // RENDER
-  // ============================================
+  const firmarComoCliente = async (firmaBase64) => {
+    const id = selected?.id_inspeccion || selected?.id;
+    try {
+      await firmaService.firmarCliente(id, { firma: firmaBase64 });
+      const firmasData = await firmaService.verificarFirmas(id);
+      setFirmas({
+        firma_inspector: firmasData.firma_inspector || false,
+        firma_cliente: firmasData.firma_cliente || false,
+        ambas_firmas: firmasData.ambas_firmas || false,
+        fecha_firma_inspector: firmasData.fecha_firma_inspector || null,
+        fecha_firma_cliente: firmasData.fecha_firma_cliente || null,
+      });
+      alert('Firma del cliente registrada');
+    } catch (err) {
+      alert('Error al registrar firma: ' + (err.message || ''));
+    }
+  };
+
+  // ---- Acciones de Checklist ----
+  async function calificarItem(item, resultado) {
+    setSavingItem(item.id_item);
+    try {
+      const idInspeccion = selected?.id_inspeccion || selected?.id;
+      const guardado = await checklistService.calificar({
+        id_inspeccion: idInspeccion,
+        id_item: item.id_item,
+        resultado,
+      });
+      setDetalles((prev) => ({
+        ...prev,
+        [item.id_item]: { id_detalle: guardado.id_detalle, resultado: guardado.resultado },
+      }));
+    } catch (err) {
+      setChecklistError(err.message || 'No se pudo guardar la calificación');
+    } finally {
+      setSavingItem(null);
+    }
+  }
+
+  async function eliminarCalificacion(item) {
+    const idDetalle = detalles[item.id_item]?.id_detalle;
+    if (!idDetalle) return;
+    setSavingItem(item.id_item);
+    try {
+      await checklistService.eliminar(idDetalle);
+      setDetalles((prev) => {
+        const copia = { ...prev };
+        delete copia[item.id_item];
+        return copia;
+      });
+    } catch (err) {
+      setChecklistError(err.message || 'No se pudo eliminar la calificación');
+    } finally {
+      setSavingItem(null);
+    }
+  }
+
+  // ---- Acciones de Observaciones ----
+  async function crearObservacion() {
+    if (!nuevaObs.descripcion.trim()) return;
+    setCreandoObs(true);
+    try {
+      await observacionService.crear({
+        id_informe: selected.id_informe,
+        ...nuevaObs,
+      });
+      setNuevaObs({ tipo_observacion: 'Preventiva', descripcion: '', nivel_riesgo: 'Bajo', requiere_atencion_inmediata: false });
+      await cargarObservaciones(selected.id_informe);
+    } catch (err) {
+      setObsError(err.message || 'No se pudo crear la observación');
+    } finally {
+      setCreandoObs(false);
+    }
+  }
+
+  async function eliminarObservacion(idObservacion) {
+    try {
+      await observacionService.eliminar(idObservacion);
+      await cargarObservaciones(selected.id_informe);
+    } catch (err) {
+      setObsError(err.message || 'No se pudo eliminar la observación');
+    }
+  }
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
   return (
     <Box>
       <PageHeader
         title="Inspecciones"
-        subtitle="Inspecciones registradas en LiftSafe"
+        subtitle={userRol === 'Administrador' ? 'Gestión global de inspecciones' : 'Tus inspecciones asignadas'}
+        breadcrumbs={[{ label: 'Inicio', path: '/dashboard' }, { label: 'Inspecciones' }]}
       />
-      <Box
-        sx={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          mb: 2,
-          flexWrap: 'wrap',
-          gap: 2,
-        }}
-      >
-        <SearchBar value={search} onChange={setSearch} placeholder="Buscar inspección..." />
-        {hasAction('createInspection') && (
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => {
-              setOpen(true);
-              cargarEdificios();
-            }}
-          >
-            Nueva inspección
-          </Button>
-        )}
-      </Box>
 
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
           {error}
         </Alert>
       )}
 
+      {userRol !== 'Cliente' && (
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+          <Button variant="contained" startIcon={<AddIcon />} onClick={() => setOpenCreate(true)}>
+            Nueva inspección
+          </Button>
+        </Box>
+      )}
+
       <Card>
         <CardContent sx={{ p: 0 }}>
-          {loading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
-              <CircularProgress />
-            </Box>
-          ) : (
-            <>
-              <TableContainer>
-                <Table>
-                  <TableHead>
-                    <TableRow sx={{ bgcolor: 'grey.50' }}>
-                      <TableCell><strong>Edificio</strong></TableCell>
-                      <TableCell><strong>Ascensor</strong></TableCell>
-                      <TableCell><strong>Tipo</strong></TableCell>
-                      <TableCell><strong>Inspector</strong></TableCell>
-                      <TableCell><strong>Fecha</strong></TableCell>
-                      <TableCell><strong>Próxima</strong></TableCell>
-                      <TableCell><strong>Estado</strong></TableCell>
-                      <TableCell align="right"><strong>Acciones</strong></TableCell>
+          <TableContainer>
+            <Table>
+              <TableHead>
+                <TableRow sx={{ bgcolor: 'grey.50' }}>
+                  <TableCell><strong>ID</strong></TableCell>
+                  <TableCell><strong>Ascensor</strong></TableCell>
+                  <TableCell><strong>Tipo</strong></TableCell>
+                  <TableCell><strong>Inspector</strong></TableCell>
+                  <TableCell><strong>Fecha</strong></TableCell>
+                  <TableCell><strong>Estado</strong></TableCell>
+                  <TableCell><strong>Firmas</strong></TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {!inspections || inspections.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
+                      No hay inspecciones registradas
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  inspections.map((row) => (
+                    <TableRow
+                      key={row.id_inspeccion || row.id}
+                      hover
+                      sx={{ cursor: 'pointer' }}
+                      onClick={() => abrirDetalle(row)}
+                    >
+                      <TableCell>
+                        <Typography fontWeight={600} color="primary.main">
+                          {row.id_inspeccion || row.id}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2">{row.codigo_ascensor || row.elevator || 'N/A'}</Typography>
+                        <Typography variant="caption" color="text.secondary">{row.marca || ''}</Typography>
+                      </TableCell>
+                      <TableCell>{row.tipo_servicio || row.type || 'Periódica'}</TableCell>
+                      <TableCell>{row.nombre_inspector || row.inspector || 'N/A'}</TableCell>
+                      <TableCell>{row.fecha_inicio ? new Date(row.fecha_inicio).toLocaleDateString() : row.date || 'N/A'}</TableCell>
+                      <TableCell>
+                        <Chip
+                          label={row.estado || row.status || 'Pendiente'}
+                          color={statusColor[row.estado || row.status] || 'default'}
+                          size="small"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        {row.firma_inspector && row.firma_cliente ? '✓' :
+                          row.firma_inspector ? 'Inspector' :
+                            row.firma_cliente ? 'Cliente' : '—'}
+                      </TableCell>
                     </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {paginated.map((row) => (
-                      <TableRow key={row.id} hover sx={{ cursor: 'pointer' }}>
-                        <TableCell onClick={() => handleOpenDetail(row)}>
-                          {row.building}
-                        </TableCell>
-                        <TableCell onClick={() => handleOpenDetail(row)}>
-                          {row.elevator}
-                        </TableCell>
-                        <TableCell onClick={() => handleOpenDetail(row)}>
-                          {row.type}
-                        </TableCell>
-                        <TableCell onClick={() => handleOpenDetail(row)}>
-                          {row.inspector}
-                        </TableCell>
-                        <TableCell onClick={() => handleOpenDetail(row)}>
-                          {row.date}
-                        </TableCell>
-                        <TableCell onClick={() => handleOpenDetail(row)}>
-                          {row.nextDate}
-                        </TableCell>
-                        <TableCell onClick={() => handleOpenDetail(row)}>
-                          <Chip
-                            label={row.status}
-                            color={statusColor[row.status] || 'default'}
-                            size="small"
-                          />
-                        </TableCell>
-                        <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
-                          <IconButton
-                            size="small"
-                            color="primary"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              console.log('Editar inspección:', row.id);
-                            }}
-                            title="Editar inspección"
-                          >
-                            <EditIcon fontSize="small" />
-                          </IconButton>
-                          <IconButton
-                            size="small"
-                            color="error"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteClick(row);
-                            }}
-                            title="Eliminar inspección"
-                          >
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                    {!paginated.length && (
-                      <TableRow>
-                        <TableCell colSpan={8} align="center">
-                          No hay inspecciones registradas
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-              <ListPagination count={totalCount} page={page} onPageChange={setPage} />
-            </>
-          )}
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
         </CardContent>
       </Card>
 
       {/* MODAL DE NUEVA INSPECCIÓN */}
-      <Dialog
-        open={open}
-        onClose={() => {
-          setOpen(false);
-          limpiarFormulario();
-        }}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle fontWeight={700}>Nueva inspección</DialogTitle>
+      <Dialog open={openCreate} onClose={() => setOpenCreate(false)} maxWidth="sm" fullWidth>
+        <DialogTitle fontWeight={700}>
+          Nueva inspección
+          <IconButton sx={{ position: 'absolute', right: 8, top: 8 }} onClick={() => setOpenCreate(false)}>
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
         <DialogContent>
-          {loadingModal && (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
-              <CircularProgress size={24} />
-            </Box>
-          )}
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
-            <TextField
-              select
-              label="Edificio"
-              fullWidth
-              value={edificioSeleccionado}
-              onChange={(e) => handleEdificioChange(e.target.value)}
-              disabled={loadingModal}
-            >
-              <MenuItem value="">
-                <em>Seleccione un edificio</em>
-              </MenuItem>
-              {edificios.map((ed) => (
-                <MenuItem key={ed.id} value={ed.id}>
-                  {ed.name} - {ed.address}
-                </MenuItem>
-              ))}
-            </TextField>
-
-            <TextField
-              select
-              label="Ascensor"
-              fullWidth
-              value={ascensorSeleccionado}
-              onChange={(e) => setAscensorSeleccionado(e.target.value)}
-              disabled={!edificioSeleccionado || loadingModal}
-            >
-              <MenuItem value="">
-                <em>Seleccione un ascensor</em>
-              </MenuItem>
-              {ascensores.map((asc) => (
-                <MenuItem key={asc.id} value={asc.id}>
-                  {asc.brand} {asc.model} - {asc.type} ({asc.capacity}kg)
-                </MenuItem>
-              ))}
-            </TextField>
-
-            <TextField
-              select
-              label="Tipo de inspección"
-              fullWidth
-              value={tipoInspeccion}
-              onChange={(e) => setTipoInspeccion(e.target.value)}
-            >
-              <MenuItem value="Anual">Anual</MenuItem>
-              <MenuItem value="Periódica">Periódica</MenuItem>
-              <MenuItem value="Extraordinaria">Extraordinaria</MenuItem>
-            </TextField>
-
-            <TextField
-              label="Fecha programada"
-              type="date"
-              fullWidth
-              InputLabelProps={{ shrink: true }}
-              value={fechaProgramada}
-              onChange={handleFechaChange}
-              error={!!fechaError}
-              helperText={fechaError || ''}
-            />
-
-            <TextField
-              label="Observaciones iniciales"
-              multiline
-              rows={3}
-              fullWidth
-              value={observaciones}
-              onChange={(e) => setObservaciones(e.target.value)}
-            />
+            <TextField label="ID del Ascensor" fullWidth type="number" value={newInspection.id_ascensor}
+              onChange={(e) => setNewInspection({ ...newInspection, id_ascensor: e.target.value })} required />
+            <TextField label="ID del Inspector" fullWidth type="number" value={newInspection.id_inspector}
+              onChange={(e) => setNewInspection({ ...newInspection, id_inspector: e.target.value })} required />
+            <TextField label="Fecha programada" type="date" fullWidth InputLabelProps={{ shrink: true }}
+              value={newInspection.fecha_programada}
+              onChange={(e) => setNewInspection({ ...newInspection, fecha_programada: e.target.value })} required />
+            <TextField label="Observaciones iniciales" multiline rows={3} fullWidth
+              value={newInspection.observaciones_generales}
+              onChange={(e) => setNewInspection({ ...newInspection, observaciones_generales: e.target.value })} />
           </Box>
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
-          <Button
-            onClick={() => {
-              setOpen(false);
-              limpiarFormulario();
-            }}
-          >
-            Cancelar
-          </Button>
-          <Button
-            variant="contained"
-            onClick={handleCrearInspeccion}
-            disabled={!edificioSeleccionado || !ascensorSeleccionado || !fechaProgramada || !!fechaError}
-          >
-            Crear inspección
-          </Button>
+          <Button onClick={() => setOpenCreate(false)}>Cancelar</Button>
+          <Button variant="contained" onClick={crearInspeccion}>Crear inspección</Button>
         </DialogActions>
       </Dialog>
 
@@ -1084,23 +780,15 @@ export default function Inspections() {
         <DialogTitle sx={{ pr: 6 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 2 }}>
             <Box>
-              <Typography fontWeight={700} fontSize="1.1rem">
-                Inspección #{selected?.id_inspeccion || selected?.id}
-              </Typography>
+              <Typography fontWeight={700} fontSize="1.1rem">Inspección #{selected?.id_inspeccion || selected?.id}</Typography>
               <Typography variant="body2" color="text.secondary">
-                {selected?.codigo_ascensor || selected?.elevator || 'N/A'} ·{' '}
-                {selected?.tipo_servicio || selected?.type || 'Periódica'}
+                {selected?.codigo_ascensor || selected?.elevator || 'N/A'} · {selected?.tipo_servicio || selected?.type || 'Periódica'}
               </Typography>
             </Box>
-            <Chip
-              label={selected?.estado || selected?.status || 'Pendiente'}
-              color={statusColorMap[selected?.estado || selected?.status] || 'default'}
-            />
+            <Chip label={selected?.estado || selected?.status || 'Pendiente'}
+              color={statusColor[selected?.estado || selected?.status] || 'default'} />
           </Box>
-          <IconButton
-            sx={{ position: 'absolute', right: 8, top: 8 }}
-            onClick={() => setDetailOpen(false)}
-          >
+          <IconButton sx={{ position: 'absolute', right: 8, top: 8 }} onClick={() => setDetailOpen(false)}>
             <CloseIcon />
           </IconButton>
         </DialogTitle>
@@ -1112,382 +800,51 @@ export default function Inspections() {
             </Box>
           ) : (
             <>
-              {/* HEADER DEL DETALLE */}
-              <Box
-                sx={{
-                  display: 'grid',
-                  gridTemplateColumns: { xs: '1fr', md: '220px 1fr' },
-                  gap: 2.5,
-                  mb: 2.5,
-                  p: 2.25,
-                  bgcolor: '#F7F9FC',
-                  border: '1px solid #E8EDF2',
-                  borderRadius: 2,
-                }}
-              >
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '220px 1fr' }, gap: 2.5, mb: 3 }}>
                 <Box>
-                  <Typography
-                    variant="caption"
-                    color="text.secondary"
-                    sx={{ fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase' }}
-                  >
-                    Fecha de inicio
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                    Fecha inicio
                   </Typography>
                   <Typography variant="body2" sx={{ mt: 0.5, fontSize: '0.95rem' }}>
-                    {selected?.fecha_inicio ? new Date(selected.fecha_inicio).toLocaleString() : 'Sin fecha'}
+                    {selected?.fecha_inicio ? new Date(selected.fecha_inicio).toLocaleString() : 'N/A'}
                   </Typography>
                 </Box>
                 <Box>
-                  <Typography
-                    variant="caption"
-                    color="text.secondary"
-                    sx={{ fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase' }}
-                  >
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
                     Observaciones generales
                   </Typography>
                   <Typography
                     variant="body2"
-                    sx={{
-                      mt: 0.5,
-                      fontSize: '0.95rem',
-                      lineHeight: 1.65,
-                      whiteSpace: 'pre-wrap',
-                      color: '#1A2332',
-                    }}
+                    sx={{ mt: 0.5, fontSize: '0.95rem', lineHeight: 1.65, whiteSpace: 'pre-wrap', color: '#1A2332' }}
                   >
                     {selected?.observaciones_generales || 'Sin observaciones'}
                   </Typography>
                 </Box>
               </Box>
 
-              {/* CHECKLIST (Felipe) */}
-              <SectionCard
-                step={1}
-                title="Checklist normativo"
-                subtitle="NTC 5926-1 · Califique cada ítem antes de firmar"
-              >
-                {loadingChecklist && (
-                  <Box sx={{ display: 'flex', justifyContent: 'center', my: 2 }}>
-                    <CircularProgress size={24} />
-                  </Box>
-                )}
-                {checklistError && (
-                  <Alert severity="error" sx={{ mb: 2 }}>
-                    {checklistError}
-                  </Alert>
-                )}
+              <Divider sx={{ mb: 2.5 }} />
 
-                {!loadingChecklist &&
-                  categorias.map((cat) => (
-                    <Box key={cat.id_categoria} sx={{ mb: 2.5, '&:last-child': { mb: 0 } }}>
-                      <Typography
-                        variant="subtitle2"
-                        fontWeight={700}
-                        sx={{ mb: 1.25, color: brand.blueDark, letterSpacing: '0.01em' }}
-                      >
-                        {cat.nombre_categoria}
-                      </Typography>
-                      {cat.items.map((item) => {
-                        const actual = detalles[item.id_item]?.resultado || '';
-                        const bg =
-                          actual === 'Cumple'
-                            ? '#F6FBF7'
-                            : actual === 'No Cumple'
-                              ? '#FDF6F6'
-                              : '#FAFBFC';
-                        return (
-                          <Box
-                            key={item.id_item}
-                            sx={{
-                              mb: 1.25,
-                              p: 1.75,
-                              border: '1px solid #E8EDF2',
-                              borderRadius: 2,
-                              bgcolor: bg,
-                              display: 'flex',
-                              alignItems: 'flex-start',
-                              justifyContent: 'space-between',
-                              gap: 1,
-                            }}
-                          >
-                            <Box sx={{ flex: 1 }}>
-                              <Typography variant="body2" sx={{ mb: 0.75, color: brand.navy, fontWeight: 500 }}>
-                                {item.descripcion}
-                              </Typography>
-                              <FormControl>
-                                <RadioGroup
-                                  row
-                                  value={actual}
-                                  onChange={(e) => calificarItem(item, e.target.value)}
-                                >
-                                  <FormControlLabel
-                                    value="Cumple"
-                                    control={<Radio size="small" />}
-                                    label="Cumple"
-                                    disabled={savingItem === item.id_item}
-                                  />
-                                  <FormControlLabel
-                                    value="No Cumple"
-                                    control={<Radio size="small" />}
-                                    label="No cumple"
-                                    disabled={savingItem === item.id_item}
-                                  />
-                                  <FormControlLabel
-                                    value="No Aplica"
-                                    control={<Radio size="small" />}
-                                    label="No aplica"
-                                    disabled={savingItem === item.id_item}
-                                  />
-                                </RadioGroup>
-                              </FormControl>
-                            </Box>
-                            {actual && (
-                              <IconButton
-                                size="small"
-                                onClick={() => eliminarCalificacion(item)}
-                                disabled={savingItem === item.id_item}
-                                title="Quitar calificación"
-                              >
-                                <DeleteOutlinedIcon fontSize="small" />
-                              </IconButton>
-                            )}
-                          </Box>
-                        );
-                      })}
-                    </Box>
-                  ))}
-              </SectionCard>
-
-              {/* OBSERVACIONES (Felipe) */}
-              <SectionCard step={2} title="Observaciones técnicas" subtitle="Hallazgos y seguimiento">
-                {obsError && (
-                  <Alert severity="info" sx={{ mb: 2 }}>
-                    {obsError}
-                  </Alert>
-                )}
-
-                {observacionesList.map((obs) => (
-                  <Box
-                    key={obs.id_observacion}
-                    sx={{
-                      mb: 1,
-                      p: 1.75,
-                      border: '1px solid #E8EDF2',
-                      borderRadius: 2,
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'flex-start',
-                      bgcolor: '#FAFBFC',
-                    }}
-                  >
-                    <Box>
-                      <Typography variant="body2" fontWeight={600}>
-                        {obs.tipo_observacion}
-                        {obs.nivel_riesgo ? ` · Riesgo ${obs.nivel_riesgo}` : ''}
-                        {obs.requiere_atencion_inmediata ? ' · Atención inmediata' : ''}
-                      </Typography>
-                      <Typography variant="body2">{obs.descripcion}</Typography>
-                    </Box>
-                    <IconButton
-                      size="small"
-                      onClick={() => eliminarObservacion(obs.id_observacion)}
-                      title="Eliminar observación"
-                    >
-                      <DeleteOutlinedIcon fontSize="small" />
-                    </IconButton>
-                  </Box>
-                ))}
-
-                {selected?.id_informe && (
-                  <Box sx={{ mt: observacionesList.length ? 2 : 0, p: 2, bgcolor: 'grey.50', borderRadius: 2 }}>
-                    <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>
-                      Registrar nueva observación
-                    </Typography>
-                    <Box sx={{ display: 'flex', gap: 1, mb: 1, flexWrap: 'wrap' }}>
-                      <TextField
-                        select
-                        size="small"
-                        label="Tipo"
-                        sx={{ minWidth: 140 }}
-                        value={nuevaObs.tipo_observacion}
-                        onChange={(e) =>
-                          setNuevaObs((p) => ({ ...p, tipo_observacion: e.target.value }))
-                        }
-                      >
-                        {TIPOS_OBSERVACION.map((t) => (
-                          <MenuItem key={t} value={t}>
-                            {t}
-                          </MenuItem>
-                        ))}
-                      </TextField>
-                      <TextField
-                        select
-                        size="small"
-                        label="Nivel de riesgo"
-                        sx={{ minWidth: 140 }}
-                        value={nuevaObs.nivel_riesgo}
-                        onChange={(e) =>
-                          setNuevaObs((p) => ({ ...p, nivel_riesgo: e.target.value }))
-                        }
-                      >
-                        {NIVELES_RIESGO.map((n) => (
-                          <MenuItem key={n} value={n}>
-                            {n}
-                          </MenuItem>
-                        ))}
-                      </TextField>
-                      <FormControlLabel
-                        control={
-                          <Checkbox
-                            checked={nuevaObs.requiere_atencion_inmediata}
-                            onChange={(e) =>
-                              setNuevaObs((p) => ({
-                                ...p,
-                                requiere_atencion_inmediata: e.target.checked,
-                              }))
-                            }
-                          />
-                        }
-                        label="Atención inmediata"
-                      />
-                    </Box>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      label="Descripción"
-                      multiline
-                      rows={2}
-                      sx={{ mb: 1 }}
-                      value={nuevaObs.descripcion}
-                      onChange={(e) =>
-                        setNuevaObs((p) => ({ ...p, descripcion: e.target.value }))
-                      }
-                    />
-                    <Button
-                      variant="contained"
-                      size="small"
-                      onClick={crearObservacion}
-                      disabled={creandoObs || !nuevaObs.descripcion.trim()}
-                    >
-                      {creandoObs ? 'Guardando...' : 'Agregar observación'}
-                    </Button>
-                  </Box>
-                )}
-              </SectionCard>
-
-              {/* FOTOGRAFÍAS (Valentina) */}
-              <SectionCard step={3} title="Fotografías" subtitle={`${fotos.length} archivo${fotos.length === 1 ? '' : 's'}`}>
-                {userRol === 'Inspector' && (
-                  <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 2, flexWrap: 'wrap' }}>
-                    <input
-                      type="file"
-                      accept="image/jpeg,image/png"
-                      style={{ display: 'none' }}
-                      id="foto-upload"
-                      onChange={(e) => setSelectedFile(e.target.files[0])}
-                    />
-                    <label htmlFor="foto-upload">
-                      <Button variant="outlined" component="span" startIcon={<PhotoCameraIcon />} size="small">
-                        Seleccionar foto
-                      </Button>
-                    </label>
-                    {selectedFile && <Typography variant="body2">{selectedFile.name}</Typography>}
-                    <TextField
-                      label="Descripción"
-                      size="small"
-                      value={fotoDescripcion}
-                      onChange={(e) => setFotoDescripcion(e.target.value)}
-                      sx={{ flex: 1, minWidth: 150 }}
-                    />
-                    <Button variant="contained" onClick={subirFoto} disabled={!selectedFile} size="small">
-                      Subir
-                    </Button>
-                  </Box>
-                )}
-
-                <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
-                  {!fotos || fotos.length === 0 ? (
-                    <Typography variant="body2" color="text.secondary">
-                      No hay fotos
-                    </Typography>
-                  ) : (
-                    fotos.map((foto) => (
-                      <Box
-                        key={foto.id_foto}
-                        sx={{
-                          border: '1px solid #e0e0e0',
-                          borderRadius: 1,
-                          p: 1,
-                          width: 130,
-                          position: 'relative',
-                          bgcolor: '#fafafa',
-                        }}
-                      >
-                        <img
-                          src={`${API_BASE_URL}/${foto.ruta_archivo.replace(/\\/g, '/')}`}
-                          alt={foto.descripcion || 'Foto'}
-                          style={{
-                            width: '100%',
-                            height: 80,
-                            objectFit: 'cover',
-                            borderRadius: '4px',
-                          }}
-                          onError={(e) => {
-                            e.target.src =
-                              'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22%3E%3Crect width=%22100%22 height=%22100%22 fill=%22%23eee%22/%3E%3Ctext x=%2250%22 y=%2250%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%23999%22 font-size=%2212%22%3Esin foto%3C/text%3E%3C/svg%3E';
-                          }}
-                        />
-                        <Typography
-                          variant="caption"
-                          display="block"
-                          noWrap
-                          sx={{ fontSize: '0.65rem', mt: 0.5, color: '#666' }}
-                        >
-                          {foto.descripcion || 'Sin descripción'}
-                        </Typography>
-                        {userRol === 'Inspector' && (
-                          <IconButton
-                            size="small"
-                            color="error"
-                            onClick={() => eliminarFoto(foto.id_foto)}
-                            sx={{
-                              position: 'absolute',
-                              top: 2,
-                              right: 2,
-                              bgcolor: 'rgba(255,255,255,0.9)',
-                            }}
-                          >
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        )}
-                      </Box>
-                    ))
-                  )}
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2, mb: 2, flexWrap: 'wrap' }}>
+                <Typography variant="subtitle1" fontWeight={700} sx={{ fontSize: '1rem', color: '#0B1929' }}>
+                  Firmas digitales
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <Chip
+                    size="small"
+                    label={`Inspector: ${firmas?.firma_inspector ? 'Firmado' : 'Pendiente'}`}
+                    color={firmas?.firma_inspector ? 'success' : 'default'}
+                    variant={firmas?.firma_inspector ? 'filled' : 'outlined'}
+                  />
+                  <Chip
+                    size="small"
+                    label={`Cliente: ${firmas?.firma_cliente ? 'Firmado' : 'Pendiente'}`}
+                    color={firmas?.firma_cliente ? 'success' : 'default'}
+                    variant={firmas?.firma_cliente ? 'filled' : 'outlined'}
+                  />
                 </Box>
-              </SectionCard>
+              </Box>
 
-              {/* FIRMAS DIGITALES (Valentina) */}
-              <SectionCard
-                step={4}
-                title="Firmas digitales"
-                subtitle="Certifique el resultado al finalizar el checklist"
-                action={
-                  <Box sx={{ display: 'flex', gap: 1 }}>
-                    <Chip
-                      size="small"
-                      label={`Inspector: ${firmas?.firma_inspector ? 'Firmado' : 'Pendiente'}`}
-                      color={firmas?.firma_inspector ? 'success' : 'default'}
-                      variant={firmas?.firma_inspector ? 'filled' : 'outlined'}
-                    />
-                    <Chip
-                      size="small"
-                      label={`Cliente: ${firmas?.firma_cliente ? 'Firmado' : 'Pendiente'}`}
-                      color={firmas?.firma_cliente ? 'success' : 'default'}
-                      variant={firmas?.firma_cliente ? 'filled' : 'outlined'}
-                    />
-                  </Box>
-                }
-              >
+              <Box sx={{ mb: 3 }}>
                 {userRol === 'Inspector' && (
                   <SignaturePad
                     label="Firma del inspector"
@@ -1506,10 +863,192 @@ export default function Inspections() {
                 )}
                 {userRol !== 'Inspector' && userRol !== 'Cliente' && (
                   <Typography variant="body2" color="text.secondary">
-                    Solo el inspector o el cliente pueden registrar su firma.
+                    Solo el inspector o el cliente pueden registrar su firma en esta inspección.
                   </Typography>
                 )}
-              </SectionCard>
+              </Box>
+
+              <Divider sx={{ mb: 2 }} />
+
+              {/* ============ CHECKLIST NTC 5926-1 (Felipe - RF-021) ============ */}
+              <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem', mb: 1.5, color: '#1a237e' }}>
+                Checklist NTC 5926-1
+              </Typography>
+
+              {loadingChecklist && (
+                <Box sx={{ display: 'flex', justifyContent: 'center', my: 2 }}>
+                  <CircularProgress size={24} />
+                </Box>
+              )}
+              {checklistError && <Alert severity="error" sx={{ mb: 2 }}>{checklistError}</Alert>}
+
+              {!loadingChecklist && (!categorias || categorias.length === 0) && !checklistError && (
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  No hay categorías de checklist configuradas
+                </Typography>
+              )}
+
+              {!loadingChecklist && categorias.map((cat) => (
+                <Box key={cat.id_categoria} sx={{ mb: 3 }}>
+                  <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1, color: brand.blueDark }}>
+                    {cat.nombre_categoria}
+                  </Typography>
+                  {(cat.items || []).map((item) => {
+                    const actual = detalles[item.id_item]?.resultado || '';
+                    return (
+                      <Box key={item.id_item} sx={{ mb: 1.5, pl: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1 }}>
+                        <Box sx={{ flex: 1, minWidth: 220 }}>
+                          <Typography variant="body2" sx={{ mb: 0.5 }}>{item.descripcion}</Typography>
+                          <FormControl>
+                            <RadioGroup
+                              row
+                              value={actual}
+                              onChange={(e) => calificarItem(item, e.target.value)}
+                            >
+                              <FormControlLabel value="Cumple" control={<Radio size="small" />} label="Cumple" disabled={savingItem === item.id_item} />
+                              <FormControlLabel value="No Cumple" control={<Radio size="small" />} label="No Cumple" disabled={savingItem === item.id_item} />
+                              <FormControlLabel value="No Aplica" control={<Radio size="small" />} label="No Aplica" disabled={savingItem === item.id_item} />
+                            </RadioGroup>
+                          </FormControl>
+                        </Box>
+                        {actual && (
+                          <IconButton size="small" onClick={() => eliminarCalificacion(item)} disabled={savingItem === item.id_item} title="Quitar calificación">
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        )}
+                      </Box>
+                    );
+                  })}
+                </Box>
+              ))}
+
+              <Divider sx={{ mb: 2 }} />
+
+              {/* ============ OBSERVACIONES TÉCNICAS (Felipe - RF-008) ============ */}
+              <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem', mb: 1.5, color: '#1a237e' }}>
+                Observaciones técnicas
+              </Typography>
+              {obsError && <Alert severity="info" sx={{ mb: 2 }}>{obsError}</Alert>}
+
+              {observaciones.map((obs) => (
+                <Box
+                  key={obs.id_observacion}
+                  sx={{ mb: 1, p: 1.5, border: '1px solid', borderColor: 'divider', borderRadius: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}
+                >
+                  <Box>
+                    <Typography variant="body2" fontWeight={600}>
+                      {obs.tipo_observacion} — riesgo {obs.nivel_riesgo}
+                      {obs.requiere_atencion_inmediata ? ' · Atención inmediata' : ''}
+                    </Typography>
+                    <Typography variant="body2">{obs.descripcion}</Typography>
+                  </Box>
+                  <IconButton size="small" onClick={() => eliminarObservacion(obs.id_observacion)} title="Eliminar observación">
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                </Box>
+              ))}
+
+              {selected?.id_informe && (
+                <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+                  <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>Agregar observación</Typography>
+                  <Box sx={{ display: 'flex', gap: 1, mb: 1, flexWrap: 'wrap' }}>
+                    <TextField
+                      select size="small" label="Tipo" sx={{ minWidth: 140 }}
+                      value={nuevaObs.tipo_observacion}
+                      onChange={(e) => setNuevaObs((p) => ({ ...p, tipo_observacion: e.target.value }))}
+                    >
+                      {TIPOS_OBSERVACION.map((t) => <MenuItem key={t} value={t}>{t}</MenuItem>)}
+                    </TextField>
+                    <TextField
+                      select size="small" label="Nivel de riesgo" sx={{ minWidth: 140 }}
+                      value={nuevaObs.nivel_riesgo}
+                      onChange={(e) => setNuevaObs((p) => ({ ...p, nivel_riesgo: e.target.value }))}
+                    >
+                      {NIVELES_RIESGO.map((n) => <MenuItem key={n} value={n}>{n}</MenuItem>)}
+                    </TextField>
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          checked={nuevaObs.requiere_atencion_inmediata}
+                          onChange={(e) => setNuevaObs((p) => ({ ...p, requiere_atencion_inmediata: e.target.checked }))}
+                        />
+                      }
+                      label="Atención inmediata"
+                    />
+                  </Box>
+                  <TextField
+                    fullWidth size="small" label="Descripción" multiline rows={2} sx={{ mb: 1 }}
+                    value={nuevaObs.descripcion}
+                    onChange={(e) => setNuevaObs((p) => ({ ...p, descripcion: e.target.value }))}
+                  />
+                  <Button variant="contained" size="small" onClick={crearObservacion} disabled={creandoObs || !nuevaObs.descripcion.trim()}>
+                    {creandoObs ? 'Guardando...' : 'Agregar observación'}
+                  </Button>
+                </Box>
+              )}
+              {!selected?.id_informe && (
+                <Typography variant="caption" color="text.secondary">
+                  Se podrán agregar observaciones cuando esta inspección tenga un informe generado.
+                </Typography>
+              )}
+
+              <Divider sx={{ my: 2 }} />
+
+              {/* ============ FOTOGRAFÍAS ============ */}
+              <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem', mb: 1.5, color: '#1a237e' }}>
+                Fotografías ({fotos.length})
+              </Typography>
+
+              {userRol === 'Inspector' && (
+                <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 2, flexWrap: 'wrap' }}>
+                  <input type="file" accept="image/jpeg,image/png" style={{ display: 'none' }} id="foto-upload"
+                    onChange={(e) => setSelectedFile(e.target.files[0])} />
+                  <label htmlFor="foto-upload">
+                    <Button variant="outlined" component="span" startIcon={<PhotoCameraIcon />} size="small">
+                      Seleccionar foto
+                    </Button>
+                  </label>
+                  {selectedFile && <Typography variant="body2">{selectedFile.name}</Typography>}
+                  <TextField label="Descripción" size="small" value={fotoDescripcion}
+                    onChange={(e) => setFotoDescripcion(e.target.value)} sx={{ flex: 1, minWidth: 150 }} />
+                  <Button variant="contained" onClick={subirFoto} disabled={!selectedFile} size="small">Subir</Button>
+                </Box>
+              )}
+
+              <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+                {!fotos || fotos.length === 0 ? (
+                  <Typography variant="body2" color="text.secondary">No hay fotos</Typography>
+                ) : (
+                  fotos.map((foto) => (
+                    <Box key={foto.id_foto} sx={{
+                      border: '1px solid #e0e0e0',
+                      borderRadius: 1,
+                      p: 1,
+                      width: 130,
+                      position: 'relative',
+                      bgcolor: '#fafafa'
+                    }}>
+                      <img
+                        src={`${API_BASE_URL}/${foto.ruta_archivo.replace(/\\/g, '/')}`}
+                        alt={foto.descripcion || 'Foto'}
+                        style={{ width: '100%', height: 80, objectFit: 'cover', borderRadius: '4px' }}
+                        onError={(e) => {
+                          e.target.src = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22%3E%3Crect width=%22100%22 height=%22100%22 fill=%22%23eee%22/%3E%3Ctext x=%2250%22 y=%2250%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%23999%22 font-size=%2212%22%3Esin foto%3C/text%3E%3C/svg%3E';
+                        }}
+                      />
+                      <Typography variant="caption" display="block" noWrap sx={{ fontSize: '0.65rem', mt: 0.5, color: '#666' }}>
+                        {foto.descripcion || 'Sin descripción'}
+                      </Typography>
+                      {userRol === 'Inspector' && (
+                        <IconButton size="small" color="error" onClick={() => eliminarFoto(foto.id_foto)}
+                          sx={{ position: 'absolute', top: 2, right: 2, bgcolor: 'rgba(255,255,255,0.9)' }}>
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      )}
+                    </Box>
+                  ))
+                )}
+              </Box>
             </>
           )}
         </DialogContent>
@@ -1518,34 +1057,6 @@ export default function Inspections() {
           <Button onClick={() => setDetailOpen(false)}>Cerrar</Button>
         </DialogActions>
       </Dialog>
-
-      {/* SNACKBAR (Esteban) */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={4000}
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
-
-      {/* CONFIRM DIALOG (Esteban) */}
-      <ConfirmDialog
-        open={deleteDialog.open}
-        onClose={() => setDeleteDialog({ open: false, row: null })}
-        onConfirm={handleDeleteConfirm}
-        title="Eliminar inspección"
-        message={
-          deleteDialog.row
-            ? `¿Eliminar inspección de "${deleteDialog.row.building}"? Esta acción no se puede deshacer.`
-            : ''
-        }
-        confirmText="Eliminar"
-        confirmColor="error"
-        loading={deleting}
-      />
     </Box>
   );
 }

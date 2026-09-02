@@ -3,9 +3,6 @@
 import { API_BASE_URL, ROLE_IDS } from '../config/api';
 import { decodeDeep } from '../utils/encoding';
 
-// ============================================
-// PARSE RESPONSE (con decodeDeep de Valentina)
-// ============================================
 async function parseResponse(response) {
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
@@ -15,13 +12,9 @@ async function parseResponse(response) {
       : detail || data.message || 'Error en la solicitud';
     throw new Error(message);
   }
-  // ✅ DECODIFICAR UTF-8 (Valentina)
   return decodeDeep(data);
 }
 
-// ============================================
-// LOGIN
-// ============================================
 export async function loginRequest(correo, contrasena) {
   const response = await fetch(`${API_BASE_URL}/auth/login`, {
     method: 'POST',
@@ -31,9 +24,6 @@ export async function loginRequest(correo, contrasena) {
   return parseResponse(response);
 }
 
-// ============================================
-// REGISTER (Esteban)
-// ============================================
 export async function registerRequest(formData) {
   const response = await fetch(`${API_BASE_URL}/auth/register`, {
     method: 'POST',
@@ -53,9 +43,6 @@ export async function registerRequest(formData) {
   return parseResponse(response);
 }
 
-// ============================================
-// CREAR USUARIO (Admin)
-// ============================================
 export async function createUserRequest(formData, token) {
   const response = await fetch(`${API_BASE_URL}/usuarios`, {
     method: 'POST',
@@ -78,12 +65,42 @@ export async function createUserRequest(formData, token) {
   return parseResponse(response);
 }
 
-// ============================================
-// ELIMINAR USUARIO (Esteban)
-// ============================================
+// ✅ Editar usuario (Felipe - RF-002)
+export async function updateUserRequest(userId, formData) {
+  const token = localStorage.getItem('token') || sessionStorage.getItem('liftsafe_token') || sessionStorage.getItem('token');
+
+  const body = {
+    nombre_completo: formData.name,
+    correo: formData.email,
+    telefono: formData.phone || null,
+    tipo_documento: formData.documentType,
+    documento_identidad: formData.document,
+    nit: formData.documentType === 'NIT' ? formData.document : null,
+    razon_social: formData.documentType === 'NIT' ? formData.businessName || null : null,
+    id_rol: ROLE_IDS[formData.role],
+    estado: formData.status,
+  };
+  // Solo se envía la contraseña si el admin escribió una nueva
+  if (formData.password) {
+    body.contrasena = formData.password;
+  }
+
+  const response = await fetch(`${API_BASE_URL}/usuarios/${userId}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` }),
+    },
+    body: JSON.stringify(body),
+  });
+
+  return parseResponse(response);
+}
+
+// ✅ Eliminar usuario
 export async function eliminarUsuario(userId) {
-  const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-  
+  const token = sessionStorage.getItem('liftsafe_token') || sessionStorage.getItem('token') || localStorage.getItem('token');
+
   const response = await fetch(`${API_BASE_URL}/usuarios/${userId}`, {
     method: 'DELETE',
     headers: {
@@ -91,18 +108,15 @@ export async function eliminarUsuario(userId) {
       ...(token && { 'Authorization': `Bearer ${token}` }),
     },
   });
-  
+
   if (!response.ok) {
     const error = await response.json().catch(() => ({ detail: 'Error al eliminar usuario' }));
     throw new Error(error.detail || 'Error al eliminar usuario');
   }
-  
+
   return response.json();
 }
 
-// ============================================
-// RECUPERAR CONTRASEÑA (Esteban)
-// ============================================
 export async function recoverPasswordRequest(correo) {
   const response = await fetch(`${API_BASE_URL}/auth/recuperar-clave`, {
     method: 'POST',
@@ -112,9 +126,6 @@ export async function recoverPasswordRequest(correo) {
   return parseResponse(response);
 }
 
-// ============================================
-// RESETEAR CONTRASEÑA (Esteban)
-// ============================================
 export async function resetPasswordRequest(token, nueva_contrasena) {
   const response = await fetch(`${API_BASE_URL}/auth/reset-clave`, {
     method: 'POST',
@@ -124,9 +135,6 @@ export async function resetPasswordRequest(token, nueva_contrasena) {
   return parseResponse(response);
 }
 
-// ============================================
-// RESETEAR CONTRASEÑA CON CÓDIGO (Esteban)
-// ============================================
 export async function resetPasswordWithCodeRequest(correo, code, nueva_contrasena) {
   const response = await fetch(`${API_BASE_URL}/auth/reset-clave`, {
     method: 'POST',
