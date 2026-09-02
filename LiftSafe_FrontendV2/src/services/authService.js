@@ -1,18 +1,11 @@
-<<<<<<< HEAD
 // src/services/authService.js
 
 import { API_BASE_URL, ROLE_IDS } from '../config/api';
-=======
-<<<<<<< HEAD
-import { API_BASE_URL } from '../config/api';
 import { decodeDeep } from '../utils/encoding';
-=======
-// src/services/authService.js
 
-import { API_BASE_URL, ROLE_IDS } from '../config/api';
->>>>>>> feature/esteban-local
->>>>>>> c8306d785873f7353c3912678d3673587c1f0869
-
+// ============================================
+// PARSE RESPONSE (con decodeDeep de Valentina)
+// ============================================
 async function parseResponse(response) {
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
@@ -22,17 +15,13 @@ async function parseResponse(response) {
       : detail || data.message || 'Error en la solicitud';
     throw new Error(message);
   }
-<<<<<<< HEAD
-  return data;
-=======
-<<<<<<< HEAD
+  // ✅ DECODIFICAR UTF-8 (Valentina)
   return decodeDeep(data);
-=======
-  return data;
->>>>>>> feature/esteban-local
->>>>>>> c8306d785873f7353c3912678d3673587c1f0869
 }
 
+// ============================================
+// LOGIN
+// ============================================
 export async function loginRequest(correo, contrasena) {
   const response = await fetch(`${API_BASE_URL}/auth/login`, {
     method: 'POST',
@@ -41,12 +30,10 @@ export async function loginRequest(correo, contrasena) {
   });
   return parseResponse(response);
 }
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-=======
->>>>>>> c8306d785873f7353c3912678d3673587c1f0869
 
+// ============================================
+// REGISTER (Esteban)
+// ============================================
 export async function registerRequest(formData) {
   const response = await fetch(`${API_BASE_URL}/auth/register`, {
     method: 'POST',
@@ -66,6 +53,9 @@ export async function registerRequest(formData) {
   return parseResponse(response);
 }
 
+// ============================================
+// CREAR USUARIO (Admin)
+// ============================================
 export async function createUserRequest(formData, token) {
   const response = await fetch(`${API_BASE_URL}/usuarios`, {
     method: 'POST',
@@ -88,9 +78,11 @@ export async function createUserRequest(formData, token) {
   return parseResponse(response);
 }
 
-// ✅ NUEVO: Eliminar usuario
+// ============================================
+// ELIMINAR USUARIO (Esteban)
+// ============================================
 export async function eliminarUsuario(userId) {
-  const token = sessionStorage.getItem('liftsafe_token') || sessionStorage.getItem('token');
+  const token = localStorage.getItem('token') || sessionStorage.getItem('token');
   
   const response = await fetch(`${API_BASE_URL}/usuarios/${userId}`, {
     method: 'DELETE',
@@ -108,6 +100,9 @@ export async function eliminarUsuario(userId) {
   return response.json();
 }
 
+// ============================================
+// RECUPERAR CONTRASEÑA (Esteban)
+// ============================================
 export async function recoverPasswordRequest(correo) {
   const response = await fetch(`${API_BASE_URL}/auth/recuperar-clave`, {
     method: 'POST',
@@ -117,6 +112,9 @@ export async function recoverPasswordRequest(correo) {
   return parseResponse(response);
 }
 
+// ============================================
+// RESETEAR CONTRASEÑA (Esteban)
+// ============================================
 export async function resetPasswordRequest(token, nueva_contrasena) {
   const response = await fetch(`${API_BASE_URL}/auth/reset-clave`, {
     method: 'POST',
@@ -126,6 +124,9 @@ export async function resetPasswordRequest(token, nueva_contrasena) {
   return parseResponse(response);
 }
 
+// ============================================
+// RESETEAR CONTRASEÑA CON CÓDIGO (Esteban)
+// ============================================
 export async function resetPasswordWithCodeRequest(correo, code, nueva_contrasena) {
   const response = await fetch(`${API_BASE_URL}/auth/reset-clave`, {
     method: 'POST',
@@ -133,9 +134,4 @@ export async function resetPasswordWithCodeRequest(correo, code, nueva_contrasen
     body: JSON.stringify({ correo, code, nueva_contrasena }),
   });
   return parseResponse(response);
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> feature/esteban-local
->>>>>>> c8306d785873f7353c3912678d3673587c1f0869
