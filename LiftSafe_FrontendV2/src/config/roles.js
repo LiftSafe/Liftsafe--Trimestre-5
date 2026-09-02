@@ -1,10 +1,7 @@
 export const MENU_ITEMS = [
   { key: 'dashboard', text: 'Inicio', path: '/dashboard' },
   { key: 'inspecciones', text: 'Inspecciones', path: '/dashboard/inspecciones' },
-<<<<<<< HEAD
-=======
   { key: 'solicitudes', text: 'Solicitudes', path: '/dashboard/solicitudes' },
->>>>>>> c8306d785873f7353c3912678d3673587c1f0869
   { key: 'ascensores', text: 'Ascensores', path: '/dashboard/ascensores' },
   { key: 'edificios', text: 'Edificios', path: '/dashboard/edificios' },
   { key: 'reportes', text: 'Reportes', path: '/dashboard/reportes' },
@@ -13,21 +10,12 @@ export const MENU_ITEMS = [
 ];
 
 export const ROLE_PERMISSIONS = {
-<<<<<<< HEAD
-  Administrador: ['dashboard', 'inspecciones', 'ascensores', 'edificios', 'reportes', 'usuarios', 'configuracion'],
-  Asesor: ['dashboard', 'reportes', 'configuracion'],
-  Coordinador: ['dashboard', 'inspecciones', 'ascensores', 'edificios', 'reportes', 'configuracion'],
-  'Director Técnico': ['dashboard', 'inspecciones', 'reportes', 'configuracion'],
-  Inspector: ['dashboard', 'inspecciones', 'ascensores', 'edificios', 'reportes', 'configuracion'],
-  Cliente: ['dashboard', 'reportes', 'configuracion'],
-=======
   Administrador: ['dashboard', 'inspecciones', 'solicitudes', 'ascensores', 'edificios', 'reportes', 'usuarios', 'configuracion'],
   Asesor: ['dashboard', 'solicitudes', 'reportes', 'configuracion'],
   Coordinador: ['dashboard', 'inspecciones', 'solicitudes', 'ascensores', 'edificios', 'reportes', 'configuracion'],
   'Director Técnico': ['dashboard', 'inspecciones', 'solicitudes', 'reportes', 'configuracion'],
   Inspector: ['dashboard', 'inspecciones', 'solicitudes', 'ascensores', 'edificios', 'reportes', 'configuracion'],
-  Cliente: ['dashboard', 'solicitudes', 'reportes', 'configuracion'],  // <--- AGREGADO 'solicitudes'
->>>>>>> c8306d785873f7353c3912678d3673587c1f0869
+  Cliente: ['dashboard', 'solicitudes', 'reportes', 'configuracion'],
 };
 
 // Acciones específicas (opcional, pero la dejas)
