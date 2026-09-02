@@ -2,19 +2,30 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import IconButton from '@mui/material/IconButton';
+<<<<<<< HEAD
 import { useState, useEffect } from 'react';
 import { Box, Card, CardContent, Chip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, Alert, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, Typography, TextField, MenuItem } from '@mui/material';
+=======
+import { useState } from 'react';
+import { Box, Card, CardContent, Chip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, Alert, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, Typography } from '@mui/material';
+>>>>>>> c8306d785873f7353c3912678d3673587c1f0869
 import AddIcon from '@mui/icons-material/Add';
 import PageHeader from '../components/PageHeader';
 import SearchBar from '../components/SearchBar';
 import ListPagination from '../components/ListPagination';
 import { statusColor } from '../utils/statusHelpers';
 import { usePaginatedSearch } from '../hooks/usePaginatedSearch';
+<<<<<<< HEAD
 import { useAuth } from '../hooks/useAuth';
 import { useDashboardData } from '../hooks/useDashboardData';
 import { fetchAscensores } from '../services/dashboardService';
 import { ascensorService } from '../services/ascensorService';
 import { clienteService } from '../services/clienteService';
+=======
+import { useAuth } from '../context/AuthContext';
+import { useDashboardData } from '../hooks/useDashboardData';
+import { fetchAscensores } from '../services/dashboardService';
+>>>>>>> c8306d785873f7353c3912678d3673587c1f0869
 
 // ========== COMPONENTE CONFIRM DIALOG ==========
 function ConfirmDialog({
@@ -43,6 +54,7 @@ function ConfirmDialog({
   );
 }
 
+<<<<<<< HEAD
 const TIPOS_ASCENSOR = ['Eléctrico', 'Hidráulico', 'Panorámico', 'Montacargas'];
 const ESTADOS_ASCENSOR = ['Activo', 'En mantenimiento', 'Fuera de servicio'];
 
@@ -63,6 +75,8 @@ const FORM_VACIO = {
   estado: 'Activo',
 };
 
+=======
+>>>>>>> c8306d785873f7353c3912678d3673587c1f0869
 export default function Elevators() {
   const { hasAction } = useAuth();
   const { data: elevators = [], loading, error, refetch } = useDashboardData(fetchAscensores);
@@ -75,6 +89,7 @@ export default function Elevators() {
   const [deleteDialog, setDeleteDialog] = useState({ open: false, row: null });
   const [deleting, setDeleting] = useState(false);
 
+<<<<<<< HEAD
   // ✅ Estados para el formulario de crear/editar
   const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -89,6 +104,8 @@ export default function Elevators() {
     }
   }, [formOpen]);
 
+=======
+>>>>>>> c8306d785873f7353c3912678d3673587c1f0869
   const handleDeleteClick = (row) => {
     setDeleteDialog({ open: true, row });
   };
@@ -108,6 +125,7 @@ export default function Elevators() {
     }
   };
 
+<<<<<<< HEAD
   const abrirCrear = () => {
     setEditingId(null);
     setForm(FORM_VACIO);
@@ -172,20 +190,30 @@ export default function Elevators() {
     }
   };
 
+=======
+>>>>>>> c8306d785873f7353c3912678d3673587c1f0869
   return (
     <Box>
       <PageHeader
         title="Ascensores"
         subtitle="Inventario y estado operativo desde la base de datos"
+<<<<<<< HEAD
+=======
+        breadcrumbs={[{ label: 'Inicio', path: '/dashboard' }, { label: 'Ascensores' }]}
+>>>>>>> c8306d785873f7353c3912678d3673587c1f0869
       />
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 2 }}>
         <SearchBar value={search} onChange={setSearch} placeholder="Buscar ascensor..." />
+<<<<<<< HEAD
         {hasAction('createElevator') && (
           <Button variant="contained" startIcon={<AddIcon />} onClick={abrirCrear}>
             Registrar ascensor
           </Button>
         )}
+=======
+        {hasAction('createElevator') && <Button variant="contained" startIcon={<AddIcon />}>Registrar ascensor</Button>}
+>>>>>>> c8306d785873f7353c3912678d3673587c1f0869
       </Box>
       <Card>
         <CardContent sx={{ p: 0 }}>
@@ -220,18 +248,34 @@ export default function Elevators() {
                         <TableCell>
                           <Chip label={row.status} color={statusColor[row.status] || 'default'} size="small" />
                         </TableCell>
+<<<<<<< HEAD
 
                         <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
                           <IconButton
                             size="small"
                             color="primary"
                             onClick={() => abrirEditar(row)}
+=======
+                        
+                        <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
+                          <IconButton 
+                            size="small" 
+                            color="primary"
+                            onClick={() => {
+                              console.log('Editar ascensor:', row.id);
+                            }}
+>>>>>>> c8306d785873f7353c3912678d3673587c1f0869
                             title="Editar ascensor"
                           >
                             <EditIcon fontSize="small" />
                           </IconButton>
+<<<<<<< HEAD
                           <IconButton
                             size="small"
+=======
+                          <IconButton 
+                            size="small" 
+>>>>>>> c8306d785873f7353c3912678d3673587c1f0869
                             color="error"
                             onClick={() => handleDeleteClick(row)}
                             title="Eliminar ascensor"
@@ -270,6 +314,7 @@ export default function Elevators() {
         confirmColor="error"
         loading={deleting}
       />
+<<<<<<< HEAD
 
       {/* ✅ FORMULARIO CREAR / EDITAR ASCENSOR */}
       <Dialog open={formOpen} onClose={() => setFormOpen(false)} maxWidth="sm" fullWidth>
@@ -335,6 +380,8 @@ export default function Elevators() {
           </Button>
         </DialogActions>
       </Dialog>
+=======
+>>>>>>> c8306d785873f7353c3912678d3673587c1f0869
     </Box>
   );
 }

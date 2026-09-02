@@ -90,6 +90,7 @@ def desasignar_inspector(
     asignacion.fecha_desasignacion = data.fecha_desasignacion or date.today()
     asignacion.observaciones = data.observaciones or asignacion.observaciones
     db.commit()
+<<<<<<< HEAD
     return {"message": "Inspector desasignado correctamente"}
 
 
@@ -106,3 +107,6 @@ def eliminar_asignacion(
     db.delete(asignacion)
     db.commit()
     return {"message": "Asignación eliminada exitosamente"}
+=======
+    return {"message": "Inspector desasignado correctamente"}
+>>>>>>> c8306d785873f7353c3912678d3673587c1f0869

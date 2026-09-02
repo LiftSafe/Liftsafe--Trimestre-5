@@ -1,12 +1,24 @@
 from pydantic import BaseModel, EmailStr, field_validator
+<<<<<<< HEAD
 from typing import Optional, Literal
+=======
+from typing import Optional, List, Literal
+>>>>>>> c8306d785873f7353c3912678d3673587c1f0869
 from datetime import datetime, date
 from app.utils.password_validator import validate_password
 from app.utils.auth_deps import DOCUMENT_TYPES, CLIENTE_ROL_ID
 
+<<<<<<< HEAD
 
 DocumentType = Literal["CC", "CE", "PA", "RC", "TI", "NIT", "PEP", "PPT", "CD"]
 
+=======
+DocumentType = Literal["CC", "CE", "PA", "RC", "TI", "NIT", "PEP", "PPT", "CD"]
+
+# ==========================================
+# ESQUEMAS DE AUTENTICACIÓN Y USUARIOS
+# ==========================================
+>>>>>>> c8306d785873f7353c3912678d3673587c1f0869
 class UsuarioLogin(BaseModel):
     correo: EmailStr
     contrasena: str
@@ -135,6 +147,55 @@ class InspeccionCreate(BaseModel):
     tipo_servicio: str = "Periódica"
     observaciones: Optional[str] = None
 
+<<<<<<< HEAD
+=======
+# ==========================================
+# ESQUEMAS DE USUARIO-ASCENSOR (DAYAN)
+# ==========================================
+class UsuarioAscensorBase(BaseModel):
+    id_usuario: int
+    id_ascensor: int
+    tipo_asignacion: str
+    fecha_asignacion: date
+    observaciones: str | None = None
+
+class UsuarioAscensorCreate(UsuarioAscensorBase):
+    pass
+
+class UsuarioAscensorUpdate(BaseModel):
+    tipo_asignacion: str | None = None
+    fecha_desasignacion: date | None = None
+    observaciones: str | None = None
+
+class UsuarioAscensorResponse(UsuarioAscensorBase):
+    id_usuario_ascensor: int
+    fecha_desasignacion: date | None = None
+
+    class Config:
+        from_attributes = True
+
+# ==========================================
+# ESQUEMAS DE AUDITORIA (DAYAN)
+# ==========================================
+class AuditoriaResponse(BaseModel):
+    id_auditoria: int
+    id_usuario: int | None
+    tabla_afectada: str
+    operacion: str
+    id_registro: int | None
+    datos_anteriores: str | None
+    datos_nuevos: str | None
+    ip_origen: str | None
+    user_agent: str | None
+    fecha_evento: datetime
+
+    class Config:
+        from_attributes = True
+
+# ==========================================
+# ESQUEMAS DE SOLICITUDES (LUZ)
+# ==========================================
+>>>>>>> c8306d785873f7353c3912678d3673587c1f0869
 class SolicitudBase(BaseModel):
     id_ascensor: int
     tipo_servicio: str
@@ -164,6 +225,12 @@ class SolicitudResponse(SolicitudBase):
     class Config:
         from_attributes = True
 
+<<<<<<< HEAD
+=======
+# ==========================================
+# ESQUEMAS DE PROGRAMACIÓN (LUZ)
+# ==========================================
+>>>>>>> c8306d785873f7353c3912678d3673587c1f0869
 class ProgramacionBase(BaseModel):
     id_solicitud: int
     id_inspector: int
@@ -191,6 +258,7 @@ class ProgramacionResponse(ProgramacionBase):
     class Config:
         from_attributes = True
 
+<<<<<<< HEAD
 class UsuarioAscensorBase(BaseModel):
     id_usuario: int
     id_ascensor: int
@@ -388,3 +456,25 @@ class UsuarioUpdate(BaseModel):
         if v is not None and v not in DOCUMENT_TYPES:
             raise ValueError("Tipo de documento no válido")
         return v
+=======
+# ==========================================
+# ESQUEMAS DE NOTIFICACIONES (LUZ)
+# ==========================================
+class NotificacionBase(BaseModel):
+    id_usuario_destino: int
+    mensaje: str
+    leida: bool = False
+
+class NotificacionCreate(NotificacionBase):
+    pass
+
+class NotificacionUpdate(BaseModel):
+    leida: bool | None = None
+
+class NotificacionResponse(NotificacionBase):
+    id_notificacion: int
+    fecha_creacion: datetime
+
+    class Config:
+        from_attributes = True
+>>>>>>> c8306d785873f7353c3912678d3673587c1f0869

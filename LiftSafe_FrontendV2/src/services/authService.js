@@ -1,6 +1,17 @@
+<<<<<<< HEAD
 // src/services/authService.js
 
 import { API_BASE_URL, ROLE_IDS } from '../config/api';
+=======
+<<<<<<< HEAD
+import { API_BASE_URL } from '../config/api';
+import { decodeDeep } from '../utils/encoding';
+=======
+// src/services/authService.js
+
+import { API_BASE_URL, ROLE_IDS } from '../config/api';
+>>>>>>> feature/esteban-local
+>>>>>>> c8306d785873f7353c3912678d3673587c1f0869
 
 async function parseResponse(response) {
   const data = await response.json().catch(() => ({}));
@@ -11,7 +22,15 @@ async function parseResponse(response) {
       : detail || data.message || 'Error en la solicitud';
     throw new Error(message);
   }
+<<<<<<< HEAD
   return data;
+=======
+<<<<<<< HEAD
+  return decodeDeep(data);
+=======
+  return data;
+>>>>>>> feature/esteban-local
+>>>>>>> c8306d785873f7353c3912678d3673587c1f0869
 }
 
 export async function loginRequest(correo, contrasena) {
@@ -22,6 +41,11 @@ export async function loginRequest(correo, contrasena) {
   });
   return parseResponse(response);
 }
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+=======
+>>>>>>> c8306d785873f7353c3912678d3673587c1f0869
 
 export async function registerRequest(formData) {
   const response = await fetch(`${API_BASE_URL}/auth/register`, {
@@ -109,4 +133,9 @@ export async function resetPasswordWithCodeRequest(correo, code, nueva_contrasen
     body: JSON.stringify({ correo, code, nueva_contrasena }),
   });
   return parseResponse(response);
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> feature/esteban-local
+>>>>>>> c8306d785873f7353c3912678d3673587c1f0869

@@ -1,3 +1,9 @@
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+=======
+>>>>>>> c8306d785873f7353c3912678d3673587c1f0869
 // src/config/api.js
 
 // ✅ USAR VARIABLE DE ENTORNO EN LUGAR DE HARDCODEAR
@@ -98,3 +104,7 @@ export const ADULT_DOCUMENT_TYPES = DOCUMENT_TYPES.filter(
 export const getDocumentLabel = (value) => {
   return DOCUMENT_TYPES.find(d => d.value === value)?.label || value;
 };
+<<<<<<< HEAD
+=======
+>>>>>>> feature/esteban-local
+>>>>>>> c8306d785873f7353c3912678d3673587c1f0869

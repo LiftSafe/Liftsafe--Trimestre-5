@@ -309,4 +309,25 @@ class Auditoria(Base):
     datos_nuevos = Column(Text, nullable=True, comment="Valores después del cambio (JSON)")
     ip_origen = Column(String(45), nullable=True)
     user_agent = Column(String(255), nullable=True)
+<<<<<<< HEAD
     fecha_evento = Column(DateTime, nullable=False, default=datetime.utcnow)
+=======
+    fecha_evento = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+
+    # ============ MODELO NOTIFICACION ============
+
+class Notificacion(Base):
+    __tablename__ = "notificacion"
+    
+    id_notificacion = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    id_usuario_destino = Column(Integer, ForeignKey("usuario.id_usuario"), nullable=False,
+                                comment="Usuario que recibe la notificación")
+    mensaje = Column(String(255), nullable=False, comment="Contenido de la notificación")
+    leida = Column(Boolean, nullable=False, default=False, comment="Indica si la notificación fue leída")
+    fecha_creacion = Column(DateTime, nullable=False, default=datetime.utcnow,
+                           comment="Fecha y hora de creación")
+    
+    # Relación con usuario
+    usuario_destino = relationship("Usuario", foreign_keys=[id_usuario_destino])
+>>>>>>> c8306d785873f7353c3912678d3673587c1f0869

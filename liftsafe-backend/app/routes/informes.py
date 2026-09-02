@@ -7,7 +7,10 @@ from app.models.models import Informe, Inspeccion
 from app.schemas.schemas import MessageResponse
 from app.controllers.informe_controller import generar_pdf_informe
 from datetime import datetime
+<<<<<<< HEAD
 import os
+=======
+>>>>>>> c8306d785873f7353c3912678d3673587c1f0869
 from jose import jwt, JWTError
 from app.config import settings
 
@@ -101,6 +104,7 @@ def enviar_informe(
     informe.estado = "Enviado"
     db.commit()
     return {"message": "Informe enviado correctamente"}
+<<<<<<< HEAD
 
 
 @router.delete("/{id}", response_model=MessageResponse)
@@ -123,3 +127,5 @@ def eliminar_informe(
     db.delete(informe)
     db.commit()
     return {"message": "Informe eliminado exitosamente"}
+=======
+>>>>>>> c8306d785873f7353c3912678d3673587c1f0869

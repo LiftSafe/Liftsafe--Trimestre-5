@@ -29,6 +29,17 @@ export default function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+    setError('');
+    try {
+      const success = await login(email, password);
+      if (success) navigate('/dashboard');
+    } catch {
+      setError('Correo o contraseña incorrectos');
+=======
+>>>>>>> c8306d785873f7353c3912678d3673587c1f0869
     setLoading(true);
     setError('');
     const result = await login(email, password);
@@ -37,6 +48,10 @@ export default function Login() {
       navigate('/dashboard');
     } else {
       setError(result.message || 'Correo o contraseña incorrectos');
+<<<<<<< HEAD
+=======
+>>>>>>> feature/esteban-local
+>>>>>>> c8306d785873f7353c3912678d3673587c1f0869
     }
   };
 

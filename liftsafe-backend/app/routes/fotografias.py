@@ -6,7 +6,11 @@ import os
 import shutil
 from app.database import get_db
 from app.models.models import Fotografia, Informe
+<<<<<<< HEAD
 from app.schemas.schemas import FotografiaResponse, MessageResponse, FotografiaUpdate
+=======
+from app.schemas.schemas import FotografiaResponse, MessageResponse
+>>>>>>> c8306d785873f7353c3912678d3673587c1f0869
 from app.utils.auth_deps import get_current_user_role
 
 router = APIRouter(prefix="/fotografias", tags=["Fotografias"])
@@ -93,6 +97,7 @@ def eliminar_foto(
     db.delete(foto)
     db.commit()
     return {"message": "Foto eliminada"}
+<<<<<<< HEAD
 
 
 @router.put("/{id_foto}", response_model=FotografiaResponse)
@@ -118,3 +123,5 @@ def actualizar_foto(
     db.commit()
     db.refresh(foto)
     return foto
+=======
+>>>>>>> c8306d785873f7353c3912678d3673587c1f0869

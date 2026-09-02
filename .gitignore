@@ -1,14 +1,18 @@
+<<<<<<< HEAD
 # Entornos virtuales
 .venv/
 venv/
 env/
 ENV/
 
+=======
+>>>>>>> c8306d785873f7353c3912678d3673587c1f0869
 # Python
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
+<<<<<<< HEAD
 .Python
 build/
 develop-eggs/
@@ -71,3 +75,35 @@ dmypy.json
 
 # Pytest
 .pytest_cache/
+=======
+venv/
+.env
+
+# Node
+node_modules/
+dist/
+.vite/
+
+# IDEs
+.vscode/
+.idea/
+.cursor/
+
+# Otros
+*.log
+fix_config.py
+fix_contrasena.py
+
+# Datos sensibles / uploads
+.env
+reset_codes.json
+uploads/
+comprobantes/
+
+# Archivos temporales
+estructura.txt
+
+*.log
+fix_config.py
+fix_contrasena.py
+>>>>>>> c8306d785873f7353c3912678d3673587c1f0869

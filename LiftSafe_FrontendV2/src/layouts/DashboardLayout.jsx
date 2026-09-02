@@ -1,9 +1,17 @@
+<<<<<<< HEAD
 import { useState } from 'react';
+=======
+import { useState, useEffect } from 'react';
+>>>>>>> c8306d785873f7353c3912678d3673587c1f0869
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import {
   Box, Drawer, List, ListItemButton, ListItemIcon, ListItemText,
   AppBar, Toolbar, Typography, IconButton, Avatar, Menu, MenuItem, Divider,
+<<<<<<< HEAD
   useMediaQuery, useTheme,
+=======
+  useMediaQuery, useTheme, Badge,
+>>>>>>> c8306d785873f7353c3912678d3673587c1f0869
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import DashboardIcon from '@mui/icons-material/Dashboard';
@@ -14,15 +22,27 @@ import DescriptionIcon from '@mui/icons-material/Description';
 import PeopleIcon from '@mui/icons-material/People';
 import SettingsIcon from '@mui/icons-material/Settings';
 import LogoutIcon from '@mui/icons-material/Logout';
+<<<<<<< HEAD
+=======
+import NotificationsIcon from '@mui/icons-material/Notifications';
+>>>>>>> c8306d785873f7353c3912678d3673587c1f0869
 import Logo from '../components/Logo';
 import { useAuth } from '../context/AuthContext';
 import { getMenuForRole } from '../config/roles';
 import { brand, gradients } from '../theme/colors';
+<<<<<<< HEAD
+=======
+import { notificacionService } from '../services/notificacionService';
+>>>>>>> c8306d785873f7353c3912678d3673587c1f0869
 
 const DRAWER_WIDTH = 248;
 const ICONS = {
   dashboard: <DashboardIcon fontSize="small" />,
   inspecciones: <AssignmentIcon fontSize="small" />,
+<<<<<<< HEAD
+=======
+  solicitudes: <AssignmentIcon fontSize="small" />,
+>>>>>>> c8306d785873f7353c3912678d3673587c1f0869
   ascensores: <ElevatorIcon fontSize="small" />,
   edificios: <BusinessIcon fontSize="small" />,
   reportes: <DescriptionIcon fontSize="small" />,
@@ -37,9 +57,30 @@ export default function DashboardLayout() {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [mobileOpen, setMobileOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
+<<<<<<< HEAD
 
   const menuItems = getMenuForRole(user?.role);
 
+=======
+  const [notificaciones, setNotificaciones] = useState([]);
+
+  const menuItems = getMenuForRole(user?.role);
+
+  useEffect(() => {
+    const cargar = async () => {
+      try {
+        const data = await notificacionService.listar();
+        setNotificaciones(data || []);
+      } catch (e) {
+        console.error('Error cargando notificaciones:', e);
+      }
+    };
+    if (user) cargar();
+  }, [user]);
+
+  const noLeidas = notificaciones.filter(n => !n.leida).length;
+
+>>>>>>> c8306d785873f7353c3912678d3673587c1f0869
   const drawer = (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', background: gradients.sidebar }}>
       <Box sx={{ py: 2, px: 2, textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
@@ -98,6 +139,17 @@ export default function DashboardLayout() {
         <Toolbar variant="dense" sx={{ minHeight: 52 }}>
           {isMobile && <IconButton edge="start" onClick={() => setMobileOpen(true)} size="small" sx={{ mr: 1 }}><MenuIcon /></IconButton>}
           <Typography variant="subtitle1" fontWeight={700} sx={{ flexGrow: 1, color: brand.navy }}>{currentTitle}</Typography>
+<<<<<<< HEAD
+=======
+          
+          {/* CAMPANITA SIMPLE */}
+          <IconButton size="small" sx={{ mr: 1 }}>
+            <Badge badgeContent={noLeidas} color="error">
+              <NotificationsIcon />
+            </Badge>
+          </IconButton>
+
+>>>>>>> c8306d785873f7353c3912678d3673587c1f0869
           <IconButton size="small" onClick={(e) => setAnchorEl(e.currentTarget)}>
             <Avatar sx={{ width: 30, height: 30, bgcolor: brand.accent, fontSize: 12 }}>{user?.name?.charAt(0)}</Avatar>
           </IconButton>
@@ -120,4 +172,8 @@ export default function DashboardLayout() {
       </Box>
     </Box>
   );
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> c8306d785873f7353c3912678d3673587c1f0869

@@ -6,7 +6,19 @@ import { ascensorService } from '../services/ascensorService';
 export default function Solicitudes() {
     const { user } = useAuth();
     const [solicitudes, setSolicitudes] = useState([]);
+<<<<<<< HEAD
     const [ascensores, setAscensores] = useState([]);
+=======
+<<<<<<< HEAD
+    const [ascensores, setAscensores] = useState([]);
+=======
+    // ✅ ASCENSORES DE PRUEBA (para que el desplegable funcione)
+    const [ascensores, setAscensores] = useState([
+        { id_ascensor: 1, codigo_interno: 'ASC-001', marca: 'Otis', modelo: 'Gen2-MRL' },
+        { id_ascensor: 2, codigo_interno: 'ASC-002', marca: 'Schindler', modelo: '3300 MRL' }
+    ]);
+>>>>>>> feature/luz
+>>>>>>> c8306d785873f7353c3912678d3673587c1f0869
     const [showForm, setShowForm] = useState(false);
     const [loading, setLoading] = useState(true);
     const [formData, setFormData] = useState({
@@ -27,9 +39,26 @@ export default function Solicitudes() {
             const solicitudesData = await solicitudService.listar();
             setSolicitudes(solicitudesData);
             
+<<<<<<< HEAD
             if (user?.rol === 'Cliente') {
                 const ascensoresData = await ascensorService.listar();
                 setAscensores(ascensoresData);
+=======
+<<<<<<< HEAD
+            if (user?.rol === 'Cliente') {
+                const ascensoresData = await ascensorService.listar();
+                setAscensores(ascensoresData);
+=======
+            // Intentar cargar ascensores del backend, si falla usa los de prueba
+            try {
+                const ascensoresData = await ascensorService.listar();
+                if (ascensoresData && ascensoresData.length > 0) {
+                    setAscensores(ascensoresData);
+                }
+            } catch (e) {
+                console.log('Usando ascensores de prueba (backend no respondió)');
+>>>>>>> feature/luz
+>>>>>>> c8306d785873f7353c3912678d3673587c1f0869
             }
         } catch (error) {
             console.error('Error cargando solicitudes:', error);
@@ -90,7 +119,16 @@ export default function Solicitudes() {
                 </div>
             </div>
 
+<<<<<<< HEAD
             {user?.rol === 'Cliente' && (
+=======
+<<<<<<< HEAD
+            {user?.rol === 'Cliente' && (
+=======
+            {/* BOTÓN DE NUEVA SOLICITUD */}
+            {user && (
+>>>>>>> feature/luz
+>>>>>>> c8306d785873f7353c3912678d3673587c1f0869
                 <button
                     onClick={() => setShowForm(true)}
                     style={{

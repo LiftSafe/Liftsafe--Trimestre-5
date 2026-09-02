@@ -88,6 +88,71 @@ function ConfirmDialog({
 }
 
 // ============================================
+// COMPONENTE SECTION CARD
+// ============================================
+function SectionCard({ step, title, subtitle, action, children }) {
+  return (
+    <Box
+      sx={{
+        mb: 2.5,
+        border: '1px solid #E2E8F0',
+        borderRadius: 2.5,
+        overflow: 'hidden',
+        bgcolor: '#fff',
+      }}
+    >
+      <Box
+        sx={{
+          px: 2.5,
+          py: 1.75,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 2,
+          bgcolor: '#F7F9FC',
+          borderBottom: '1px solid #E8EDF2',
+          flexWrap: 'wrap',
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          {step != null && (
+            <Box
+              sx={{
+                width: 28,
+                height: 28,
+                borderRadius: '8px',
+                bgcolor: brand.accent,
+                color: '#fff',
+                fontSize: 13,
+                fontWeight: 700,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              {step}
+            </Box>
+          )}
+          <Box>
+            <Typography fontWeight={700} sx={{ color: brand.navy, fontSize: '0.95rem' }}>
+              {title}
+            </Typography>
+            {subtitle && (
+              <Typography variant="caption" color="text.secondary">
+                {subtitle}
+              </Typography>
+            )}
+          </Box>
+        </Box>
+        {action}
+      </Box>
+      <Box sx={{ p: { xs: 2, sm: 2.5 } }}>{children}</Box>
+    </Box>
+  );
+}
+
+// ============================================
 // COMPONENTE SIGNATURE PAD
 // ============================================
 function SignaturePad({ onSave, disabled, label, fecha }) {
@@ -366,68 +431,6 @@ function SignaturePad({ onSave, disabled, label, fecha }) {
   );
 }
 
-function SectionCard({ step, title, subtitle, action, children }) {
-  return (
-    <Box
-      sx={{
-        mb: 2.5,
-        border: '1px solid #E2E8F0',
-        borderRadius: 2.5,
-        overflow: 'hidden',
-        bgcolor: '#fff',
-      }}
-    >
-      <Box
-        sx={{
-          px: 2.5,
-          py: 1.75,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 2,
-          bgcolor: '#F7F9FC',
-          borderBottom: '1px solid #E8EDF2',
-          flexWrap: 'wrap',
-        }}
-      >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          {step != null && (
-            <Box
-              sx={{
-                width: 28,
-                height: 28,
-                borderRadius: '8px',
-                bgcolor: brand.accent,
-                color: '#fff',
-                fontSize: 13,
-                fontWeight: 700,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}
-            >
-              {step}
-            </Box>
-          )}
-          <Box>
-            <Typography fontWeight={700} sx={{ color: brand.navy, fontSize: '0.95rem' }}>
-              {title}
-            </Typography>
-            {subtitle && (
-              <Typography variant="caption" color="text.secondary">
-                {subtitle}
-              </Typography>
-            )}
-          </Box>
-        </Box>
-        {action}
-      </Box>
-      <Box sx={{ p: { xs: 2, sm: 2.5 } }}>{children}</Box>
-    </Box>
-  );
-}
-
 // ============================================
 // COMPONENTE PRINCIPAL
 // ============================================
@@ -453,7 +456,7 @@ export default function Inspections() {
   const [observaciones, setObservaciones] = useState('');
   const [loadingModal, setLoadingModal] = useState(false);
 
-  // Estados del detalle
+  // Estados del detalle (Valentina + Felipe)
   const [categorias, setCategorias] = useState([]);
   const [detalles, setDetalles] = useState({});
   const [loadingChecklist, setLoadingChecklist] = useState(false);
@@ -476,11 +479,11 @@ export default function Inspections() {
     fecha_firma_cliente: null,
   });
   const [fotos, setFotos] = useState([]);
-  const [loadingDetail] = useState(false); // ✅ Corregido: sin setLoadingDetail
+  const [loadingDetail] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [fotoDescripcion, setFotoDescripcion] = useState('');
 
-  // Estados de snackbar y confirm dialog
+  // Estados de snackbar y confirm dialog (Esteban)
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
   const [deleteDialog, setDeleteDialog] = useState({ open: false, row: null });
   const [deleting, setDeleting] = useState(false);
@@ -488,7 +491,7 @@ export default function Inspections() {
   const userRol = user?.rol || user?.role;
 
   // ============================================
-  // FUNCIONES DE SNACKBAR
+  // FUNCIONES DE SNACKBAR (Esteban)
   // ============================================
   const showSnackbar = (message, severity = 'info') => {
     setSnackbar({ open: true, message, severity });
@@ -575,9 +578,6 @@ export default function Inspections() {
     setObservaciones('');
     setAscensores([]);
   };
-
-  // ✅ ELIMINADO: useEffect que llamaba cargarEdificios al abrir el modal
-  // (causaba error ESLint react-hooks/set-state-in-effect)
 
   const handleCrearInspeccion = async () => {
     if (!edificioSeleccionado || !ascensorSeleccionado || !fechaProgramada) {
@@ -675,39 +675,30 @@ export default function Inspections() {
   };
 
   const calificarItem = async (item, resultado) => {
-  setSavingItem(item.id_item);
-
-  const idInspeccion = selected?.id_inspeccion || selected?.id;
-
-  if (!idInspeccion) {
-    showSnackbar('Error: no se pudo determinar el ID de la inspección', 'error');
-    setSavingItem(null);
-    return;
-  }
-
-  try {
-    await checklistService.calificar({
-      id_inspeccion: idInspeccion,
-      id_item: item.id_item,
-      resultado: resultado,
-      observacion: null,
-      accion_requerida: null,
-    });
-
-    setDetalles((prev) => ({
-      ...prev,
-      [item.id_item]: { resultado },
-    }));
-
-    showSnackbar('Calificación guardada', 'success');
-  } catch (err) {
-    console.error('Error al calificar:', err);
-    setChecklistError(err.message || 'No se pudo guardar la calificación');
-    showSnackbar('Error al guardar calificación', 'error');
-  } finally {
-    setSavingItem(null);
-  }
-};
+    setSavingItem(item.id_item);
+    try {
+      const payload = {
+        id_inspeccion: selected.id_inspeccion,
+        id_item: item.id_item,
+        resultado: resultado,
+        observacion: '',
+        accion_requerida: '',
+      };
+      console.log('📤 Enviando calificación:', payload);
+      await checklistService.calificar(payload);
+      setDetalles((prev) => ({
+        ...prev,
+        [item.id_item]: { resultado },
+      }));
+      showSnackbar('Calificación guardada', 'success');
+    } catch (err) {
+      console.error('Error al calificar:', err);
+      setChecklistError(err.message || 'No se pudo guardar la calificación');
+      showSnackbar('Error al guardar calificación: ' + err.message, 'error');
+    } finally {
+      setSavingItem(null);
+    }
+  };
 
   const eliminarCalificacion = async (item) => {
     const idDetalle = detalles[item.id_item]?.id_detalle;
@@ -838,7 +829,9 @@ export default function Inspections() {
     }
   };
 
-  // ✅ NUEVO: Función para abrir detalle y cargar datos
+  // ============================================
+  // FUNCIÓN PARA ABRIR DETALLE
+  // ============================================
   const handleOpenDetail = (row) => {
     setSelected(row);
     setDetailOpen(true);
@@ -869,12 +862,12 @@ export default function Inspections() {
       >
         <SearchBar value={search} onChange={setSearch} placeholder="Buscar inspección..." />
         {hasAction('createInspection') && (
-          <Button 
-            variant="contained" 
-            startIcon={<AddIcon />} 
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
             onClick={() => {
               setOpen(true);
-              cargarEdificios(); // ✅ Carga aquí, no en useEffect
+              cargarEdificios();
             }}
           >
             Nueva inspección
@@ -900,30 +893,14 @@ export default function Inspections() {
                 <Table>
                   <TableHead>
                     <TableRow sx={{ bgcolor: 'grey.50' }}>
-                      <TableCell>
-                        <strong>Edificio</strong>
-                      </TableCell>
-                      <TableCell>
-                        <strong>Ascensor</strong>
-                      </TableCell>
-                      <TableCell>
-                        <strong>Tipo</strong>
-                      </TableCell>
-                      <TableCell>
-                        <strong>Inspector</strong>
-                      </TableCell>
-                      <TableCell>
-                        <strong>Fecha</strong>
-                      </TableCell>
-                      <TableCell>
-                        <strong>Próxima</strong>
-                      </TableCell>
-                      <TableCell>
-                        <strong>Estado</strong>
-                      </TableCell>
-                      <TableCell align="right">
-                        <strong>Acciones</strong>
-                      </TableCell>
+                      <TableCell><strong>Edificio</strong></TableCell>
+                      <TableCell><strong>Ascensor</strong></TableCell>
+                      <TableCell><strong>Tipo</strong></TableCell>
+                      <TableCell><strong>Inspector</strong></TableCell>
+                      <TableCell><strong>Fecha</strong></TableCell>
+                      <TableCell><strong>Próxima</strong></TableCell>
+                      <TableCell><strong>Estado</strong></TableCell>
+                      <TableCell align="right"><strong>Acciones</strong></TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -1135,6 +1112,7 @@ export default function Inspections() {
             </Box>
           ) : (
             <>
+              {/* HEADER DEL DETALLE */}
               <Box
                 sx={{
                   display: 'grid',
@@ -1182,6 +1160,7 @@ export default function Inspections() {
                 </Box>
               </Box>
 
+              {/* CHECKLIST (Felipe) */}
               <SectionCard
                 step={1}
                 title="Checklist normativo"
@@ -1279,6 +1258,7 @@ export default function Inspections() {
                   ))}
               </SectionCard>
 
+              {/* OBSERVACIONES (Felipe) */}
               <SectionCard step={2} title="Observaciones técnicas" subtitle="Hallazgos y seguimiento">
                 {obsError && (
                   <Alert severity="info" sx={{ mb: 2 }}>
@@ -1395,6 +1375,7 @@ export default function Inspections() {
                 )}
               </SectionCard>
 
+              {/* FOTOGRAFÍAS (Valentina) */}
               <SectionCard step={3} title="Fotografías" subtitle={`${fotos.length} archivo${fotos.length === 1 ? '' : 's'}`}>
                 {userRol === 'Inspector' && (
                   <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 2, flexWrap: 'wrap' }}>
@@ -1485,6 +1466,7 @@ export default function Inspections() {
                 </Box>
               </SectionCard>
 
+              {/* FIRMAS DIGITALES (Valentina) */}
               <SectionCard
                 step={4}
                 title="Firmas digitales"
@@ -1524,7 +1506,7 @@ export default function Inspections() {
                 )}
                 {userRol !== 'Inspector' && userRol !== 'Cliente' && (
                   <Typography variant="body2" color="text.secondary">
-                    Solo el inspector o el cliente pueden registrar su firma en esta inspección.
+                    Solo el inspector o el cliente pueden registrar su firma.
                   </Typography>
                 )}
               </SectionCard>
@@ -1532,14 +1514,12 @@ export default function Inspections() {
           )}
         </DialogContent>
 
-        <DialogActions sx={{ px: 3, py: 2, borderTop: '1px solid #E8EDF2', bgcolor: '#F7F9FC' }}>
-          <Button variant="contained" onClick={() => setDetailOpen(false)}>
-            Cerrar
-          </Button>
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={() => setDetailOpen(false)}>Cerrar</Button>
         </DialogActions>
       </Dialog>
 
-      {/* SNACKBAR */}
+      {/* SNACKBAR (Esteban) */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={4000}
@@ -1551,7 +1531,7 @@ export default function Inspections() {
         </Alert>
       </Snackbar>
 
-      {/* CONFIRM DIALOG */}
+      {/* CONFIRM DIALOG (Esteban) */}
       <ConfirmDialog
         open={deleteDialog.open}
         onClose={() => setDeleteDialog({ open: false, row: null })}

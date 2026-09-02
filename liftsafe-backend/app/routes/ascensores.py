@@ -130,6 +130,7 @@ def mis_ascensores_inspeccionados(
             "cliente": cliente
         }
         for a, cliente in ascensores
+<<<<<<< HEAD
     ]
 
 
@@ -266,3 +267,6 @@ def eliminar_ascensor(
     db.delete(ascensor)
     db.commit()
     return {"message": "Ascensor eliminado exitosamente"}
+=======
+    ]
+>>>>>>> c8306d785873f7353c3912678d3673587c1f0869

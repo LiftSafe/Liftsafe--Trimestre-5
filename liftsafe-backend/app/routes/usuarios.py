@@ -3,7 +3,11 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.models import Usuario, Rol
+<<<<<<< HEAD
 from app.schemas.schemas import UsuarioCreate, MessageResponse, UsuarioUpdate
+=======
+from app.schemas.schemas import UsuarioCreate, MessageResponse
+>>>>>>> c8306d785873f7353c3912678d3673587c1f0869
 from app.controllers.usuario_controller import get_user_profile, get_admin_stats, get_cliente_ascensores, get_inspector_inspecciones
 from app.utils.auth_deps import require_admin
 from sqlalchemy import text
@@ -119,7 +123,11 @@ def listado_usuarios(request: Request, db: Session = Depends(get_db)):
         for row in result
     ]
 
+<<<<<<< HEAD
 # ✅ Eliminar usuario
+=======
+# ✅ NUEVO: Eliminar usuario
+>>>>>>> c8306d785873f7353c3912678d3673587c1f0869
 @router.delete("/{user_id}", response_model=MessageResponse)
 def eliminar_usuario(
     user_id: int,
@@ -144,6 +152,7 @@ def eliminar_usuario(
     db.delete(user)
     db.commit()
     
+<<<<<<< HEAD
     return {"message": f"Usuario '{user.nombre_completo}' eliminado exitosamente"}
 
 
@@ -187,3 +196,6 @@ def editar_usuario(
     
     db.commit()
     return {"message": f"Usuario '{user.nombre_completo}' actualizado exitosamente"}
+=======
+    return {"message": f"Usuario '{user.nombre_completo}' eliminado exitosamente"}
+>>>>>>> c8306d785873f7353c3912678d3673587c1f0869
