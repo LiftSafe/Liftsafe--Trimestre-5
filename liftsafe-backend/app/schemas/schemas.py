@@ -131,73 +131,11 @@ class MessageResponse(BaseModel):
 class InspeccionCreate(BaseModel):
     id_ascensor: int
     id_inspector: int
-    fecha_programada: date
+    fecha_programada: date  # ← Cambiar de datetime a date
     tipo_servicio: str = "Periódica"
     observaciones: Optional[str] = None
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-# ============================================
-# SCHEMAS DE DAYAN - USUARIO-ASCENSOR
-# ============================================
-=======
-class SolicitudBase(BaseModel):
-    id_ascensor: int
-    tipo_servicio: str
-    prioridad: str
-    fecha_deseada: Optional[date] = None
-    observaciones: Optional[str] = None
-
-class SolicitudCreate(SolicitudBase):
-    pass
-
-class SolicitudUpdate(BaseModel):
-    tipo_servicio: Optional[str] = None
-    prioridad: Optional[str] = None
-    fecha_deseada: Optional[date] = None
-    observaciones: Optional[str] = None
-    estado: Optional[str] = None
-
-class SolicitudResponse(SolicitudBase):
-    id_solicitud: int
-    id_cliente: int
-    estado: str
-    fecha_solicitud: date
-    fecha_registro: datetime
-    ascensor: Optional[dict] = None
-    cliente: Optional[dict] = None
-
-    class Config:
-        from_attributes = True
-
-class ProgramacionBase(BaseModel):
-    id_solicitud: int
-    id_inspector: int
-    fecha_programada: date
-    hora_inicio: str
-    hora_fin_estimada: Optional[str] = None
-
-class ProgramacionCreate(ProgramacionBase):
-    pass
-
-class ProgramacionUpdate(BaseModel):
-    id_inspector: Optional[int] = None
-    fecha_programada: Optional[date] = None
-    hora_inicio: Optional[str] = None
-    estado: Optional[str] = None
-    motivo_cancelacion: Optional[str] = None
-
-class ProgramacionResponse(ProgramacionBase):
-    id_programacion: int
-    estado: str
-    fecha_creacion: datetime
-    solicitud: Optional[dict] = None
-    inspector: Optional[dict] = None
-
-    class Config:
-        from_attributes = True
-
->>>>>>> feature/esteban-local
+# ============ USUARIO-ASCENSOR ============
 class UsuarioAscensorBase(BaseModel):
     id_usuario: int
     id_ascensor: int
@@ -216,15 +154,13 @@ class UsuarioAscensorUpdate(BaseModel):
 class UsuarioAscensorResponse(UsuarioAscensorBase):
     id_usuario_ascensor: int
     fecha_desasignacion: date | None = None
-<<<<<<< HEAD
-    usuario: dict | None = None
-    ascensor: dict | None = None
-=======
-=======
+
 
     class Config:
         from_attributes = True
 
+
+# ============ AUDITORIA ============
 class AuditoriaResponse(BaseModel):
     id_auditoria: int
     id_usuario: int | None
@@ -239,134 +175,3 @@ class AuditoriaResponse(BaseModel):
 
     class Config:
         from_attributes = True
->>>>>>> feature/esteban-local
-
-class DetalleChecklistBase(BaseModel):
-    id_inspeccion: int
-    id_item: int
-<<<<<<< HEAD
-    resultado: str  # Cumple, No Cumple, No Aplica
-=======
-    resultado: str
->>>>>>> feature/esteban-local
-    observacion: Optional[str] = None
-    accion_requerida: Optional[str] = None
-
-class DetalleChecklistCreate(DetalleChecklistBase):
-    pass
-
-class DetalleChecklistResponse(DetalleChecklistBase):
-    id_detalle: int
-    fecha_registro: datetime
-<<<<<<< HEAD
-    
-=======
->>>>>>> feature/esteban-local
-
-    class Config:
-        from_attributes = True
-
-<<<<<<< HEAD
-<<<<<<< HEAD
-# ============================================
-# SCHEMAS DE VALENTINA - FOTOGRAFIAS
-# ============================================
-=======
->>>>>>> feature/esteban-local
-class FotografiaBase(BaseModel):
-    id_informe: int
-    id_item: int | None = None
-    descripcion: str | None = None
-    tipo_evidencia: str | None = None
-
-class FotografiaCreate(FotografiaBase):
-    pass
-
-class FotografiaResponse(FotografiaBase):
-    id_foto: int
-    nombre_archivo: str
-    ruta_archivo: str
-    tamano_kb: int | None = None
-    fecha_captura: datetime
-    latitud: float | None = None
-    longitud: float | None = None
-    sincronizado: bool
-
-    class Config:
-        from_attributes = True
-
-<<<<<<< HEAD
-# ============================================
-# SCHEMAS DE VALENTINA - FIRMA
-# ============================================
-class FirmaRequest(BaseModel):
-    firma: str  # base64
-=======
-class FirmaRequest(BaseModel):
-    firma: str
->>>>>>> feature/esteban-local
-
-class FirmaResponse(BaseModel):
-    mensaje: str
-    fecha_firma: datetime | None = None
-<<<<<<< HEAD
-=======
-=======
-
->>>>>>> feature/esteban-local
-class ChecklistItemResponse(BaseModel):
-    id_item: int
-    id_categoria: int
-    codigo_item: str
-    descripcion: str
-    criterio_cumplimiento: Optional[str] = None
-    nivel_criticidad: str
-    obligatorio: Optional[bool] = None
-    orden_visualizacion: int
-
-    class Config:
-        from_attributes = True
-
-class ChecklistCategoriaResponse(BaseModel):
-    id_categoria: int
-    nombre_categoria: str
-    descripcion: Optional[str] = None
-    orden_visualizacion: int
-    norma_referencia: Optional[str] = None
-    items: list[ChecklistItemResponse] = []
-
-    class Config:
-        from_attributes = True
-
-<<<<<<< HEAD
-
-=======
->>>>>>> feature/esteban-local
-class ObservacionBase(BaseModel):
-    id_informe: int
-    tipo_observacion: str
-    descripcion: str
-    nivel_riesgo: str
-    requiere_atencion_inmediata: bool = False
-    fecha_limite_recomendada: Optional[date] = None
-
-class ObservacionCreate(ObservacionBase):
-    pass
-
-class ObservacionUpdate(BaseModel):
-    tipo_observacion: Optional[str] = None
-    descripcion: Optional[str] = None
-    nivel_riesgo: Optional[str] = None
-    requiere_atencion_inmediata: Optional[bool] = None
-    fecha_limite_recomendada: Optional[date] = None
-
-class ObservacionResponse(ObservacionBase):
-    id_observacion: int
-    fecha_registro: datetime
-
-    class Config:
-        from_attributes = True
-<<<<<<< HEAD
->>>>>>> 18177d26d35979b66edf2bf8306e2fa03f251cad
-=======
->>>>>>> feature/esteban-local
