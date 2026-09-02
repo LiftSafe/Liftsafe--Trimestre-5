@@ -1,13 +1,17 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Security
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.models import Usuario, Rol
-from app.schemas.schemas import UsuarioCreate, MessageResponse
+from app.schemas.schemas import UsuarioCreate, UsuarioUpdate, MessageResponse
 from app.controllers.usuario_controller import get_user_profile, get_admin_stats, get_cliente_ascensores, get_inspector_inspecciones
 from app.utils.auth_deps import require_admin
 from sqlalchemy import text
 
-router = APIRouter(prefix="/usuarios", tags=["Usuarios"])  # ← ASEGÚRATE QUE ESTÉ
+router = APIRouter(prefix="/usuarios", tags=["Usuarios"])
+
+# ✅ ESQUEMA DE SEGURIDAD
+security = HTTPBearer()
 
 DOC_LABELS = {"CC": "Cédula de ciudadanía", "NIT": "NIT", "PPE": "PPE", "CE": "Cédula de extranjería"}
 
@@ -18,9 +22,12 @@ def format_document(user: Usuario) -> str:
         return f"{label}: {doc}" if doc else label
     return doc
 
-
 @router.post("", response_model=MessageResponse)
-def crear_usuario(request: Request, user_data: UsuarioCreate, db: Session = Depends(get_db)):
+def crear_usuario(
+    request: Request,
+    user_data: UsuarioCreate,
+    db: Session = Depends(get_db)
+):
     require_admin(request)
 
     existing = db.query(Usuario).filter(Usuario.correo == user_data.correo).first()
@@ -53,7 +60,6 @@ def crear_usuario(request: Request, user_data: UsuarioCreate, db: Session = Depe
     )
     db.commit()
     return {"message": f"Usuario {rol.nombre_rol} creado exitosamente"}
-# ... resto del archivo
 
 @router.get("/perfil/{user_id}")
 def perfil(user_id: int, db: Session = Depends(get_db)):
@@ -113,25 +119,73 @@ def listado_usuarios(request: Request, db: Session = Depends(get_db)):
         for row in result
     ]
 
-# app/routes/usuarios.py
-# Agregar al final del archivo, antes de los últimos routers
+# ✅ NUEVO (Felipe): Editar usuario
+@router.put("/{user_id}", response_model=MessageResponse)
+def editar_usuario(
+    user_id: int,
+    user_data: UsuarioUpdate,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    require_admin(request)
 
-from fastapi import APIRouter, Depends, HTTPException, Request
-from sqlalchemy.orm import Session
-from app.database import get_db
-from app.models.models import Usuario, Rol
-from app.schemas.schemas import UsuarioCreate, MessageResponse
-from app.controllers.usuario_controller import get_user_profile, get_admin_stats, get_cliente_ascensores, get_inspector_inspecciones
-from app.utils.auth_deps import require_admin
-from sqlalchemy import text
+    user = db.query(Usuario).filter(Usuario.id_usuario == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
 
-router = APIRouter(prefix="/usuarios", tags=["Usuarios"])
+    # Validar correo único si se está cambiando
+    if user_data.correo and user_data.correo != user.correo:
+        existing = db.query(Usuario).filter(Usuario.correo == user_data.correo).first()
+        if existing:
+            raise HTTPException(status_code=400, detail="El correo ya está registrado por otro usuario")
 
-# ... (todo tu código existente arriba) ...
+    # Validar rol si se está cambiando
+    if user_data.id_rol is not None:
+        rol = db.query(Rol).filter(Rol.id_rol == user_data.id_rol).first()
+        if not rol:
+            raise HTTPException(status_code=400, detail="Rol no válido")
+        # No permitir quitarle el rol de Administrador al último admin
+        admin_rol = db.query(Rol).filter(Rol.nombre_rol == "Administrador").first()
+        if admin_rol and user.id_rol == admin_rol.id_rol and user_data.id_rol != admin_rol.id_rol:
+            total_admins = db.query(Usuario).filter(Usuario.id_rol == admin_rol.id_rol).count()
+            if total_admins <= 1:
+                raise HTTPException(status_code=400, detail="No se puede quitar el rol al último administrador")
+
+    campos_simples = {
+        "nombre_completo": user_data.nombre_completo,
+        "correo": user_data.correo,
+        "telefono": user_data.telefono,
+        "tipo_documento": user_data.tipo_documento,
+        "documento_identidad": user_data.documento_identidad,
+        "nit": user_data.nit,
+        "razon_social": user_data.razon_social,
+        "id_rol": user_data.id_rol,
+        "estado": user_data.estado,
+    }
+    for campo, valor in campos_simples.items():
+        if valor is not None:
+            setattr(user, campo, valor)
+
+    db.commit()
+
+    # La contraseña se maneja aparte porque va encriptada con AES_ENCRYPT (no es una columna ORM directa)
+    if user_data.contrasena:
+        db.execute(
+            text("UPDATE usuario SET contrasena_encriptada = AES_ENCRYPT(:contrasena, 'LiftSafeSecretKey2026!') WHERE id_usuario = :id"),
+            {"contrasena": user_data.contrasena, "id": user_id}
+        )
+        db.commit()
+
+    db.refresh(user)
+    return {"message": f"Usuario '{user.nombre_completo}' actualizado exitosamente"}
 
 # ✅ NUEVO: Eliminar usuario
 @router.delete("/{user_id}", response_model=MessageResponse)
-def eliminar_usuario(user_id: int, request: Request, db: Session = Depends(get_db)):
+def eliminar_usuario(
+    user_id: int,
+    request: Request,
+    db: Session = Depends(get_db)
+):
     require_admin(request)
     
     # Verificar que el usuario existe

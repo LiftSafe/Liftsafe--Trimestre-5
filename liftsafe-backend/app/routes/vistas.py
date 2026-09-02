@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Security
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from app.database import get_db
@@ -8,11 +9,11 @@ from app.config import settings
 
 router = APIRouter(prefix="/vistas", tags=["Vistas y Procedimientos"])
 
-def get_current_user_role(request: Request):
-    authorization = request.headers.get('authorization')
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Token no proporcionado")
-    token = authorization.split(" ")[1]
+# ✅ ESQUEMA DE SEGURIDAD
+security = HTTPBearer()
+
+def get_current_user_role(credentials: HTTPAuthorizationCredentials = Security(security)):
+    token = credentials.credentials
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         return payload.get("rol"), payload.get("sub"), payload.get("user_id")
@@ -20,13 +21,20 @@ def get_current_user_role(request: Request):
         raise HTTPException(status_code=401, detail="Token inválido")
 
 @router.get("/resumen-inspecciones")
-def resumen_inspecciones(db: Session = Depends(get_db)):
+def resumen_inspecciones(
+    credentials: HTTPAuthorizationCredentials = Security(security),
+    db: Session = Depends(get_db)
+):
     result = db.execute(text("SELECT * FROM vista_resumen_inspecciones")).mappings().all()
     return [dict(row) for row in result]
 
 @router.get("/inspecciones-por-estado/{estado}")
-def inspecciones_por_estado(estado: str, request: Request, db: Session = Depends(get_db)):
-    rol, correo, user_id = get_current_user_role(request)
+def inspecciones_por_estado(
+    estado: str,
+    credentials: HTTPAuthorizationCredentials = Security(security),
+    db: Session = Depends(get_db)
+):
+    rol, correo, user_id = get_current_user_role(credentials)
     
     # Admin y Director Técnico ven todo
     if rol in ['Administrador', 'Director Técnico']:

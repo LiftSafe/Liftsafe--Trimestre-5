@@ -1,11 +1,12 @@
 """Actualiza la contraseña del administrador principal para entorno de desarrollo."""
 from app.database import SessionLocal
 from app.models.models import Usuario, Rol
-from app.controllers.auth_controller import hash_password
-
+from sqlalchemy import text
+ 
 DEV_PASSWORD = "Admin123!"
-
-
+SECRET_KEY_MYSQL = 'LiftSafeSecretKey2026!'  # debe coincidir con auth_controller.py
+ 
+ 
 def main():
     db = SessionLocal()
     admin = (
@@ -18,14 +19,22 @@ def main():
     if not admin:
         print("No hay administrador en la base de datos.")
         return
-
-    admin.contrasena = hash_password(DEV_PASSWORD)
+ 
+    # Usamos SQL directo con AES_ENCRYPT, igual que espera auth_controller.py
+    db.execute(
+        text(
+            "UPDATE usuario SET contrasena_encriptada = AES_ENCRYPT(:password, :key) "
+            "WHERE id_usuario = :id_usuario"
+        ),
+        {"password": DEV_PASSWORD, "key": SECRET_KEY_MYSQL, "id_usuario": admin.id_usuario}
+    )
     db.commit()
     print(f"Contraseña del administrador actualizada.")
     print(f"Correo: {admin.correo}")
     print(f"Nueva contraseña: {DEV_PASSWORD}")
     db.close()
-
-
+ 
+ 
 if __name__ == "__main__":
     main()
+ 

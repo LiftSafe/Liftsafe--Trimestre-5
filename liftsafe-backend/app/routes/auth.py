@@ -1,7 +1,8 @@
 # app/routes/auth.py
 
-import logging  # ← AGREGAR ESTA LÍNEA
-from fastapi import APIRouter, Depends, HTTPException, Request
+import logging
+from fastapi import APIRouter, Depends, HTTPException, Request, Security
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from app.database import get_db
@@ -18,10 +19,12 @@ from jose import jwt, JWTError
 from app.config import settings
 from pydantic import BaseModel
 
-# ← AGREGAR ESTA LÍNEA AL FINAL DE LAS IMPORTACIONES
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["Autenticación"])
+
+# ✅ ESQUEMA DE SEGURIDAD HTTP BEARER
+security = HTTPBearer()
 
 # ── Schema para verificar código ──────────────────────────────────────────────
 class VerifyCodeRequest(BaseModel):
@@ -105,10 +108,9 @@ async def recuperar_clave(request: RecuperarClaveRequest, db: Session = Depends(
     except Exception as e:
         logger.error(f"Error enviando email a {request.correo}: {e}")
         raise HTTPException(
-            status_code=503,  # Service Unavailable
+            status_code=503,
             detail="Error al enviar el correo. Por favor intenta más tarde o contacta soporte."
         )
-
 
 # ── Verificar código y cambiar contraseña ────────────────────────────────────
 @router.post("/reset-clave", response_model=MessageResponse)
@@ -128,12 +130,14 @@ def reset_clave(request: VerifyCodeRequest, db: Session = Depends(get_db)):
     return {"message": "Contraseña actualizada exitosamente"}
 
 # ── Me ────────────────────────────────────────────────────────────────────────
+# ✅ MODIFICADO: Usa Security(security) para obtener el token del header Authorization
 @router.get("/me")
-def get_current_user(db: Session = Depends(get_db), authorization: str = None):
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Token no proporcionado")
+def get_current_user(
+    db: Session = Depends(get_db),
+    credentials: HTTPAuthorizationCredentials = Security(security)
+):
+    token = credentials.credentials
     
-    token = authorization.split(" ")[1]
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         correo = payload.get("sub")

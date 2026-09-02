@@ -1,65 +1,76 @@
-import { Box, Button } from '@mui/material';
-import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
+import { Box, Alert, Skeleton } from '@mui/material';
 import ElevatorOutlinedIcon from '@mui/icons-material/ElevatorOutlined';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import VerifiedOutlinedIcon from '@mui/icons-material/VerifiedOutlined';
-import { Link } from 'react-router-dom';
-import StatCard from '../../components/StatCard';
-import WelcomeBanner from '../../components/WelcomeBanner';
-import ChartCard from '../../components/dashboard/ChartCard';
-import ActivityPanel from '../../components/dashboard/ActivityPanel';
-import { ComplianceLineChart } from '../../components/dashboard/DashboardCharts';
-import { clientCertTimeline } from '../../data/dashboardData';
-import { useAuth } from '../../context/AuthContext';
+import AssignmentOutlinedIcon from '@mui/icons-material/AssignmentOutlined';
+import CheckCircleOutlinedIcon from '@mui/icons-material/CheckCircleOutlined';
+import WarningAmberOutlinedIcon from '@mui/icons-material/WarningAmberOutlined';
+import StatCard from "../../components/StatCard";
+import WelcomeBanner from "../../components/WelcomeBanner";
+import ChartCard from "../../components/dashboard/ChartCard";
+import ActivityPanel from "../../components/dashboard/ActivityPanel";
+import { InspectionTrendChart } from "../../components/dashboard/DashboardCharts";
+import { useAuth } from "../../context/AuthContext";
+import { useDashboardData } from "../../hooks/useDashboardData";
+import { fetchInspecciones, fetchCharts, fetchAscensores } from "../../services/dashboardService";
 
-const myCerts = [
-  { id: 'CERT-2026-041', building: 'Torre Central', elevator: 'ASC-01', date: '05/06/2027', status: 'Vigente' },
-  { id: 'CERT-2026-038', building: 'Torre Central', elevator: 'ASC-02', date: '02/06/2027', status: 'Vigente' },
-];
-
-export default function ClientDashboard() {
+export default function ClienteDashboard() {
   const { user } = useAuth();
+  const { data: inspecciones = [], loading, error } = useDashboardData(fetchInspecciones);
+  const { data: charts } = useDashboardData(fetchCharts);
+  const { data: ascensores = [] } = useDashboardData(fetchAscensores);
 
-  const certItems = myCerts.map((c) => ({
-    id: c.id,
-    title: `${c.elevator} — ${c.building}`,
-    subtitle: `${c.id} · Vence ${c.date}`,
-    chip: c.status,
-    chipColor: 'success',
-    type: 'success',
+  // Mis ascensores
+  const activeElevators = ascensores.filter(a => a.status === 'Activo');
+  const inactiveElevators = ascensores.filter(a => a.status === 'Inactivo');
+
+  // Mis inspecciones
+  const pending = inspecciones.filter((item) => 
+    item.status === 'Programada' || item.status === 'Borrador'
+  );
+  const completed = inspecciones.filter((item) => 
+    item.status === 'Finalizada' || item.status === 'Aprobada'
+  );
+
+  const elevatorItems = ascensores.slice(0, 5).map((item) => ({
+    id: item.id,
+    title: `${item.brand} ${item.model}`.trim(),
+    subtitle: item.building,
+    chip: item.status,
+    chipColor: item.status === 'Activo' ? 'success' : 'error',
+    type: item.status === 'Activo' ? 'success' : 'error',
+  }));
+
+  const inspectionItems = inspecciones.slice(0, 5).map((item) => ({
+    id: item.id,
+    title: item.building,
+    subtitle: `${item.elevator} · Estado: ${item.status}`,
+    chip: item.status,
+    chipColor: item.status === 'Aprobada' ? 'success' : item.status === 'Finalizada' ? 'success' : 'warning',
+    type: item.status === 'Aprobada' ? 'success' : 'warning',
   }));
 
   return (
     <Box>
       <WelcomeBanner name={user?.name} role={user?.role} />
+      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 2, mb: 3 }}>
-        <StatCard title="Mis ascensores" value="2" subtitle="Torre Central" icon={<ElevatorOutlinedIcon />} accent="#7C5CBF" />
-        <StatCard title="Certificados vigentes" value="2" subtitle="100% al día" icon={<CheckCircleIcon />} accent="#0E7C4A" trend={0} />
-        <StatCard title="Reportes disponibles" value="2" subtitle="Listos para descarga" icon={<DescriptionOutlinedIcon />} accent="#0066CC" />
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(4, 1fr)' }, gap: 2, mb: 3 }}>
+        <StatCard title="Mis ascensores" value={String(ascensores.length)} subtitle="Registrados" icon={<ElevatorOutlinedIcon />} accent="#0066CC" />
+        <StatCard title="Activos" value={String(activeElevators.length)} subtitle="En operación" icon={<CheckCircleOutlinedIcon />} accent="#0E7C4A" />
+        <StatCard title="Inspecciones" value={String(inspecciones.length)} subtitle="Total" icon={<AssignmentOutlinedIcon />} accent="#C97B1A" />
+        <StatCard title="Pendientes" value={String(pending.length)} subtitle="Por realizar" icon={<WarningAmberOutlinedIcon />} accent="#C0392B" />
       </Box>
 
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1.2fr 1fr' }, gap: 2.5 }}>
-        <ChartCard
-          title="Estado de certificaciones"
-          subtitle="Historial de vigencia en tus ascensores"
-          action={
-            <Button component={Link} to="/dashboard/reportes" size="small" variant="contained" startIcon={<VerifiedOutlinedIcon />}>
-              Ver reportes
-            </Button>
-          }
-        >
-          <ComplianceLineChart
-            data={clientCertTimeline.map((d) => ({ month: d.month, cumplimiento: d.vigentes === 2 ? 100 : 85 }))}
-          />
+      {loading ? (
+        <Skeleton variant="rounded" height={280} sx={{ borderRadius: 3, mb: 2.5 }} />
+      ) : (
+        <ChartCard title="Historial de inspecciones" subtitle="Mis ascensores">
+          <InspectionTrendChart data={charts?.monthlyInspections || []} />
         </ChartCard>
-        <ActivityPanel
-          title="Certificados de Torre Central"
-          subtitle="Documentos vigentes"
-          items={certItems}
-          accent="#7C5CBF"
-          action={<Button component={Link} to="/dashboard/reportes" size="small" variant="outlined">Descargar</Button>}
-        />
+      )}
+
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' }, gap: 2.5, mt: 2.5 }}>
+        <ActivityPanel title="Mis ascensores" subtitle="Equipos registrados" items={elevatorItems} accent="#0066CC" />
+        <ActivityPanel title="Inspecciones" subtitle="Estado actual" items={inspectionItems} accent="#C97B1A" />
       </Box>
     </Box>
   );

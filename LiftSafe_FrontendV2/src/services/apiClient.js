@@ -1,62 +1,80 @@
-const BASE_URL = 'http://127.0.0.1:8000';
+import { API_BASE_URL } from '../config/api';
+import { decodeDeep } from '../utils/encoding';
 
-function getToken() {
-  return localStorage.getItem('token');
-}
-
-async function handleResponse(res) {
-  if (!res.ok) {
-    let detail = 'Error en la solicitud';
-    try {
-      const data = await res.json();
-      detail = data.detail || detail;
-    } catch {
-      // respuesta sin cuerpo JSON
-    }
-    throw new Error(detail);
+// ============================================
+// DECODIFICACIÓN UTF-8
+// ============================================
+async function parseResponse(response) {
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const detail = data.detail;
+    const message = Array.isArray(detail)
+      ? detail.map((e) => e.msg || e).join(', ')
+      : detail || data.message || 'Error en la petición';
+    throw new Error(message);
   }
-  if (res.status === 204) return null;
-  return res.json();
+  // Si es 204 No Content, devolver null
+  if (response.status === 204) return null;
+  // Decodificar caracteres UTF-8
+  return decodeDeep(data);
 }
 
-function authHeaders() {
-  const token = getToken();
-  return {
-    'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
+// ============================================
+// HEADERS DE AUTENTICACIÓN
+// ============================================
+function getAuthHeaders(isFormData = false) {
+  const token = localStorage.getItem('token');
+  const headers = {};
+  if (token) headers.Authorization = `Bearer ${token}`;
+  if (!isFormData) headers['Content-Type'] = 'application/json';
+  return headers;
 }
 
-export async function apiGet(path) {
-  const res = await fetch(`${BASE_URL}${path}`, {
-    method: 'GET',
-    headers: authHeaders(),
+// ============================================
+// MÉTODOS HTTP
+// ============================================
+export async function apiGet(endpoint) {
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    headers: getAuthHeaders(),
   });
-  return handleResponse(res);
+  return parseResponse(response);
 }
 
-export async function apiPost(path, body) {
-  const res = await fetch(`${BASE_URL}${path}`, {
+export async function apiPost(endpoint, data, options = {}) {
+  const isFormData = data instanceof FormData;
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     method: 'POST',
-    headers: authHeaders(),
-    body: JSON.stringify(body),
+    headers: { ...getAuthHeaders(isFormData), ...options.headers },
+    body: isFormData ? data : JSON.stringify(data),
   });
-  return handleResponse(res);
+  return parseResponse(response);
 }
 
-export async function apiPut(path, body) {
-  const res = await fetch(`${BASE_URL}${path}`, {
+export async function apiPut(endpoint, data) {
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     method: 'PUT',
-    headers: authHeaders(),
-    body: JSON.stringify(body),
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
   });
-  return handleResponse(res);
+  return parseResponse(response);
 }
 
-export async function apiDelete(path) {
-  const res = await fetch(`${BASE_URL}${path}`, {
+export async function apiDelete(endpoint) {
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     method: 'DELETE',
-    headers: authHeaders(),
+    headers: getAuthHeaders(),
   });
-  return handleResponse(res);
+  return parseResponse(response);
 }
+
+// ============================================
+// EXPORTACIÓN DEL CLIENTE
+// ============================================
+export const apiClient = {
+  get: apiGet,
+  post: apiPost,
+  put: apiPut,
+  delete: apiDelete,
+};
+
+export { API_BASE_URL };
