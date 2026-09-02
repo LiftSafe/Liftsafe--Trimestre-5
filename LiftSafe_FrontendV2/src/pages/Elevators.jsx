@@ -2,30 +2,24 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import IconButton from '@mui/material/IconButton';
-<<<<<<< HEAD
 import { useState, useEffect } from 'react';
-import { Box, Card, CardContent, Chip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, Alert, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, Typography, TextField, MenuItem } from '@mui/material';
-=======
-import { useState } from 'react';
-import { Box, Card, CardContent, Chip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, Alert, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, Typography } from '@mui/material';
->>>>>>> c8306d785873f7353c3912678d3673587c1f0869
+import {
+  Box, Card, CardContent, Chip, Table, TableBody, TableCell,
+  TableContainer, TableHead, TableRow, Button, Alert, CircularProgress,
+  Dialog, DialogTitle, DialogContent, DialogActions, Typography,
+  TextField, MenuItem
+} from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import PageHeader from '../components/PageHeader';
 import SearchBar from '../components/SearchBar';
 import ListPagination from '../components/ListPagination';
 import { statusColor } from '../utils/statusHelpers';
 import { usePaginatedSearch } from '../hooks/usePaginatedSearch';
-<<<<<<< HEAD
-import { useAuth } from '../hooks/useAuth';
+import { useAuth } from '../context/AuthContext';
 import { useDashboardData } from '../hooks/useDashboardData';
 import { fetchAscensores } from '../services/dashboardService';
 import { ascensorService } from '../services/ascensorService';
 import { clienteService } from '../services/clienteService';
-=======
-import { useAuth } from '../context/AuthContext';
-import { useDashboardData } from '../hooks/useDashboardData';
-import { fetchAscensores } from '../services/dashboardService';
->>>>>>> c8306d785873f7353c3912678d3673587c1f0869
 
 // ========== COMPONENTE CONFIRM DIALOG ==========
 function ConfirmDialog({
@@ -54,7 +48,9 @@ function ConfirmDialog({
   );
 }
 
-<<<<<<< HEAD
+// ============================================
+// CONSTANTES
+// ============================================
 const TIPOS_ASCENSOR = ['Eléctrico', 'Hidráulico', 'Panorámico', 'Montacargas'];
 const ESTADOS_ASCENSOR = ['Activo', 'En mantenimiento', 'Fuera de servicio'];
 
@@ -75,8 +71,6 @@ const FORM_VACIO = {
   estado: 'Activo',
 };
 
-=======
->>>>>>> c8306d785873f7353c3912678d3673587c1f0869
 export default function Elevators() {
   const { hasAction } = useAuth();
   const { data: elevators = [], loading, error, refetch } = useDashboardData(fetchAscensores);
@@ -89,7 +83,6 @@ export default function Elevators() {
   const [deleteDialog, setDeleteDialog] = useState({ open: false, row: null });
   const [deleting, setDeleting] = useState(false);
 
-<<<<<<< HEAD
   // ✅ Estados para el formulario de crear/editar
   const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -104,8 +97,6 @@ export default function Elevators() {
     }
   }, [formOpen]);
 
-=======
->>>>>>> c8306d785873f7353c3912678d3673587c1f0869
   const handleDeleteClick = (row) => {
     setDeleteDialog({ open: true, row });
   };
@@ -114,8 +105,7 @@ export default function Elevators() {
     if (!deleteDialog.row) return;
     setDeleting(true);
     try {
-      // TODO: await deleteAscensor(deleteDialog.row.id);
-      console.log('Eliminar ascensor:', deleteDialog.row.id);
+      await ascensorService.eliminar(deleteDialog.row.id);
       if (refetch) refetch();
     } catch (err) {
       console.error(err);
@@ -125,7 +115,6 @@ export default function Elevators() {
     }
   };
 
-<<<<<<< HEAD
   const abrirCrear = () => {
     setEditingId(null);
     setForm(FORM_VACIO);
@@ -136,16 +125,16 @@ export default function Elevators() {
   const abrirEditar = (row) => {
     setEditingId(row.id);
     setForm({
-      id_cliente: '',
-      codigo_interno: '',
+      id_cliente: row.id_cliente || '',
+      codigo_interno: row.codigo_interno || '',
       marca: row.brand || '',
       modelo: row.model || '',
-      numero_serie: '',
+      numero_serie: row.numero_serie || '',
       tipo_ascensor: row.type || 'Eléctrico',
       capacidad_kg: row.capacity || '',
-      capacidad_personas: '',
+      capacidad_personas: row.capacity_personas || '',
       numero_pisos: row.floors || '',
-      velocidad_ms: '',
+      velocidad_ms: row.velocidad_ms || '',
       ubicacion_exacta: row.location || '',
       direccion_completa: row.building || '',
       ciudad: row.city || '',
@@ -155,19 +144,26 @@ export default function Elevators() {
     setFormOpen(true);
   };
 
+  // ✅ FUNCIÓN GUARDAR CORREGIDA - SIN variables no usadas
   const guardar = async () => {
     setSaving(true);
     setFormError('');
     try {
       if (editingId) {
-        // Al editar solo se envían los campos modificables (sin id_cliente/codigo_interno/numero_serie)
-        const { id_cliente, codigo_interno, numero_serie, ...datosEditables } = form;
+        // ✅ Solo los campos editables
         const payload = {
-          ...datosEditables,
-          capacidad_kg: Number(datosEditables.capacidad_kg) || undefined,
-          capacidad_personas: datosEditables.capacidad_personas ? Number(datosEditables.capacidad_personas) : undefined,
-          numero_pisos: Number(datosEditables.numero_pisos) || undefined,
-          velocidad_ms: datosEditables.velocidad_ms ? Number(datosEditables.velocidad_ms) : undefined,
+          marca: form.marca,
+          modelo: form.modelo,
+          tipo_ascensor: form.tipo_ascensor,
+          capacidad_kg: Number(form.capacidad_kg) || undefined,
+          capacidad_personas: form.capacidad_personas ? Number(form.capacidad_personas) : undefined,
+          numero_pisos: Number(form.numero_pisos) || undefined,
+          velocidad_ms: form.velocidad_ms ? Number(form.velocidad_ms) : undefined,
+          ubicacion_exacta: form.ubicacion_exacta,
+          direccion_completa: form.direccion_completa,
+          ciudad: form.ciudad,
+          estado: form.estado,
+          fecha_instalacion: form.fecha_instalacion || undefined,
         };
         await ascensorService.modificar(editingId, payload);
       } else {
@@ -190,30 +186,21 @@ export default function Elevators() {
     }
   };
 
-=======
->>>>>>> c8306d785873f7353c3912678d3673587c1f0869
   return (
     <Box>
       <PageHeader
         title="Ascensores"
         subtitle="Inventario y estado operativo desde la base de datos"
-<<<<<<< HEAD
-=======
         breadcrumbs={[{ label: 'Inicio', path: '/dashboard' }, { label: 'Ascensores' }]}
->>>>>>> c8306d785873f7353c3912678d3673587c1f0869
       />
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 2 }}>
         <SearchBar value={search} onChange={setSearch} placeholder="Buscar ascensor..." />
-<<<<<<< HEAD
         {hasAction('createElevator') && (
           <Button variant="contained" startIcon={<AddIcon />} onClick={abrirCrear}>
             Registrar ascensor
           </Button>
         )}
-=======
-        {hasAction('createElevator') && <Button variant="contained" startIcon={<AddIcon />}>Registrar ascensor</Button>}
->>>>>>> c8306d785873f7353c3912678d3673587c1f0869
       </Box>
       <Card>
         <CardContent sx={{ p: 0 }}>
@@ -248,34 +235,18 @@ export default function Elevators() {
                         <TableCell>
                           <Chip label={row.status} color={statusColor[row.status] || 'default'} size="small" />
                         </TableCell>
-<<<<<<< HEAD
 
                         <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
                           <IconButton
                             size="small"
                             color="primary"
                             onClick={() => abrirEditar(row)}
-=======
-                        
-                        <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
-                          <IconButton 
-                            size="small" 
-                            color="primary"
-                            onClick={() => {
-                              console.log('Editar ascensor:', row.id);
-                            }}
->>>>>>> c8306d785873f7353c3912678d3673587c1f0869
                             title="Editar ascensor"
                           >
                             <EditIcon fontSize="small" />
                           </IconButton>
-<<<<<<< HEAD
                           <IconButton
                             size="small"
-=======
-                          <IconButton 
-                            size="small" 
->>>>>>> c8306d785873f7353c3912678d3673587c1f0869
                             color="error"
                             onClick={() => handleDeleteClick(row)}
                             title="Eliminar ascensor"
@@ -314,7 +285,6 @@ export default function Elevators() {
         confirmColor="error"
         loading={deleting}
       />
-<<<<<<< HEAD
 
       {/* ✅ FORMULARIO CREAR / EDITAR ASCENSOR */}
       <Dialog open={formOpen} onClose={() => setFormOpen(false)} maxWidth="sm" fullWidth>
@@ -380,8 +350,6 @@ export default function Elevators() {
           </Button>
         </DialogActions>
       </Dialog>
-=======
->>>>>>> c8306d785873f7353c3912678d3673587c1f0869
     </Box>
   );
 }
