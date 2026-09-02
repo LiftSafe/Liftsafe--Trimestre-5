@@ -12,7 +12,7 @@ import WelcomeBanner from '../../components/WelcomeBanner';
 import ChartCard from '../../components/dashboard/ChartCard';
 import ActivityPanel from '../../components/dashboard/ActivityPanel';
 import { InspectionTrendChart } from '../../components/dashboard/DashboardCharts';
-import { useAuth } from '../../hooks/useAuth';
+import { useAuth } from '../../context/AuthContext';
 import { useDashboardData } from '../../hooks/useDashboardData';
 import { fetchInspecciones, fetchCharts } from '../../services/dashboardService';
 import { solicitudService } from '../../services/solicitudService';
