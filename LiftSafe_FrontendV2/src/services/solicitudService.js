@@ -1,7 +1,9 @@
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
+// ✅ sessionStorage (no localStorage): así cada pestaña del navegador
+// mantiene su propia sesión, para poder probar con varios roles a la vez.
 const getToken = () => {
-    return localStorage.getItem('token');
+    return sessionStorage.getItem('token');
 };
 
 const handleResponse = async (response) => {
@@ -59,5 +61,9 @@ export const solicitudService = {
     listar: () => apiGet('/solicitudes/'),
     obtener: (id) => apiGet(`/solicitudes/${id}`),
     modificar: (id, data) => apiPut(`/solicitudes/${id}`, data),
+    // ✅ FIX: no existía este método -> el botón "Cancelar" de Solicitudes.jsx
+    // llamaba a una función inexistente y fallaba en silencio. Cancelar es
+    // solo un cambio de estado, así que reusa el endpoint de modificar.
+    cancelar: (id) => apiPut(`/solicitudes/${id}`, { estado: 'Cancelada' }),
     eliminar: (id) => apiDelete(`/solicitudes/${id}`),
 };

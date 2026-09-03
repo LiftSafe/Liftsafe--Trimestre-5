@@ -33,13 +33,13 @@ def listado_ascensores(
     
     # Admin y Director Técnico ven todo
     if rol in ['Administrador', 'Director Técnico']:
-        ascensores = db.query(Ascensor, Usuario.nombre_completo).join(Usuario, Ascensor.id_cliente == Usuario.id_usuario).all()
+        ascensores = db.query(Ascensor, Usuario.nombre_completo).join(Usuario, Ascensor.id_cliente == Usuario.id_usuario).order_by(Ascensor.id_ascensor.desc()).all()
     else:
         # Otros roles: solo ven ascensores del cliente logueado
         user = db.query(Usuario).filter(Usuario.correo == correo).first()
         if not user:
             raise HTTPException(status_code=404, detail="Usuario no encontrado")
-        ascensores = db.query(Ascensor, Usuario.nombre_completo).join(Usuario, Ascensor.id_cliente == Usuario.id_usuario).filter(Ascensor.id_cliente == user.id_usuario).all()
+        ascensores = db.query(Ascensor, Usuario.nombre_completo).join(Usuario, Ascensor.id_cliente == Usuario.id_usuario).filter(Ascensor.id_cliente == user.id_usuario).order_by(Ascensor.id_ascensor.desc()).all()
     
     return [
         {

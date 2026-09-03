@@ -76,7 +76,7 @@ def listar_informes(
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
-    return db.query(Informe).all()
+    return db.query(Informe).order_by(Informe.id_informe.desc()).all()
 
 # ============================================
 # 3. OBTENER INFORME POR INSPECCIÓN (ESTEBAN)

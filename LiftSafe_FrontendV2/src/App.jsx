@@ -15,6 +15,7 @@ import Elevators from './pages/Elevators';
 import Buildings from './pages/Buildings';
 import Reports from './pages/Reports';
 import Users from './pages/Users';
+import Auditoria from './pages/Auditoria';
 import Settings from './pages/Settings';
 import RoleRoute from './components/RoleRoute';
 
@@ -55,6 +56,7 @@ const AppRoutes = () => {
         <Route path="edificios" element={<RoleRoute permission="edificios"><Buildings /></RoleRoute>} />
         <Route path="reportes" element={<RoleRoute permission="reportes"><Reports /></RoleRoute>} />
         <Route path="usuarios" element={<RoleRoute permission="usuarios"><Users /></RoleRoute>} />
+        <Route path="auditoria" element={<RoleRoute permission="auditoria"><Auditoria /></RoleRoute>} />
         <Route path="configuracion" element={<RoleRoute permission="configuracion"><Settings /></RoleRoute>} />
       </Route>
       

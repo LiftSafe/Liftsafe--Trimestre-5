@@ -1,11 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, Security
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
+from datetime import date as date_type
+from typing import Optional
 from app.database import get_db
-from app.models.models import Usuario, Rol
+from app.models.models import Usuario, Rol, Programacion
 from app.schemas.schemas import UsuarioCreate, UsuarioUpdate, MessageResponse
 from app.controllers.usuario_controller import get_user_profile, get_admin_stats, get_cliente_ascensores, get_inspector_inspecciones
-from app.utils.auth_deps import require_admin_from_request
+from app.utils.auth_deps import require_admin_from_request, get_current_user, INSPECTOR_ROL_ID
 from sqlalchemy import text
 
 router = APIRouter(prefix="/usuarios", tags=["Usuarios"])
@@ -112,9 +114,10 @@ def listado_usuarios(request: Request, db: Session = Depends(get_db)):
     
     # ✅ Usar vista segura que NO incluye contrasena
     result = db.execute(text("""
-        SELECT u.*, r.nombre_rol 
+        SELECT u.*, r.nombre_rol
         FROM vista_usuarios_segura u
         JOIN rol r ON u.id_rol = r.id_rol
+        ORDER BY u.id_usuario DESC
     """)).mappings().all()
     
     return [
@@ -129,6 +132,55 @@ def listado_usuarios(request: Request, db: Session = Depends(get_db)):
             "fecha_registro": row["fecha_registro"]
         }
         for row in result
+    ]
+
+# ============================================
+# 4b. LISTADO DE INSPECTORES (para asignar solicitudes/inspecciones)
+# ============================================
+@router.get("/inspectores")
+def listado_inspectores(
+    fecha: Optional[date_type] = None,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    ✅ FIX: esta ruta no existía -> usuarioService.listarInspectores() (usado por
+    CoordinadorDashboard y por el formulario de "Nueva inspección") siempre
+    fallaba con 404, así que los selectores de inspector quedaban vacíos.
+
+    Si se pasa "fecha" (YYYY-MM-DD), excluye a los inspectores que ya tienen
+    una programación ese día (estado distinto de "Cancelada"), para mostrar
+    solo los disponibles.
+    """
+    inspectores = (
+        db.query(Usuario)
+        .filter(Usuario.id_rol == INSPECTOR_ROL_ID, Usuario.estado == 'Activo')
+        .order_by(Usuario.nombre_completo.asc())
+        .all()
+    )
+
+    ocupados_ese_dia = set()
+    if fecha is not None:
+        programaciones = (
+            db.query(Programacion.id_inspector)
+            .filter(
+                Programacion.fecha_programada == fecha,
+                Programacion.estado != 'Cancelada',
+            )
+            .all()
+        )
+        ocupados_ese_dia = {p.id_inspector for p in programaciones}
+
+    return [
+        {
+            "id_usuario": i.id_usuario,
+            "nombre_completo": i.nombre_completo,
+            "correo": i.correo,
+            "telefono": i.telefono,
+            "disponible": i.id_usuario not in ocupados_ese_dia,
+        }
+        for i in inspectores
+        if i.id_usuario not in ocupados_ese_dia
     ]
 
 # ============================================

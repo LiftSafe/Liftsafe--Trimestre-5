@@ -95,10 +95,15 @@ class Solicitud(Base):
     estado = Column(String(255), nullable=False)
     observaciones = Column(Text, nullable=True)
     fecha_registro = Column(DateTime, nullable=False, default=datetime.utcnow)
-    
+
     # Relaciones
     inspecciones = relationship("Inspeccion", back_populates="solicitud")
     programaciones = relationship("Programacion", back_populates="solicitud")
+    # ✅ FIX: faltaban estas dos relaciones -> SolicitudResponse.ascensor/.cliente
+    # siempre llegaban en None (el atributo ni existía en el objeto ORM), por
+    # eso el frontend mostraba "N/A" en Ascensor y Cliente para todas las filas.
+    ascensor = relationship("Ascensor", foreign_keys=[id_ascensor])
+    cliente = relationship("Usuario", foreign_keys=[id_cliente])
 
 # ============ MODELO PROGRAMACION ============
 

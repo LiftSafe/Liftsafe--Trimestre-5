@@ -28,7 +28,7 @@ export function useDashboardData(fetchFunction) {
           console.error('Error en useDashboardData:', err);
 
           // ✅ Si el error es de autenticación real, cerramos sesión
-          // usando el AuthContext (logout real: limpia localStorage,
+          // usando el AuthContext (logout real: limpia sessionStorage,
           // limpia el user en memoria, y navega a /login). Antes esto
           // hacía navigate('/login') a mano sin tocar el AuthContext,
           // por lo que el user "fantasma" seguía existiendo y Login.jsx

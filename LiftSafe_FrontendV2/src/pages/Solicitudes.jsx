@@ -28,6 +28,7 @@ import {
   Delete as DeleteIcon,
   Edit as EditIcon,
   Assignment as AssignmentIcon,
+  AssignmentInd as AssignmentIndIcon,
   Pending as PendingIcon,
   CheckCircle as CheckCircleIcon,
   Schedule as ScheduleIcon,
@@ -36,10 +37,13 @@ import {
 import PageHeader from '../components/PageHeader';
 import SearchBar from '../components/SearchBar';
 import ListPagination from '../components/ListPagination';
+import ConfirmDialog from '../components/ConfirmDialog';
 import { usePaginatedSearch } from '../hooks/usePaginatedSearch';
 import { useAuth } from '../context/AuthContext';
 import { solicitudService } from '../services/solicitudService';
 import { ascensorService } from '../services/ascensorService';
+import { usuarioService } from '../services/usuarioService';
+import { programacionService } from '../services/programacionService';
 
 const TIPOS_SERVICIO = [
   'Inspección Periódica',
@@ -74,11 +78,28 @@ export default function Solicitudes() {
     observaciones: ''
   });
   const [formErrors, setFormErrors] = useState({});
+  const [formError, setFormError] = useState('');
   const [submitLoading, setSubmitLoading] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState({ open: false, onConfirm: null, message: '' });
+  const closeConfirm = () => setConfirmDialog((c) => ({ ...c, open: false }));
 
-  const esCliente = user?.rol === 'Cliente';
-  const esAdmin = user?.rol === 'Administrador';
-  const esCoordinador = user?.rol === 'Coordinador';
+  // ✅ Asignar inspector directamente desde Solicitudes (antes solo existía
+  // en el dashboard de Inicio del Coordinador). Mismo flujo/endpoint
+  // (programacionService.asignar) que usa CoordinadorDashboard.jsx.
+  const [inspectores, setInspectores] = useState([]);
+  const [loadingInspectores, setLoadingInspectores] = useState(false);
+  const [assignDialog, setAssignDialog] = useState({ open: false, solicitud: null });
+  const [assignForm, setAssignForm] = useState({ id_inspector: '', fecha_programada: '', hora_inicio: '' });
+  const [assignLoading, setAssignLoading] = useState(false);
+  const [assignError, setAssignError] = useState('');
+
+  // ✅ FIX: el contexto de auth guarda el rol en "role" (user.role), no en
+  // "rol"; por eso esCliente siempre daba false y el botón "Nueva solicitud"
+  // nunca se mostraba aunque el usuario logueado sí fuera Cliente.
+  const userRol = user?.role || user?.rol;
+  const esCliente = userRol === 'Cliente';
+  const esAdmin = userRol === 'Administrador';
+  const esCoordinador = userRol === 'Coordinador';
 
   const { search, setSearch, page, setPage, paginated, totalCount } = usePaginatedSearch(
     solicitudes,
@@ -127,6 +148,66 @@ export default function Solicitudes() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // ✅ Carga (o recarga) la lista de inspectores disponibles cada vez que se
+  // abre el diálogo de asignación o cambia la fecha elegida -> el backend
+  // excluye a los que ya tienen programación ese día (misma idea que la
+  // creación de inspecciones en Inspections.jsx).
+  useEffect(() => {
+    if (!assignDialog.open) return;
+    let active = true;
+    const cargarInspectores = async () => {
+      setLoadingInspectores(true);
+      try {
+        const data = await usuarioService.listarInspectores(assignForm.fecha_programada || undefined);
+        if (active) setInspectores(data || []);
+      } catch (err) {
+        console.error('Error cargando inspectores:', err);
+        if (active) setInspectores([]);
+      } finally {
+        if (active) setLoadingInspectores(false);
+      }
+    };
+    cargarInspectores();
+    return () => { active = false; };
+  }, [assignDialog.open, assignForm.fecha_programada]);
+
+  const handleOpenAssign = (solicitud) => {
+    setAssignDialog({ open: true, solicitud });
+    setAssignForm({ id_inspector: '', fecha_programada: '', hora_inicio: '' });
+    setAssignError('');
+  };
+
+  const handleCloseAssign = () => {
+    setAssignDialog({ open: false, solicitud: null });
+    setAssignForm({ id_inspector: '', fecha_programada: '', hora_inicio: '' });
+    setAssignError('');
+  };
+
+  const handleAssignSubmit = async (e) => {
+    e.preventDefault();
+    if (!assignForm.id_inspector || !assignForm.fecha_programada || !assignForm.hora_inicio) {
+      setAssignError('Completa todos los campos');
+      return;
+    }
+    setAssignLoading(true);
+    setAssignError('');
+    try {
+      await programacionService.asignar({
+        id_solicitud: assignDialog.solicitud.id_solicitud,
+        id_inspector: assignForm.id_inspector,
+        fecha_programada: assignForm.fecha_programada,
+        hora_inicio: assignForm.hora_inicio,
+      });
+      handleCloseAssign();
+      await cargarDatos();
+    } catch (err) {
+      console.error('Error asignando inspector:', err);
+      setAssignError(err.message || 'Error al asignar inspector');
+    } finally {
+      setAssignLoading(false);
+    }
+  };
+
   const handleOpenDialog = (solicitud = null) => {
     if (solicitud) {
       setEditingId(solicitud.id_solicitud);
@@ -148,6 +229,7 @@ export default function Solicitudes() {
       });
     }
     setFormErrors({});
+    setFormError('');
     setShowForm(true);
   };
 
@@ -155,6 +237,7 @@ export default function Solicitudes() {
     setShowForm(false);
     setEditingId(null);
     setFormErrors({});
+    setFormError('');
   };
 
   const handleChange = (e) => {
@@ -176,6 +259,7 @@ export default function Solicitudes() {
     if (!validateForm()) return;
 
     setSubmitLoading(true);
+    setFormError('');
     try {
       const payload = {
         ...formData,
@@ -192,32 +276,50 @@ export default function Solicitudes() {
       await cargarDatos();
     } catch (err) {
       console.error('Error guardando solicitud:', err);
-      setError(err.message || 'Error al guardar la solicitud');
+      setFormError(err.message || 'Error al guardar la solicitud');
     } finally {
       setSubmitLoading(false);
     }
   };
 
-  const handleCancelar = async (id) => {
-    if (!window.confirm('¿Cancelar esta solicitud?')) return;
-    try {
-      await solicitudService.cancelar(id);
-      await cargarDatos();
-    } catch (err) {
-      console.error('Error cancelando solicitud:', err);
-      setError(err.message || 'Error al cancelar la solicitud');
-    }
+  const handleCancelar = (id) => {
+    setConfirmDialog({
+      open: true,
+      title: 'Cancelar solicitud',
+      message: '¿Cancelar esta solicitud?',
+      confirmText: 'Cancelar solicitud',
+      confirmColor: 'warning',
+      onConfirm: async () => {
+        closeConfirm();
+        try {
+          await solicitudService.cancelar(id);
+          await cargarDatos();
+        } catch (err) {
+          console.error('Error cancelando solicitud:', err);
+          setError(err.message || 'Error al cancelar la solicitud');
+        }
+      },
+    });
   };
 
-  const handleEliminar = async (id) => {
-    if (!window.confirm('¿Eliminar esta solicitud? Esta acción no se puede deshacer.')) return;
-    try {
-      await solicitudService.eliminar(id);
-      await cargarDatos();
-    } catch (err) {
-      console.error('Error eliminando solicitud:', err);
-      setError(err.message || 'Error al eliminar la solicitud');
-    }
+  const handleEliminar = (id) => {
+    setConfirmDialog({
+      open: true,
+      title: 'Eliminar solicitud',
+      message: '¿Eliminar esta solicitud? Esta acción no se puede deshacer.',
+      confirmText: 'Eliminar',
+      confirmColor: 'error',
+      onConfirm: async () => {
+        closeConfirm();
+        try {
+          await solicitudService.eliminar(id);
+          await cargarDatos();
+        } catch (err) {
+          console.error('Error eliminando solicitud:', err);
+          setError(err.message || 'Error al eliminar la solicitud');
+        }
+      },
+    });
   };
 
   // Estadísticas
@@ -287,8 +389,8 @@ export default function Solicitudes() {
         </Grid>
       </Grid>
 
-      {/* Botón de nueva solicitud */}
-      {user && (
+      {/* Botón de nueva solicitud (solo clientes pueden crear) */}
+      {esCliente ? (
         <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
           <Button
             variant="contained"
@@ -298,6 +400,12 @@ export default function Solicitudes() {
             Nueva solicitud
           </Button>
         </Box>
+      ) : (
+        user && (
+          <Alert severity="info" sx={{ mb: 2 }}>
+            Solo los clientes pueden crear nuevas solicitudes de inspección.
+          </Alert>
+        )
       )}
 
       {/* Tabla de solicitudes */}
@@ -353,6 +461,18 @@ export default function Solicitudes() {
                         />
                       </TableCell>
                       <TableCell align="right">
+                        {/* Asignar inspector (solo Coordinador/Admin, mientras esté pendiente) */}
+                        {(esCoordinador || esAdmin) && s.estado === 'Pendiente' && (
+                          <Button
+                            size="small"
+                            color="primary"
+                            startIcon={<AssignmentIndIcon />}
+                            onClick={() => handleOpenAssign(s)}
+                            sx={{ mr: 1 }}
+                          >
+                            Asignar
+                          </Button>
+                        )}
                         {/* Editar (solo pendientes) */}
                         {(esCliente || esAdmin || esCoordinador) && s.estado === 'Pendiente' && (
                           <Button
@@ -405,6 +525,11 @@ export default function Solicitudes() {
         </DialogTitle>
         <DialogContent>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
+            {formError && (
+              <Alert severity="error" onClose={() => setFormError('')}>
+                {formError}
+              </Alert>
+            )}
             <TextField
               select
               label="Ascensor *"
@@ -460,7 +585,7 @@ export default function Solicitudes() {
               value={formData.fecha_deseada}
               onChange={handleChange}
               fullWidth
-              InputLabelProps={{ shrink: true }}
+              slotProps={{ inputLabel: { shrink: true } }}
             />
 
             <TextField
@@ -485,6 +610,82 @@ export default function Solicitudes() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Dialog para asignar inspector (Coordinador/Admin) */}
+      <Dialog open={assignDialog.open} onClose={handleCloseAssign} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          Asignar inspector — {assignDialog.solicitud?.ascensor?.codigo_interno || 'Ascensor'}
+          {assignDialog.solicitud?.cliente?.nombre_completo ? ` (${assignDialog.solicitud.cliente.nombre_completo})` : ''}
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
+            {assignError && (
+              <Alert severity="error" onClose={() => setAssignError('')}>
+                {assignError}
+              </Alert>
+            )}
+
+            <TextField
+              select
+              label="Inspector *"
+              value={assignForm.id_inspector}
+              onChange={(e) => setAssignForm({ ...assignForm, id_inspector: e.target.value })}
+              fullWidth
+              disabled={loadingInspectores}
+              helperText={
+                loadingInspectores
+                  ? 'Cargando inspectores disponibles...'
+                  : (inspectores.length === 0 ? 'No hay inspectores disponibles para esta fecha' : '')
+              }
+            >
+              <MenuItem value="">Seleccionar inspector...</MenuItem>
+              {inspectores.map((i) => (
+                <MenuItem key={i.id_usuario} value={i.id_usuario}>
+                  {i.nombre_completo} - {i.correo}
+                </MenuItem>
+              ))}
+            </TextField>
+
+            <TextField
+              label="Fecha programada *"
+              type="date"
+              value={assignForm.fecha_programada}
+              onChange={(e) => setAssignForm({ ...assignForm, fecha_programada: e.target.value, id_inspector: '' })}
+              fullWidth
+              slotProps={{ inputLabel: { shrink: true } }}
+            />
+
+            <TextField
+              label="Hora de inicio *"
+              type="time"
+              value={assignForm.hora_inicio}
+              onChange={(e) => setAssignForm({ ...assignForm, hora_inicio: e.target.value })}
+              fullWidth
+              slotProps={{ inputLabel: { shrink: true } }}
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={handleCloseAssign}>Cancelar</Button>
+          <Button
+            variant="contained"
+            onClick={handleAssignSubmit}
+            disabled={assignLoading || !assignForm.id_inspector || !assignForm.fecha_programada || !assignForm.hora_inicio}
+          >
+            {assignLoading ? 'Asignando...' : 'Asignar inspector'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <ConfirmDialog
+        open={confirmDialog.open}
+        onClose={closeConfirm}
+        onConfirm={confirmDialog.onConfirm || (() => {})}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        confirmText={confirmDialog.confirmText}
+        confirmColor={confirmDialog.confirmColor}
+      />
     </Box>
   );
 }

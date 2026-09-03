@@ -332,7 +332,7 @@ export default function AdminDashboard() {
               value={form.fecha_asignacion}
               onChange={handleChange('fecha_asignacion')}
               size="small"
-              InputLabelProps={{ shrink: true }}
+              slotProps={{ inputLabel: { shrink: true } }}
             />
 
             <Button variant="contained" onClick={handleAsignar} sx={{ height: 40 }}>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Box, Card, CardContent, Button, Chip, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow,
@@ -16,6 +16,9 @@ import DownloadOutlinedIcon from '@mui/icons-material/DownloadOutlined';
 import PageHeader from '../components/PageHeader';
 import SearchBar from '../components/SearchBar';
 import ListPagination from '../components/ListPagination';
+import MessageDialog, { MESSAGE_TITLES } from '../components/MessageDialog';
+import ConfirmDialog from '../components/ConfirmDialog';
+import { canDo } from '../config/roles';
 import { usePaginatedSearch } from '../hooks/usePaginatedSearch';
 import { brand } from '../theme/colors';
 import { useAuth } from '../context/AuthContext';
@@ -25,6 +28,8 @@ import { firmaService } from '../services/firmaService';
 import { checklistService } from '../services/checklistService';
 import { observacionService } from '../services/observacionService';
 import { informeService } from '../services/informeService';
+import { ascensorService } from '../services/ascensorService';
+import { usuarioService } from '../services/usuarioService';
 import { API_BASE_URL } from '../config/api';
 
 const NIVELES_RIESGO = ['Bajo', 'Medio', 'Alto', 'Crítico'];
@@ -54,6 +59,7 @@ function SignaturePad({ onSave, disabled, label, fecha }) {
   const wrapRef = useRef(null);
   const drawing = useRef(false);
   const [hasStroke, setHasStroke] = useState(false);
+  const [padError, setPadError] = useState('');
 
   const configureContext = (ctx) => {
     ctx.strokeStyle = '#0B1929';
@@ -100,6 +106,7 @@ function SignaturePad({ onSave, disabled, label, fecha }) {
     if (disabled) return;
     e.preventDefault();
     drawing.current = true;
+    setPadError('');
     const ctx = canvasRef.current.getContext('2d');
     configureContext(ctx);
     const { x, y } = getPos(e);
@@ -134,9 +141,10 @@ function SignaturePad({ onSave, disabled, label, fecha }) {
 
   const guardar = () => {
     if (!hasStroke) {
-      alert('Dibuje su firma antes de confirmar.');
+      setPadError('Dibuje su firma antes de confirmar.');
       return;
     }
+    setPadError('');
     onSave(canvasRef.current.toDataURL('image/png'));
   };
 
@@ -281,6 +289,12 @@ function SignaturePad({ onSave, disabled, label, fecha }) {
         </Box>
       </Box>
 
+      {padError && (
+        <Box sx={{ px: { xs: 2, sm: 3 }, pt: 1 }}>
+          <Alert severity="warning" sx={{ py: 0.5 }}>{padError}</Alert>
+        </Box>
+      )}
+
       <Box
         sx={{
           px: { xs: 2, sm: 3 },
@@ -349,6 +363,15 @@ export default function Inspections() {
     observaciones_generales: '',
   });
 
+  // ✅ Selección en cascada Edificio -> Ascensor, e Inspector filtrado por
+  // disponibilidad en la fecha elegida (antes eran dos campos de texto para
+  // escribir IDs a mano, sin ninguna validación ni ayuda visual).
+  const [ascensores, setAscensores] = useState([]);
+  const [loadingAscensores, setLoadingAscensores] = useState(false);
+  const [selectedEdificio, setSelectedEdificio] = useState('');
+  const [inspectoresDisponibles, setInspectoresDisponibles] = useState([]);
+  const [loadingInspectores, setLoadingInspectores] = useState(false);
+
   const [detailOpen, setDetailOpen] = useState(false);
   const [selected, setSelected] = useState(null);
   const [firmas, setFirmas] = useState({
@@ -385,7 +408,17 @@ export default function Inspections() {
   const [informe, setInforme] = useState(null);
   const [informeError, setInformeError] = useState('');
   const [generandoInforme, setGenerandoInforme] = useState(false);
+  const [finalizando, setFinalizando] = useState(false);
   const [enviandoInforme, setEnviandoInforme] = useState(false);
+
+  // ✅ Diálogos (reemplazan alert()/window.confirm() nativos)
+  const [messageDialog, setMessageDialog] = useState({ open: false, title: '', message: '', severity: 'info' });
+  const [confirmDialog, setConfirmDialog] = useState({ open: false, onConfirm: null, message: '' });
+  const showMessage = (message, severity = 'info', title) => {
+    setMessageDialog({ open: true, title: title || MESSAGE_TITLES[severity] || 'Información', message, severity });
+  };
+  const closeMessage = () => setMessageDialog((m) => ({ ...m, open: false }));
+  const closeConfirm = () => setConfirmDialog((c) => ({ ...c, open: false }));
 
   const cargarInspecciones = async (showLoading = false) => {
     if (showLoading) setLoading(true);
@@ -425,6 +458,90 @@ export default function Inspections() {
       cancelled = true;
     };
   }, []);
+
+  // ✅ Carga los ascensores (para armar Edificio -> Ascensor) al abrir el
+  // diálogo de "Nueva inspección".
+  useEffect(() => {
+    if (!openCreate) return;
+    let cancelled = false;
+    setLoadingAscensores(true);
+    ascensorService.listar()
+      .then((data) => {
+        if (!cancelled) setAscensores(Array.isArray(data) ? data : []);
+      })
+      .catch((err) => {
+        console.error('Error cargando ascensores:', err);
+        if (!cancelled) setAscensores([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingAscensores(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [openCreate]);
+
+  // ✅ Carga los inspectores disponibles: sin fecha trae todos los activos;
+  // con fecha, el backend excluye a los que ya tienen una programación ese
+  // día. Se vuelve a pedir cada vez que cambia la fecha programada.
+  useEffect(() => {
+    if (!openCreate) return;
+    let cancelled = false;
+    setLoadingInspectores(true);
+    usuarioService.listarInspectores(newInspection.fecha_programada || undefined)
+      .then((data) => {
+        if (!cancelled) setInspectoresDisponibles(Array.isArray(data) ? data : []);
+      })
+      .catch((err) => {
+        console.error('Error cargando inspectores:', err);
+        if (!cancelled) setInspectoresDisponibles([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingInspectores(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [openCreate, newInspection.fecha_programada]);
+
+  // Si el inspector seleccionado deja de estar disponible (cambió la fecha),
+  // se limpia la selección para no enviar un inspector que ya no aparece.
+  useEffect(() => {
+    if (!newInspection.id_inspector) return;
+    const sigueDisponible = inspectoresDisponibles.some(
+      (i) => String(i.id_usuario) === String(newInspection.id_inspector)
+    );
+    if (!sigueDisponible) {
+      setNewInspection((prev) => ({ ...prev, id_inspector: '' }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inspectoresDisponibles]);
+
+  const edificios = useMemo(() => {
+    const map = new Map();
+    for (const a of ascensores) {
+      const key = a.cliente || 'Sin cliente asignado';
+      if (!map.has(key)) map.set(key, { nombre: key, ciudad: a.ciudad, count: 0 });
+      map.get(key).count += 1;
+    }
+    return Array.from(map.values()).sort((a, b) => a.nombre.localeCompare(b.nombre));
+  }, [ascensores]);
+
+  const ascensoresDelEdificio = useMemo(
+    () => ascensores.filter((a) => (a.cliente || 'Sin cliente asignado') === selectedEdificio),
+    [ascensores, selectedEdificio]
+  );
+
+  const handleEdificioChange = (value) => {
+    setSelectedEdificio(value);
+    setNewInspection((prev) => ({ ...prev, id_ascensor: '' }));
+  };
+
+  const closeCreateDialog = () => {
+    setOpenCreate(false);
+    setNewInspection({ id_ascensor: '', id_inspector: '', fecha_programada: '', observaciones_generales: '' });
+    setSelectedEdificio('');
+  };
 
   async function cargarChecklist(idInspeccion) {
     setLoadingChecklist(true);
@@ -536,24 +653,31 @@ export default function Inspections() {
 
   const crearInspeccion = async () => {
     try {
-      await inspeccionService.crear(newInspection);
-      setOpenCreate(false);
-      setNewInspection({ id_ascensor: '', id_inspector: '', fecha_programada: '', observaciones_generales: '' });
+      // ✅ FIX: el backend (InspeccionCreate) espera el campo "observaciones",
+      // no "observaciones_generales" -> antes las observaciones iniciales se
+      // enviaban con un nombre que el schema ignoraba y siempre se perdían.
+      await inspeccionService.crear({
+        id_ascensor: newInspection.id_ascensor,
+        id_inspector: newInspection.id_inspector,
+        fecha_programada: newInspection.fecha_programada,
+        observaciones: newInspection.observaciones_generales,
+      });
+      closeCreateDialog();
       await cargarInspecciones();
-      alert('Inspección creada exitosamente');
+      showMessage('Inspección creada exitosamente', 'success');
     } catch (err) {
       console.error('Error creando inspección:', err);
-      alert('Error al crear la inspección');
+      showMessage(err.message || 'Error al crear la inspección', 'error');
     }
   };
 
   const subirFoto = async () => {
     if (!selectedFile) {
-      alert('Selecciona una foto primero');
+      showMessage('Selecciona una foto primero', 'warning');
       return;
     }
     if (!selected?.id_informe) {
-      alert('Esta inspección no tiene un informe asociado');
+      showMessage('Esta inspección no tiene un informe asociado', 'warning');
       return;
     }
     try {
@@ -562,23 +686,32 @@ export default function Inspections() {
       setFotoDescripcion('');
       const fotosData = await fotografiaService.listarPorInforme(selected.id_informe);
       setFotos(Array.isArray(fotosData) ? fotosData : []);
-      alert('Foto subida exitosamente');
+      showMessage('Foto subida exitosamente', 'success');
     } catch (err) {
       console.error('Error subiendo foto:', err);
-      alert('Error al subir la foto');
+      showMessage(err.message || 'Error al subir la foto', 'error');
     }
   };
 
-  const eliminarFoto = async (idFoto) => {
-    if (!window.confirm('¿Eliminar esta foto?')) return;
-    try {
-      await fotografiaService.eliminar(idFoto);
-      const fotosData = await fotografiaService.listarPorInforme(selected.id_informe);
-      setFotos(Array.isArray(fotosData) ? fotosData : []);
-    } catch (err) {
-      console.error('Error eliminando foto:', err);
-      alert('Error al eliminar la foto');
-    }
+  const eliminarFoto = (idFoto) => {
+    setConfirmDialog({
+      open: true,
+      title: 'Eliminar foto',
+      message: '¿Eliminar esta foto? Esta acción no se puede deshacer.',
+      confirmText: 'Eliminar',
+      confirmColor: 'error',
+      onConfirm: async () => {
+        closeConfirm();
+        try {
+          await fotografiaService.eliminar(idFoto);
+          const fotosData = await fotografiaService.listarPorInforme(selected.id_informe);
+          setFotos(Array.isArray(fotosData) ? fotosData : []);
+        } catch (err) {
+          console.error('Error eliminando foto:', err);
+          showMessage(err.message || 'Error al eliminar la foto', 'error');
+        }
+      },
+    });
   };
 
   const firmarComoInspector = async (firmaBase64) => {
@@ -593,9 +726,9 @@ export default function Inspections() {
         fecha_firma_inspector: firmasData.fecha_firma_inspector || null,
         fecha_firma_cliente: firmasData.fecha_firma_cliente || null,
       });
-      alert('Firma del inspector registrada');
+      showMessage('Firma del inspector registrada', 'success');
     } catch (err) {
-      alert('Error al registrar firma: ' + (err.message || ''));
+      showMessage('Error al registrar firma: ' + (err.message || ''), 'error');
     }
   };
 
@@ -611,10 +744,42 @@ export default function Inspections() {
         fecha_firma_inspector: firmasData.fecha_firma_inspector || null,
         fecha_firma_cliente: firmasData.fecha_firma_cliente || null,
       });
-      alert('Firma del cliente registrada');
+      showMessage('Firma del cliente registrada', 'success');
     } catch (err) {
-      alert('Error al registrar firma: ' + (err.message || ''));
+      showMessage('Error al registrar firma: ' + (err.message || ''), 'error');
     }
+  };
+
+  // ✅ El backend ya tenía PUT /inspecciones/{id}/estado (inspeccionService.
+  // actualizarEstado) pero ningún botón de la UI lo llamaba, así que la
+  // inspección se quedaba en "Programada" para siempre, sin importar que ya
+  // estuviera firmada y con informe. Este botón lo conecta: el Inspector
+  // asignado (o Coordinador/Admin) puede marcarla como "Finalizada" una vez
+  // registró su propia firma.
+  const finalizarInspeccion = () => {
+    const id = selected?.id_inspeccion || selected?.id;
+    if (!id) return;
+    setConfirmDialog({
+      open: true,
+      title: 'Finalizar inspección',
+      message: '¿Marcar esta inspección como finalizada? Ya no podrás editar el checklist después de esto.',
+      confirmText: 'Finalizar',
+      confirmColor: 'primary',
+      onConfirm: async () => {
+        closeConfirm();
+        setFinalizando(true);
+        try {
+          await inspeccionService.actualizarEstado(id, 'Finalizada');
+          setSelected((s) => (s ? { ...s, estado: 'Finalizada' } : s));
+          await cargarInspecciones();
+          showMessage('Inspección marcada como finalizada', 'success');
+        } catch (err) {
+          showMessage('Error al finalizar la inspección: ' + (err.message || ''), 'error');
+        } finally {
+          setFinalizando(false);
+        }
+      },
+    });
   };
 
   const generarInforme = async () => {
@@ -624,7 +789,7 @@ export default function Inspections() {
     try {
       await informeService.generar(id);
       await cargarInforme(id);
-      alert('Informe PDF generado exitosamente');
+      showMessage('Informe PDF generado exitosamente', 'success');
     } catch (err) {
       setInformeError(err.message || 'Error al generar el informe');
     } finally {
@@ -640,7 +805,7 @@ export default function Inspections() {
       await informeService.enviar(informe.id_informe);
       const id = selected?.id_inspeccion || selected?.id;
       await cargarInforme(id);
-      alert('Informe marcado como enviado');
+      showMessage('Informe marcado como enviado', 'success');
     } catch (err) {
       setInformeError(err.message || 'Error al enviar el informe');
     } finally {
@@ -736,7 +901,11 @@ export default function Inspections() {
         </Alert>
       )}
 
-      {userRol !== 'Cliente' && (
+      {/* ✅ FIX: antes se mostraba a cualquiera que no fuera Cliente (incluía
+          Asesor y Director Técnico), pero el backend solo autoriza a
+          Administrador/Coordinador/Inspector -> esos dos roles veían el
+          botón y siempre les salía "No autorizado para crear inspecciones". */}
+      {canDo(userRol, 'createInspection') && (
         <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
           <Button variant="contained" startIcon={<AddIcon />} onClick={() => setOpenCreate(true)}>
             Nueva inspección
@@ -807,30 +976,107 @@ export default function Inspections() {
       </Card>
 
       {/* MODAL DE NUEVA INSPECCIÓN */}
-      <Dialog open={openCreate} onClose={() => setOpenCreate(false)} maxWidth="sm" fullWidth>
+      <Dialog open={openCreate} onClose={closeCreateDialog} maxWidth="sm" fullWidth>
         <DialogTitle fontWeight={700}>
           Nueva inspección
-          <IconButton sx={{ position: 'absolute', right: 8, top: 8 }} onClick={() => setOpenCreate(false)}>
+          <IconButton sx={{ position: 'absolute', right: 8, top: 8 }} onClick={closeCreateDialog}>
             <CloseIcon />
           </IconButton>
         </DialogTitle>
         <DialogContent>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
-            <TextField label="ID del Ascensor" fullWidth type="number" value={newInspection.id_ascensor}
-              onChange={(e) => setNewInspection({ ...newInspection, id_ascensor: e.target.value })} required />
-            <TextField label="ID del Inspector" fullWidth type="number" value={newInspection.id_inspector}
-              onChange={(e) => setNewInspection({ ...newInspection, id_inspector: e.target.value })} required />
-            <TextField label="Fecha programada" type="date" fullWidth InputLabelProps={{ shrink: true }}
+            <TextField
+              select
+              label="Edificio"
+              fullWidth
+              value={selectedEdificio}
+              onChange={(e) => handleEdificioChange(e.target.value)}
+              required
+              disabled={loadingAscensores}
+              helperText={
+                loadingAscensores
+                  ? 'Cargando edificios...'
+                  : (edificios.length === 0 ? 'No hay edificios/ascensores registrados' : ' ')
+              }
+            >
+              <MenuItem value=""><em>Selecciona un edificio...</em></MenuItem>
+              {edificios.map((e) => (
+                <MenuItem key={e.nombre} value={e.nombre}>
+                  {e.nombre}{e.ciudad ? ` — ${e.ciudad}` : ''} ({e.count} ascensor{e.count === 1 ? '' : 'es'})
+                </MenuItem>
+              ))}
+            </TextField>
+
+            <TextField
+              select
+              label="Ascensor"
+              fullWidth
+              value={newInspection.id_ascensor}
+              onChange={(e) => setNewInspection({ ...newInspection, id_ascensor: e.target.value })}
+              required
+              disabled={!selectedEdificio || loadingAscensores}
+              helperText={
+                !selectedEdificio
+                  ? 'Primero selecciona un edificio'
+                  : (ascensoresDelEdificio.length === 0 ? 'Este edificio no tiene ascensores' : ' ')
+              }
+            >
+              <MenuItem value=""><em>Selecciona un ascensor...</em></MenuItem>
+              {ascensoresDelEdificio.map((a) => (
+                <MenuItem key={a.id_ascensor} value={a.id_ascensor}>
+                  {a.codigo_interno} — {a.marca} {a.modelo}
+                </MenuItem>
+              ))}
+            </TextField>
+
+            <TextField
+              label="Fecha programada"
+              type="date"
+              fullWidth
+              slotProps={{ inputLabel: { shrink: true } }}
               value={newInspection.fecha_programada}
-              onChange={(e) => setNewInspection({ ...newInspection, fecha_programada: e.target.value })} required />
+              onChange={(e) => setNewInspection({ ...newInspection, fecha_programada: e.target.value })}
+              required
+            />
+
+            <TextField
+              select
+              label="Inspector"
+              fullWidth
+              value={newInspection.id_inspector}
+              onChange={(e) => setNewInspection({ ...newInspection, id_inspector: e.target.value })}
+              required
+              disabled={loadingInspectores}
+              helperText={
+                loadingInspectores
+                  ? 'Cargando inspectores...'
+                  : !newInspection.fecha_programada
+                    ? 'Selecciona primero la fecha para ver quién está disponible'
+                    : (inspectoresDisponibles.length === 0 ? 'No hay inspectores disponibles esa fecha' : ' ')
+              }
+            >
+              <MenuItem value=""><em>Selecciona un inspector...</em></MenuItem>
+              {inspectoresDisponibles.map((i) => (
+                <MenuItem key={i.id_usuario} value={i.id_usuario}>
+                  {i.nombre_completo} — {i.correo}
+                </MenuItem>
+              ))}
+            </TextField>
+
             <TextField label="Observaciones iniciales" multiline rows={3} fullWidth
               value={newInspection.observaciones_generales}
               onChange={(e) => setNewInspection({ ...newInspection, observaciones_generales: e.target.value })} />
           </Box>
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
-          <Button onClick={() => setOpenCreate(false)}>Cancelar</Button>
-          <Button variant="contained" onClick={crearInspeccion}>Crear inspección</Button>
+          <Button onClick={closeCreateDialog}>Cancelar</Button>
+          <Button
+            variant="contained"
+            onClick={crearInspeccion}
+            disabled={!newInspection.id_ascensor || !newInspection.id_inspector || !newInspection.fecha_programada}
+          >
+            Crear inspección
+          </Button>
         </DialogActions>
       </Dialog>
 
@@ -926,6 +1172,26 @@ export default function Inspections() {
                   </Typography>
                 )}
               </Box>
+
+              {/* Marcar inspección como finalizada (Inspector, o Coordinador/Admin) */}
+              {(userRol === 'Inspector' || userRol === 'Coordinador' || userRol === 'Administrador') &&
+                !['Finalizada', 'Completada', 'Aprobada', 'Cancelada'].includes(selected?.estado) && (
+                <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={finalizarInspeccion}
+                    disabled={finalizando || !firmas?.firma_inspector}
+                  >
+                    {finalizando ? 'Finalizando...' : 'Marcar como finalizada'}
+                  </Button>
+                  {!firmas?.firma_inspector && (
+                    <Typography variant="caption" color="text.secondary">
+                      Registra primero la firma del inspector.
+                    </Typography>
+                  )}
+                </Box>
+              )}
 
               <Divider sx={{ mb: 2 }} />
 
@@ -1166,6 +1432,24 @@ export default function Inspections() {
           <Button onClick={() => setDetailOpen(false)}>Cerrar</Button>
         </DialogActions>
       </Dialog>
+
+      {/* ✅ Diálogos que reemplazan alert()/window.confirm() */}
+      <MessageDialog
+        open={messageDialog.open}
+        onClose={closeMessage}
+        title={messageDialog.title}
+        message={messageDialog.message}
+        severity={messageDialog.severity}
+      />
+      <ConfirmDialog
+        open={confirmDialog.open}
+        onClose={closeConfirm}
+        onConfirm={confirmDialog.onConfirm || (() => {})}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        confirmText={confirmDialog.confirmText}
+        confirmColor={confirmDialog.confirmColor}
+      />
     </Box>
   );
 }

@@ -38,15 +38,18 @@ def mis_inspecciones(
     rol, correo, user_id = get_current_user_role(credentials)
     
     if rol in ['Administrador', 'Director Técnico']:
-        result = db.execute(text("SELECT * FROM vista_resumen_inspecciones")).mappings().all()
+        result = db.execute(text(
+            "SELECT * FROM vista_resumen_inspecciones ORDER BY id_inspeccion DESC"
+        )).mappings().all()
         return [dict(row) for row in result]
-    
+
     elif rol == 'Inspector':
         result = (
             db.query(Inspeccion, Ascensor.codigo_interno, Informe.id_informe)
             .join(Ascensor, Inspeccion.id_ascensor == Ascensor.id_ascensor)
             .outerjoin(Informe, Informe.id_inspeccion == Inspeccion.id_inspeccion)
             .filter(Inspeccion.id_inspector == user_id)
+            .order_by(Inspeccion.id_inspeccion.desc())
             .all()
         )
         return [
@@ -70,6 +73,7 @@ def mis_inspecciones(
             .join(Ascensor, Inspeccion.id_ascensor == Ascensor.id_ascensor)
             .outerjoin(Informe, Informe.id_inspeccion == Inspeccion.id_inspeccion)
             .filter(Ascensor.id_cliente == user_id)
+            .order_by(Inspeccion.id_inspeccion.desc())
             .all()
         )
         return [

@@ -94,7 +94,7 @@ def get_charts(current_user = Depends(get_current_user), db: Session = Depends(g
 def get_usuarios(current_user = Depends(get_current_user), db: Session = Depends(get_db)):
     """Obtiene lista de usuarios para el dashboard"""
     try:
-        usuarios = db.query(Usuario).options(joinedload(Usuario.rol)).limit(20).all()
+        usuarios = db.query(Usuario).options(joinedload(Usuario.rol)).order_by(Usuario.id_usuario.desc()).all()
         return [{
             "id": u.id_usuario,
             "nombre": u.nombre_completo,
@@ -144,7 +144,7 @@ def get_inspecciones(current_user = Depends(get_current_user), db: Session = Dep
 def get_ascensores(current_user = Depends(get_current_user), db: Session = Depends(get_db)):
     """Obtiene lista de ascensores para el dashboard"""
     try:
-        ascensores = db.query(Ascensor).options(joinedload(Ascensor.cliente)).limit(20).all()
+        ascensores = db.query(Ascensor).options(joinedload(Ascensor.cliente)).order_by(Ascensor.id_ascensor.desc()).all()
         return [{
             "id": a.id_ascensor,
             "codigo": a.codigo_interno,

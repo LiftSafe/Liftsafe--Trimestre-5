@@ -1,7 +1,9 @@
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
+// ✅ sessionStorage (no localStorage): así cada pestaña del navegador
+// mantiene su propia sesión, para poder probar con varios roles a la vez.
 const getToken = () => {
-    return localStorage.getItem('token');
+    return sessionStorage.getItem('token');
 };
 
 const handleResponse = async (response) => {
@@ -23,5 +25,7 @@ const apiGet = (endpoint) => {
 };
 
 export const usuarioService = {
-    listarInspectores: () => apiGet('/usuarios/inspectores'),
+    // fecha (YYYY-MM-DD) es opcional: si se pasa, el backend excluye a los
+    // inspectores que ya tienen una programación ese día.
+    listarInspectores: (fecha) => apiGet(`/usuarios/inspectores${fecha ? `?fecha=${fecha}` : ''}`),
 };

@@ -4,6 +4,13 @@ import { canDo } from '../config/roles';
 import { loginRequest, registerRequest } from '../services/authService';
 import { decodeDeep } from '../utils/encoding';
 
+// ✅ La sesión se guarda en sessionStorage (no localStorage) a propósito:
+// sessionStorage es independiente por cada PESTAÑA del navegador, aunque
+// sea la misma URL. Así se puede tener, por ejemplo, un Cliente logueado
+// en una pestaña y un Coordinador en otra, sin que una sesión pise a la
+// otra (con localStorage todas las pestañas comparten el mismo login).
+// Al cerrar la pestaña se cierra esa sesión; recargar la misma pestaña no
+// afecta el login.
 const AuthContext = createContext(null);
 
 function buildUserFromLogin(data, correo) {
@@ -19,16 +26,16 @@ export function AuthProvider({ children }) {
   const navigate = useNavigate();
 
   const [user, setUser] = useState(() => {
-    const saved = localStorage.getItem('liftsafe_user');
+    const saved = sessionStorage.getItem('liftsafe_user');
     if (!saved) return null;
     try {
       const parsed = decodeDeep(JSON.parse(saved));
-      localStorage.setItem('liftsafe_user', JSON.stringify(parsed));
+      sessionStorage.setItem('liftsafe_user', JSON.stringify(parsed));
       return parsed;
     } catch (e) {
       console.error('Error al cargar usuario:', e);
-      localStorage.removeItem('liftsafe_user');
-      localStorage.removeItem('token');
+      sessionStorage.removeItem('liftsafe_user');
+      sessionStorage.removeItem('token');
     }
     return null;
   });
@@ -56,7 +63,7 @@ export function AuthProvider({ children }) {
   const login = async (email, password) => {
     try {
       const data = await loginRequest(email, password);
-      localStorage.setItem('token', data.access_token);
+      sessionStorage.setItem('token', data.access_token);
 
       const userData = decodeDeep({
         name: data.nombre || data.user?.nombre,
@@ -65,7 +72,7 @@ export function AuthProvider({ children }) {
         token: data.access_token,
       });
 
-      localStorage.setItem('liftsafe_user', JSON.stringify(userData));
+      sessionStorage.setItem('liftsafe_user', JSON.stringify(userData));
       setUser(userData);
       return { success: true };
     } catch (error) {
@@ -100,8 +107,8 @@ export function AuthProvider({ children }) {
   // LOGOUT
   // ============================================
   const logout = () => {
-    localStorage.removeItem('liftsafe_user');
-    localStorage.removeItem('token');
+    sessionStorage.removeItem('liftsafe_user');
+    sessionStorage.removeItem('token');
     setUser(null);
     navigate('/login');
   };

@@ -38,10 +38,19 @@ const IMAGENES_POR_EDIFICIO = {
 const IMAGEN_DEFAULT = '/comprobantes/default.jpg';
 
 function getImagenUrl(building) {
-  const nombre = building?.name || building?.address || '';
-  const match = Object.keys(IMAGENES_POR_EDIFICIO).find(
-    key => key.toLowerCase().trim() === nombre.toLowerCase().trim()
-  );
+  // ✅ FIX: antes se comparaba primero building?.name (el nombre del
+  // cliente, ej. "Camila Fernanda Mendoza") contra un mapa cuyas claves
+  // son DIRECCIONES (ej. "Calle 120 #15-88"). Como nunca coincidía, TODOS
+  // los edificios caían siempre en IMAGEN_DEFAULT... que además no existía
+  // como archivo, así que ninguna imagen se veía. Ahora se compara primero
+  // la dirección (que sí es la clave del mapa) y se usa un match flexible
+  // por si la dirección trae ", Bogotá" u otro sufijo de ciudad.
+  const direccion = (building?.address || '').toLowerCase().trim();
+  const nombre = (building?.name || '').toLowerCase().trim();
+  const match = Object.keys(IMAGENES_POR_EDIFICIO).find((key) => {
+    const k = key.toLowerCase().trim();
+    return k === direccion || k === nombre || (direccion && (direccion.startsWith(k) || k.startsWith(direccion)));
+  });
   return match ? IMAGENES_POR_EDIFICIO[match] : IMAGEN_DEFAULT;
 }
 
@@ -110,6 +119,11 @@ export default function Buildings() {
                       component="img"
                       src={imgUrl}
                       alt={`Edificio ${b.name}`}
+                      onError={(e) => {
+                        if (e.currentTarget.src !== window.location.origin + IMAGEN_DEFAULT) {
+                          e.currentTarget.src = IMAGEN_DEFAULT;
+                        }
+                      }}
                       sx={{
                         width: '100%',
                         height: 160,
@@ -117,6 +131,7 @@ export default function Buildings() {
                         display: 'block',
                         borderBottom: '1px solid',
                         borderColor: 'divider',
+                        bgcolor: 'grey.100',
                       }}
                     />
                     
@@ -201,6 +216,11 @@ export default function Buildings() {
             component="img"
             src={imagenUrl}
             alt={`Edificio ${detailBuilding?.name}`}
+            onError={(e) => {
+              if (e.currentTarget.src !== window.location.origin + IMAGEN_DEFAULT) {
+                e.currentTarget.src = IMAGEN_DEFAULT;
+              }
+            }}
             sx={{
               width: '100%',
               height: 280,
@@ -208,6 +228,7 @@ export default function Buildings() {
               borderRadius: 2,
               display: 'block',
               mb: 2,
+              bgcolor: 'grey.100',
             }}
           />
 

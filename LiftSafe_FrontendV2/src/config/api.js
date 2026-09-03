@@ -135,7 +135,7 @@ export const ENDPOINTS = {
 // HEADERS POR DEFECTO
 // ============================================
 export const getHeaders = () => {
-  const token = localStorage.getItem('token');
+  const token = sessionStorage.getItem('token');
   return {
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -146,7 +146,7 @@ export const getHeaders = () => {
 // HEADERS PARA FORM DATA (subir fotos)
 // ============================================
 export const getFormDataHeaders = () => {
-  const token = localStorage.getItem('token');
+  const token = sessionStorage.getItem('token');
   return {
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };

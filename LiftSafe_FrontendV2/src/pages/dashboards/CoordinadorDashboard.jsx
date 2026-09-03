@@ -11,6 +11,7 @@ import StatCard from '../../components/StatCard';
 import WelcomeBanner from '../../components/WelcomeBanner';
 import ChartCard from '../../components/dashboard/ChartCard';
 import ActivityPanel from '../../components/dashboard/ActivityPanel';
+import MessageDialog from '../../components/MessageDialog';
 import { InspectionTrendChart } from '../../components/dashboard/DashboardCharts';
 import { useAuth } from '../../context/AuthContext';
 import { useDashboardData } from '../../hooks/useDashboardData';
@@ -43,6 +44,7 @@ export default function CoordinadorDashboard() {
   const [loadingData, setLoadingData] = useState(true);
   const [openModal, setOpenModal] = useState(false);
   const [selectedSolicitud, setSelectedSolicitud] = useState(null);
+  const [messageDialog, setMessageDialog] = useState({ open: false, title: '', message: '', severity: 'info' });
   const [formData, setFormData] = useState({
     id_solicitud: '',
     id_inspector: '',
@@ -134,10 +136,10 @@ export default function CoordinadorDashboard() {
       // Recargar datos
       const solicitudesData = await solicitudService.listar();
       setSolicitudes(solicitudesData || []);
-      alert('✅ Inspector asignado correctamente');
+      setMessageDialog({ open: true, title: 'Éxito', message: 'Inspector asignado correctamente', severity: 'success' });
     } catch (error) {
       console.error('Error asignando inspector:', error);
-      alert('❌ Error al asignar inspector');
+      setMessageDialog({ open: true, title: 'Error', message: error.message || 'Error al asignar inspector', severity: 'error' });
     }
   };
 
@@ -273,7 +275,7 @@ export default function CoordinadorDashboard() {
               value={formData.fecha_programada}
               onChange={(e) => setFormData({ ...formData, fecha_programada: e.target.value })}
               sx={{ mb: 2 }}
-              InputLabelProps={{ shrink: true }}
+              slotProps={{ inputLabel: { shrink: true } }}
               required
             />
 
@@ -284,7 +286,7 @@ export default function CoordinadorDashboard() {
               value={formData.hora_inicio}
               onChange={(e) => setFormData({ ...formData, hora_inicio: e.target.value })}
               sx={{ mb: 2 }}
-              InputLabelProps={{ shrink: true }}
+              slotProps={{ inputLabel: { shrink: true } }}
               required
             />
 
@@ -299,6 +301,14 @@ export default function CoordinadorDashboard() {
           </form>
         </Box>
       </Modal>
+
+      <MessageDialog
+        open={messageDialog.open}
+        onClose={() => setMessageDialog((m) => ({ ...m, open: false }))}
+        title={messageDialog.title}
+        message={messageDialog.message}
+        severity={messageDialog.severity}
+      />
     </Box>
   );
 }

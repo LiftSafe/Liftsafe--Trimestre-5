@@ -4,7 +4,7 @@ import { useState } from 'react';
 import {
   Box, Card, CardContent, Typography, Button, Chip, Alert, CircularProgress,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  IconButton, Dialog, DialogTitle, DialogContent, DialogActions
+  IconButton
 } from '@mui/material';
 import PictureAsPdfOutlinedIcon from '@mui/icons-material/PictureAsPdfOutlined';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
@@ -14,43 +14,18 @@ import CheckCircleOutlinedIcon from '@mui/icons-material/CheckCircleOutlined';
 import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
-import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import PageHeader from '../components/PageHeader';
 import SearchBar from '../components/SearchBar';
 import ListPagination from '../components/ListPagination';
+import MessageDialog, { MESSAGE_TITLES } from '../components/MessageDialog';
+import ConfirmDialog from '../components/ConfirmDialog';
+import PromptDialog from '../components/PromptDialog';
 import { useAuth } from '../context/AuthContext';
 import { useDashboardData } from '../hooks/useDashboardData';
 import { usePaginatedSearch } from '../hooks/usePaginatedSearch';
 import { fetchInformes, fetchInspecciones } from '../services/dashboardService';
 import { informeService } from '../services/informeService';
 import { API_BASE_URL } from '../config/api';
-
-// ========== COMPONENTE CONFIRM DIALOG ==========
-function ConfirmDialog({
-  open, onClose, onConfirm, title = 'Confirmar acción',
-  message = '¿Estás seguro?', confirmText = 'Aceptar',
-  cancelText = 'Cancelar', confirmColor = 'error', loading = false,
-}) {
-  return (
-    <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
-      <DialogTitle sx={{ pb: 1 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <WarningAmberIcon color={confirmColor} />
-          <Typography fontWeight={700}>{title}</Typography>
-        </Box>
-      </DialogTitle>
-      <DialogContent>
-        <Typography color="text.secondary">{message}</Typography>
-      </DialogContent>
-      <DialogActions sx={{ px: 3, pb: 2 }}>
-        <Button onClick={onClose} disabled={loading}>{cancelText}</Button>
-        <Button variant="contained" color={confirmColor} onClick={onConfirm} disabled={loading}>
-          {loading ? 'Eliminando...' : confirmText}
-        </Button>
-      </DialogActions>
-    </Dialog>
-  );
-}
 
 export default function Reports() {
   const { user } = useAuth();
@@ -60,7 +35,7 @@ export default function Reports() {
 
   const { data: docs = [], loading: loadingDocs, error: errorDocs, refetch } = useDashboardData(fetchInformes);
   const { data: inspecciones = [], loading: loadingInsp, error: errorInsp } = useDashboardData(fetchInspecciones);
-  
+
   const { search, setSearch, page, setPage, paginated, totalCount } = usePaginatedSearch(
     docs,
     ['building', 'elevator', 'inspector', 'status', 'date']
@@ -73,14 +48,24 @@ export default function Reports() {
   const [deleteDialog, setDeleteDialog] = useState({ open: false, doc: null });
   const [deleting, setDeleting] = useState(false);
 
+  // ✅ Estados para MessageDialog (reemplaza alert()) y PromptDialog (reemplaza window.prompt())
+  const [messageDialog, setMessageDialog] = useState({ open: false, title: '', message: '', severity: 'info' });
+  const [promptDialog, setPromptDialog] = useState({ open: false, title: '', label: '', confirmText: 'Confirmar', onConfirm: null });
+
+  const showMessage = (message, severity = 'info', title) => {
+    setMessageDialog({ open: true, title: title || MESSAGE_TITLES[severity] || 'Información', message, severity });
+  };
+  const closeMessage = () => setMessageDialog((m) => ({ ...m, open: false }));
+  const closePrompt = () => setPromptDialog((p) => ({ ...p, open: false }));
+
   // ---- Informe PDF / Envío (Esteban) ----
   const [procesandoInformeId, setProcesandoInformeId] = useState(null);
 
   const certificados = docs.filter(d => d.status === 'Aprobada' || d.status === 'Finalizada').length;
-  const pendientes = inspecciones.filter(i => 
+  const pendientes = inspecciones.filter(i =>
     i.status === 'Borrador' || i.status === 'En Proceso' || i.status === 'Programada'
   ).length;
-  
+
   const hoy = new Date();
   const treintaDias = new Date(hoy.getTime() + (30 * 24 * 60 * 60 * 1000));
   const porVencer = inspecciones.filter(i => {
@@ -104,12 +89,12 @@ export default function Reports() {
     try {
       const inf = await informeService.obtenerPorInspeccion(doc.id);
       if (!inf?.ruta_pdf) {
-        alert('Esta inspección todavía no tiene un PDF generado. Genérelo desde Inspecciones.');
+        showMessage('Esta inspección todavía no tiene un PDF generado. Genérelo desde Inspecciones.', 'warning');
         return;
       }
       window.open(`${API_BASE_URL}/${inf.ruta_pdf.replace(/\\/g, '/')}`, '_blank', 'noopener,noreferrer');
     } catch (err) {
-      alert(err.message || 'No se encontró un informe generado para esta inspección');
+      showMessage(err.message || 'No se encontró un informe generado para esta inspección', 'error');
     } finally {
       setProcesandoInformeId(null);
     }
@@ -120,18 +105,18 @@ export default function Reports() {
     try {
       const inf = await informeService.obtenerPorInspeccion(doc.id);
       if (!inf?.id_informe) {
-        alert('Esta inspección todavía no tiene un informe generado.');
+        showMessage('Esta inspección todavía no tiene un informe generado.', 'warning');
         return;
       }
       if (inf.estado !== 'Aprobado') {
-        alert(`El informe debe estar "Aprobado" para enviarlo (estado actual: ${inf.estado}).`);
+        showMessage(`El informe debe estar "Aprobado" para enviarlo (estado actual: ${inf.estado}).`, 'warning');
         return;
       }
       await informeService.enviar(inf.id_informe);
-      alert('Informe enviado correctamente');
+      showMessage('Informe enviado correctamente', 'success');
       if (refetch) refetch();
     } catch (err) {
-      alert(err.message || 'Error al enviar el informe');
+      showMessage(err.message || 'Error al enviar el informe', 'error');
     } finally {
       setProcesandoInformeId(null);
     }
@@ -143,19 +128,34 @@ export default function Reports() {
     try {
       const inf = await informeService.obtenerPorInspeccion(doc.id);
       if (!inf?.id_informe) {
-        alert('Esta inspección todavía no tiene un informe generado.');
+        showMessage('Esta inspección todavía no tiene un informe generado.', 'warning');
         return;
       }
       if (inf.estado !== 'Generado') {
-        alert(`Solo se pueden revisar informes en estado "Generado" (estado actual: ${inf.estado}).`);
+        showMessage(`Solo se pueden revisar informes en estado "Generado" (estado actual: ${inf.estado}).`, 'warning');
         return;
       }
-      const concepto = window.prompt('Concepto técnico (opcional):', '') || '';
-      await informeService.aprobar(inf.id_informe, { concepto_tecnico: concepto });
-      alert('Informe aprobado correctamente');
-      if (refetch) refetch();
+      setPromptDialog({
+        open: true,
+        title: 'Aprobar informe',
+        label: 'Concepto técnico (opcional)',
+        confirmText: 'Aprobar',
+        onConfirm: async (concepto) => {
+          closePrompt();
+          setProcesandoInformeId(doc.id);
+          try {
+            await informeService.aprobar(inf.id_informe, { concepto_tecnico: concepto });
+            showMessage('Informe aprobado correctamente', 'success');
+            if (refetch) refetch();
+          } catch (err) {
+            showMessage(err.message || 'Error al aprobar el informe', 'error');
+          } finally {
+            setProcesandoInformeId(null);
+          }
+        },
+      });
     } catch (err) {
-      alert(err.message || 'Error al aprobar el informe');
+      showMessage(err.message || 'Error al aprobar el informe', 'error');
     } finally {
       setProcesandoInformeId(null);
     }
@@ -166,19 +166,34 @@ export default function Reports() {
     try {
       const inf = await informeService.obtenerPorInspeccion(doc.id);
       if (!inf?.id_informe) {
-        alert('Esta inspección todavía no tiene un informe generado.');
+        showMessage('Esta inspección todavía no tiene un informe generado.', 'warning');
         return;
       }
       if (inf.estado !== 'Generado') {
-        alert(`Solo se pueden revisar informes en estado "Generado" (estado actual: ${inf.estado}).`);
+        showMessage(`Solo se pueden revisar informes en estado "Generado" (estado actual: ${inf.estado}).`, 'warning');
         return;
       }
-      const motivo = window.prompt('Motivo del rechazo:', '') || '';
-      await informeService.rechazar(inf.id_informe, { observaciones_revision: motivo });
-      alert('Informe rechazado');
-      if (refetch) refetch();
+      setPromptDialog({
+        open: true,
+        title: 'Rechazar informe',
+        label: 'Motivo del rechazo',
+        confirmText: 'Rechazar',
+        onConfirm: async (motivo) => {
+          closePrompt();
+          setProcesandoInformeId(doc.id);
+          try {
+            await informeService.rechazar(inf.id_informe, { observaciones_revision: motivo });
+            showMessage('Informe rechazado', 'success');
+            if (refetch) refetch();
+          } catch (err) {
+            showMessage(err.message || 'Error al rechazar el informe', 'error');
+          } finally {
+            setProcesandoInformeId(null);
+          }
+        },
+      });
     } catch (err) {
-      alert(err.message || 'Error al rechazar el informe');
+      showMessage(err.message || 'Error al rechazar el informe', 'error');
     } finally {
       setProcesandoInformeId(null);
     }
@@ -188,11 +203,21 @@ export default function Reports() {
     if (!deleteDialog.doc) return;
     setDeleting(true);
     try {
-      // TODO: await deleteInforme(deleteDialog.doc.id);
-      console.log('Eliminar reporte:', deleteDialog.doc.id);
+      // ✅ FIX: antes esto era un TODO que solo hacía console.log, por eso
+      // "eliminar" no borraba nada de verdad. deleteDialog.doc.id es el id
+      // de la INSPECCIÓN (así lo entrega /dashboard/informes), no el id del
+      // informe -> hay que resolver primero el id_informe real antes de
+      // poder borrarlo.
+      const inf = await informeService.obtenerPorInspeccion(deleteDialog.doc.id);
+      if (!inf?.id_informe) {
+        showMessage('No se encontró un informe generado para este documento.', 'warning');
+        return;
+      }
+      await informeService.eliminar(inf.id_informe);
+      showMessage('Documento eliminado correctamente', 'success');
       if (refetch) refetch();
     } catch (err) {
-      console.error(err);
+      showMessage(err.message || 'No fue posible eliminar el documento.', 'error');
     } finally {
       setDeleting(false);
       setDeleteDialog({ open: false, doc: null });
@@ -212,11 +237,11 @@ export default function Reports() {
       </Box>
 
       {!isClient && (
-        <Box sx={{ 
-          display: 'grid', 
-          gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, 
-          gap: 2, 
-          mb: 3 
+        <Box sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' },
+          gap: 2,
+          mb: 3
         }}>
           {[
             { label: 'Certificados emitidos', value: summary.certificados },
@@ -265,7 +290,7 @@ export default function Reports() {
                         <TableCell>
                           <Chip label={doc.status} color="success" size="small" />
                         </TableCell>
-                        
+
                         <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
                           <Button
                             size="small"
@@ -365,6 +390,25 @@ export default function Reports() {
         confirmText="Eliminar"
         confirmColor="error"
         loading={deleting}
+      />
+
+      {/* ✅ MESSAGE DIALOG (reemplaza alert()) */}
+      <MessageDialog
+        open={messageDialog.open}
+        onClose={closeMessage}
+        title={messageDialog.title}
+        message={messageDialog.message}
+        severity={messageDialog.severity}
+      />
+
+      {/* ✅ PROMPT DIALOG (reemplaza window.prompt()) */}
+      <PromptDialog
+        open={promptDialog.open}
+        onClose={closePrompt}
+        onConfirm={promptDialog.onConfirm || (() => {})}
+        title={promptDialog.title}
+        label={promptDialog.label}
+        confirmText={promptDialog.confirmText}
       />
     </Box>
   );

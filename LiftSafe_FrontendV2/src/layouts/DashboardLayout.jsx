@@ -108,7 +108,12 @@ export default function DashboardLayout() {
     </Box>
   );
 
-  const currentTitle = menuItems.find((m) => m.path === location.pathname)?.text || 'LiftSafe';
+  // En la página de Inicio (/dashboard) no mostramos el título arriba:
+  // ya se ve "Inicio" resaltado en el menú lateral, y aquí se repetía sin
+  // aportar nada. En el resto de páginas el título se conserva igual.
+  const currentTitle = location.pathname === '/dashboard'
+    ? ''
+    : (menuItems.find((m) => m.path === location.pathname)?.text || 'LiftSafe');
 
   return (
     <Box sx={{ display: 'flex', height: '100vh', overflow: 'hidden', bgcolor: brand.surface }}>
