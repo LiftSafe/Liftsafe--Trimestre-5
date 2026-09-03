@@ -1,5 +1,3 @@
-
-
 // src/services/dashboardService.js
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -49,7 +47,8 @@ export const fetchInspecciones = () => apiClient('/dashboard/inspecciones');
 
 export const fetchAscensores = () => apiClient('/dashboard/ascensores');
 
-export const fetchEdificios = () => apiClient('/dashboard/edificios');
+// ✅ CORREGIDO: Usar la ruta correcta para edificios
+export const fetchEdificios = () => apiClient('/ascensores/edificios');
 
 export const fetchUsuarios = () => apiClient('/dashboard/usuarios');
 
@@ -111,7 +110,6 @@ export const fetchMisAscensores = () => apiClient('/ascensores/mis-ascensores');
 
 export const fetchMisInspecciones = () => apiClient('/inspecciones/mis-inspecciones');
 
-
 // ============ CREAR INSPECCIÓN ============
 
 export const crearInspeccion = async (data) => {
@@ -134,8 +132,7 @@ export const crearInspeccion = async (data) => {
   return response.json();
 };
 
-// src/services/dashboardService.js
-// Agregar esta función al final del archivo
+// ============ ELIMINAR USUARIO ============
 
 export const eliminarUsuario = async (userId) => {
   const token = sessionStorage.getItem('liftsafe_token') || sessionStorage.getItem('token');

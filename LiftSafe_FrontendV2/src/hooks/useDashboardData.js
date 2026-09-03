@@ -20,13 +20,18 @@ export function useDashboardData(fetchFunction) {
         const result = await fetchFunction();
         
         if (mounted) {
-          setData(result);
+          // ✅ Asegurar que siempre sea un array
+          setData(Array.isArray(result) ? result : []);
         }
       } catch (err) {
         if (mounted) {
           console.error('Error en useDashboardData:', err);
           
-          if (err.message?.includes('401') || err.message?.includes('Unauthorized') || err.message?.includes('expired')) {
+          // ✅ Si el error es de autenticación, redirigir al login
+          if (err.message?.includes('401') || 
+              err.message?.includes('Unauthorized') || 
+              err.message?.includes('expired') ||
+              err.message?.includes('Not authenticated')) {
             sessionStorage.removeItem('liftsafe_token');
             sessionStorage.removeItem('token');
             sessionStorage.removeItem('user');
