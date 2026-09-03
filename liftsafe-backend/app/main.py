@@ -57,7 +57,7 @@ app.include_router(ascensores.router)        # Equipo
 app.include_router(inspecciones.router)      # Valentina
 app.include_router(dashboard.router)         # Equipo
 app.include_router(fotografias.router)       # Valentina
-app.include_router(usuario_ascensor.router)  # Dayan
+# app.include_router(usuario_ascensor.router)  # Dayan - COMENTADO temporalmente
 app.include_router(checklist.router)         # Felipe
 app.include_router(observaciones.router)     # Felipe
 app.include_router(informes.router)          # Esteban
