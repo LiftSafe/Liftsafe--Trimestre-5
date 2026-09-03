@@ -1,44 +1,26 @@
-// ============================================
-// CONFIGURACIÓN DE URL (TODAS LAS VERSIONES)
-// ============================================
+// src/services/apiClient.js
+//
+// Antes este archivo tenía TRES implementaciones completas duplicadas
+// de las mismas funciones (versión "HEAD", versión "Esteban", versión
+// "Luz"), sobrantes de fusionar las 5 ramas sin resolver el conflicto.
+// La versión "Luz" además apuntaba al puerto 8001 en vez de 8000.
+// Aquí queda solo UNA implementación. Se mantienen los nombres
+// `apiGet` y `apiClient` porque son los que usa el resto del código
+// (AdminDashboard.jsx e Inspections.jsx respectivamente).
 
-// Versión 1: HEAD (tuya)
+import { decodeDeep } from '../utils/encoding';
+import { getToken } from '../utils/tokenStorage';
+
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
-// Versión 2: feature/luz
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8001';
-
-// ============================================
-// DECODIFICACIÓN UTF-8 (de Esteban)
-// ============================================
-import { decodeDeep } from '../utils/encoding';
-
-// ============================================
-// MANEJO DE RESPUESTAS - VERSIÓN 1 (HEAD)
-// ============================================
-async function handleResponse(response) {
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    const msg = errorData.detail?.[0]?.msg
-      || errorData.detail
-      || `Error ${response.status}`;
-    throw new Error(msg);
-  }
-  if (response.status === 204) return null;
-  return response.json();
+function getAuthHeaders(isFormData = false) {
+  const token = getToken();
+  const headers = {};
+  if (token) headers.Authorization = `Bearer ${token}`;
+  if (!isFormData) headers['Content-Type'] = 'application/json';
+  return headers;
 }
 
-function getHeaders() {
-  const token = localStorage.getItem('token') || '';
-  return {
-    'Content-Type': 'application/json',
-    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-  };
-}
-
-// ============================================
-// MANEJO DE RESPUESTAS - VERSIÓN 2 (Esteban)
-// ============================================
 async function parseResponse(response) {
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
@@ -46,83 +28,26 @@ async function parseResponse(response) {
     const message = Array.isArray(detail)
       ? detail.map((e) => e.msg || e).join(', ')
       : detail || data.message || 'Error en la petición';
-    throw new Error(message);
+    const error = new Error(message);
+    error.status = response.status;
+    throw error;
   }
   if (response.status === 204) return null;
   return decodeDeep(data);
 }
 
-function getAuthHeaders(isFormData = false) {
-  const token = localStorage.getItem('token');
-  const headers = {};
-  if (token) headers.Authorization = `Bearer ${token}`;
-  if (!isFormData) headers['Content-Type'] = 'application/json';
-  return headers;
-}
-
 // ============================================
-// MANEJO DE RESPUESTAS - VERSIÓN 3 (Luz)
+// FUNCIONES SUELTAS (usadas por AdminDashboard.jsx)
 // ============================================
-const getToken = () => {
-  return localStorage.getItem('token');
-};
-
-const handleResponseLuz = async (response) => {
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(error.detail || 'Error en la petición');
-  }
-  return response.json();
-};
-
-// ============================================
-// MÉTODOS HTTP - VERSIÓN 1 (HEAD - TUYA)
-// ============================================
-export const apiGet = async (url) => {
-  const response = await fetch(`${API_BASE_URL}${url}`, {
-    method: 'GET',
-    headers: getHeaders(),
-  });
-  return handleResponse(response);
-};
-
-export const apiPost = async (url, data) => {
-  const response = await fetch(`${API_BASE_URL}${url}`, {
-    method: 'POST',
-    headers: getHeaders(),
-    body: JSON.stringify(data),
-  });
-  return handleResponse(response);
-};
-
-export const apiPut = async (url, data) => {
-  const response = await fetch(`${API_BASE_URL}${url}`, {
-    method: 'PUT',
-    headers: getHeaders(),
-    body: JSON.stringify(data),
-  });
-  return handleResponse(response);
-};
-
-export const apiDelete = async (url) => {
-  const response = await fetch(`${API_BASE_URL}${url}`, {
-    method: 'DELETE',
-    headers: getHeaders(),
-  });
-  return handleResponse(response);
-};
-
-// ============================================
-// MÉTODOS HTTP - VERSIÓN 2 (ESTEBAN)
-// ============================================
-export async function apiGetEsteban(endpoint) {
+export const apiGet = async (endpoint) => {
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    method: 'GET',
     headers: getAuthHeaders(),
   });
   return parseResponse(response);
-}
+};
 
-export async function apiPostEsteban(endpoint, data, options = {}) {
+export const apiPost = async (endpoint, data, options = {}) => {
   const isFormData = data instanceof FormData;
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     method: 'POST',
@@ -130,79 +55,33 @@ export async function apiPostEsteban(endpoint, data, options = {}) {
     body: isFormData ? data : JSON.stringify(data),
   });
   return parseResponse(response);
-}
+};
 
-export async function apiPutEsteban(endpoint, data) {
+export const apiPut = async (endpoint, data) => {
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     method: 'PUT',
     headers: getAuthHeaders(),
     body: JSON.stringify(data),
   });
   return parseResponse(response);
-}
+};
 
-export async function apiDeleteEsteban(endpoint) {
+export const apiDelete = async (endpoint) => {
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     method: 'DELETE',
     headers: getAuthHeaders(),
   });
   return parseResponse(response);
-}
-
-// ============================================
-// MÉTODOS HTTP - VERSIÓN 3 (LUZ)
-// ============================================
-export const apiGetLuz = (endpoint) => {
-  return fetch(`${API_URL}${endpoint}`, {
-    method: 'GET',
-    headers: {
-      'Authorization': `Bearer ${getToken()}`,
-      'Content-Type': 'application/json',
-    },
-  }).then(handleResponseLuz);
-};
-
-export const apiPostLuz = (endpoint, data) => {
-  return fetch(`${API_URL}${endpoint}`, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${getToken()}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(data),
-  }).then(handleResponseLuz);
-};
-
-export const apiPutLuz = (endpoint, data) => {
-  return fetch(`${API_URL}${endpoint}`, {
-    method: 'PUT',
-    headers: {
-      'Authorization': `Bearer ${getToken()}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(data),
-  }).then(handleResponseLuz);
-};
-
-export const apiDeleteLuz = (endpoint) => {
-  return fetch(`${API_URL}${endpoint}`, {
-    method: 'DELETE',
-    headers: {
-      'Authorization': `Bearer ${getToken()}`,
-      'Content-Type': 'application/json',
-    },
-  }).then(handleResponseLuz);
 };
 
 // ============================================
-// EXPORTACIÓN DEL CLIENTE (de Esteban)
+// OBJETO apiClient (usado por Inspections.jsx)
 // ============================================
 export const apiClient = {
-  get: apiGetEsteban,
-  post: apiPostEsteban,
-  put: apiPutEsteban,
-  delete: apiDeleteEsteban,
+  get: apiGet,
+  post: apiPost,
+  put: apiPut,
+  delete: apiDelete,
 };
 
-// Exportar todas las URLs
-export { API_BASE_URL, API_URL };
+export { API_BASE_URL };

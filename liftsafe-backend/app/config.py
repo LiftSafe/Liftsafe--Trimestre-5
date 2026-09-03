@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     # ============================================
     SECRET_KEY: str = "liftsafe-secret-key-2026"
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 480  # 8 horas (antes 30 min, muy corto para desarrollo/pruebas)
     
     # ============================================
     # CORREO (Gmail con SSL)

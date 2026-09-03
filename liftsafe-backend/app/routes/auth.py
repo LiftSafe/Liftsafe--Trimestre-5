@@ -43,10 +43,11 @@ def login(credentials: UsuarioLogin, db: Session = Depends(get_db)):
     if not user:
         raise HTTPException(status_code=401, detail="Credenciales incorrectas")
     
+    # ✅ AGREGAR user_id EXPLÍCITAMENTE
     token = create_access_token({
         "sub": user.correo,
+        "user_id": user.id_usuario,  # ✅ AGREGADO
         "rol": user.rol.nombre_rol,
-        "user_id": user.id_usuario
     })
     
     return {
@@ -130,7 +131,6 @@ def reset_clave(request: VerifyCodeRequest, db: Session = Depends(get_db)):
     return {"message": "Contraseña actualizada exitosamente"}
 
 # ── Me ────────────────────────────────────────────────────────────────────────
-# ✅ MODIFICADO: Usa Security(security) para obtener el token del header Authorization
 @router.get("/me")
 def get_current_user(
     db: Session = Depends(get_db),

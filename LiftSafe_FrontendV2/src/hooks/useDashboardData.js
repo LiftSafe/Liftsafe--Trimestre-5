@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 export function useDashboardData(fetchFunction) {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [reloadKey, setReloadKey] = useState(0);
-  const navigate = useNavigate();
+  const { logout } = useAuth();
 
   const refetch = useCallback(() => setReloadKey((k) => k + 1), []);
 
@@ -18,7 +18,7 @@ export function useDashboardData(fetchFunction) {
         setLoading(true);
         setError(null);
         const result = await fetchFunction();
-        
+
         if (mounted) {
           // ✅ Asegurar que siempre sea un array
           setData(Array.isArray(result) ? result : []);
@@ -26,19 +26,25 @@ export function useDashboardData(fetchFunction) {
       } catch (err) {
         if (mounted) {
           console.error('Error en useDashboardData:', err);
-          
-          // ✅ Si el error es de autenticación, redirigir al login
-          if (err.message?.includes('401') || 
-              err.message?.includes('Unauthorized') || 
-              err.message?.includes('expired') ||
-              err.message?.includes('Not authenticated')) {
-            sessionStorage.removeItem('liftsafe_token');
-            sessionStorage.removeItem('token');
-            sessionStorage.removeItem('user');
-            navigate('/login', { replace: true });
+
+          // ✅ Si el error es de autenticación real, cerramos sesión
+          // usando el AuthContext (logout real: limpia localStorage,
+          // limpia el user en memoria, y navega a /login). Antes esto
+          // hacía navigate('/login') a mano sin tocar el AuthContext,
+          // por lo que el user "fantasma" seguía existiendo y Login.jsx
+          // te devolvía a /dashboard de inmediato -> loop infinito.
+          const isAuthError =
+            err.status === 401 ||
+            err.message?.includes('401') ||
+            err.message?.includes('Unauthorized') ||
+            err.message?.includes('expired') ||
+            err.message?.includes('Not authenticated');
+
+          if (isAuthError) {
+            logout();
             return;
           }
-          
+
           setError(err.message || 'Error al cargar datos');
           setData([]);
         }
@@ -54,7 +60,7 @@ export function useDashboardData(fetchFunction) {
     return () => {
       mounted = false;
     };
-  }, [fetchFunction, navigate, reloadKey]);
+  }, [fetchFunction, logout, reloadKey]);
 
   return { data, loading, error, refetch };
 }

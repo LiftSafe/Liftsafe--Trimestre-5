@@ -1,15 +1,12 @@
 // src/services/dashboardService.js
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+import { getToken, setToken } from '../utils/tokenStorage';
 
-// ✅ CORREGIDO: Lee el token correcto del sessionStorage
-const getToken = () => {
-  return sessionStorage.getItem('liftsafe_token') || sessionStorage.getItem('token');
-};
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 // Cliente API con manejo de errores mejorado
 const apiClient = async (endpoint, options = {}) => {
   const token = getToken();
-  
+
   const config = {
     headers: {
       'Content-Type': 'application/json',
@@ -20,14 +17,16 @@ const apiClient = async (endpoint, options = {}) => {
 
   try {
     const response = await fetch(`${API_URL}${endpoint}`, config);
-    
+
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ 
-        detail: `Error HTTP ${response.status}: ${response.statusText}` 
+      const errorData = await response.json().catch(() => ({
+        detail: `Error HTTP ${response.status}: ${response.statusText}`
       }));
-      throw new Error(errorData.detail || `Error ${response.status}`);
+      const error = new Error(errorData.detail || `Error ${response.status}`);
+      error.status = response.status;
+      throw error;
     }
-    
+
     return response.json();
   } catch (error) {
     if (error.message.includes('Failed to fetch')) {
@@ -47,8 +46,18 @@ export const fetchInspecciones = () => apiClient('/dashboard/inspecciones');
 
 export const fetchAscensores = () => apiClient('/dashboard/ascensores');
 
-// ✅ CORREGIDO: Usar la ruta correcta para edificios
-export const fetchEdificios = () => apiClient('/ascensores/edificios');
+export const fetchEdificios = async () => {
+  const raw = await apiClient('/ascensores/edificios');
+  // El backend devuelve { cliente, direccion, total_ascensores } (español).
+  // Buildings.jsx espera { name, address, elevators } (inglés).
+  // Se traduce aquí para no tener que tocar el backend.
+  return (raw || []).map((e, idx) => ({
+    id: idx,
+    name: e.cliente || null,
+    address: e.direccion || null,
+    elevators: e.total_ascensores || 0,
+  }));
+};
 
 export const fetchUsuarios = () => apiClient('/dashboard/usuarios');
 
@@ -57,6 +66,8 @@ export const fetchInformes = () => apiClient('/dashboard/informes');
 export const fetchReportsSummary = () => apiClient('/dashboard/reports-summary');
 
 // ============ AUTH ENDPOINTS ============
+// Nota: el login "real" de la app vive en context/AuthContext.jsx + authService.js.
+// Esta función se deja por compatibilidad pero ya usa el mismo storage que todo lo demás.
 
 export const login = async (credentials) => {
   const response = await fetch(`${API_URL}/auth/login`, {
@@ -64,16 +75,14 @@ export const login = async (credentials) => {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(credentials),
   });
-  
+
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.detail || 'Error en login');
   }
-  
+
   const data = await response.json();
-  // ✅ Guardar con el nombre correcto
-  sessionStorage.setItem('liftsafe_token', data.access_token);
-  sessionStorage.setItem('token', data.access_token); // fallback
+  setToken(data.access_token);
   return data;
 };
 
@@ -83,7 +92,7 @@ export const getCurrentUser = () => apiClient('/auth/me');
 
 export const fetchVistaResumen = () => apiClient('/vistas/resumen-inspecciones');
 
-export const fetchInspeccionesPorEstado = (estado) => 
+export const fetchInspeccionesPorEstado = (estado) =>
   apiClient(`/vistas/inspecciones-por-estado/${estado}`);
 
 // ============ USUARIOS ============
@@ -92,10 +101,10 @@ export const fetchUserProfile = (userId) => apiClient(`/usuarios/perfil/${userId
 
 export const fetchAdminStats = () => apiClient('/usuarios/dashboard/admin');
 
-export const fetchClienteAscensores = (clientId) => 
+export const fetchClienteAscensores = (clientId) =>
   apiClient(`/usuarios/dashboard/cliente/${clientId}`);
 
-export const fetchInspectorInspecciones = (inspectorId) => 
+export const fetchInspectorInspecciones = (inspectorId) =>
   apiClient(`/usuarios/dashboard/inspector/${inspectorId}`);
 
 // ============ ASCENSORES (RUTAS DIRECTAS) ============
@@ -113,8 +122,8 @@ export const fetchMisInspecciones = () => apiClient('/inspecciones/mis-inspeccio
 // ============ CREAR INSPECCIÓN ============
 
 export const crearInspeccion = async (data) => {
-  const token = sessionStorage.getItem('liftsafe_token') || sessionStorage.getItem('token');
-  
+  const token = getToken();
+
   const response = await fetch(`${API_URL}/inspecciones/crear`, {
     method: 'POST',
     headers: {
@@ -123,20 +132,20 @@ export const crearInspeccion = async (data) => {
     },
     body: JSON.stringify(data),
   });
-  
+
   if (!response.ok) {
     const error = await response.json().catch(() => ({ detail: 'Error al crear inspección' }));
     throw new Error(error.detail || 'Error al crear inspección');
   }
-  
+
   return response.json();
 };
 
 // ============ ELIMINAR USUARIO ============
 
 export const eliminarUsuario = async (userId) => {
-  const token = sessionStorage.getItem('liftsafe_token') || sessionStorage.getItem('token');
-  
+  const token = getToken();
+
   const response = await fetch(`${API_URL}/usuarios/${userId}`, {
     method: 'DELETE',
     headers: {
@@ -144,11 +153,11 @@ export const eliminarUsuario = async (userId) => {
       ...(token && { 'Authorization': `Bearer ${token}` }),
     },
   });
-  
+
   if (!response.ok) {
     const error = await response.json().catch(() => ({ detail: 'Error al eliminar usuario' }));
     throw new Error(error.detail || 'Error al eliminar usuario');
   }
-  
+
   return response.json();
 };

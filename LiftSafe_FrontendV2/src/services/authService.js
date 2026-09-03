@@ -2,6 +2,7 @@
 
 import { API_BASE_URL, ROLE_IDS } from '../config/api';
 import { decodeDeep } from '../utils/encoding';
+import { getToken } from '../utils/tokenStorage';
 
 async function parseResponse(response) {
   const data = await response.json().catch(() => ({}));
@@ -67,7 +68,7 @@ export async function createUserRequest(formData, token) {
 
 // ✅ Editar usuario (Felipe - RF-002)
 export async function updateUserRequest(userId, formData) {
-  const token = localStorage.getItem('token') || sessionStorage.getItem('liftsafe_token') || sessionStorage.getItem('token');
+  const token = getToken();
 
   const body = {
     nombre_completo: formData.name,
@@ -99,7 +100,7 @@ export async function updateUserRequest(userId, formData) {
 
 // ✅ Eliminar usuario
 export async function eliminarUsuario(userId) {
-  const token = sessionStorage.getItem('liftsafe_token') || sessionStorage.getItem('token') || localStorage.getItem('token');
+  const token = getToken();
 
   const response = await fetch(`${API_BASE_URL}/usuarios/${userId}`, {
     method: 'DELETE',

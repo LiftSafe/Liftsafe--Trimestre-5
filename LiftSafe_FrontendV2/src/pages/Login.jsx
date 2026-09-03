@@ -23,37 +23,41 @@ const fieldSx = {
 };
 
 export default function Login() {
-  const { login } = useAuth();
+  const { login, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  
-  // ============================================
-  // REDIRECCIONAR SI YA ESTÁ LOGUEADO (versión de Luz)
-  // ============================================
-  const { user } = useAuth();
-  
-  useEffect(() => {
-    if (user) {
-      navigate('/dashboard');
-    }
-  }, [user, navigate]);
 
   // ============================================
-  // HANDLE SUBMIT (fusionado)
+  // REDIRECCIONAR SI YA ESTÁ LOGUEADO
+  // Un solo useEffect: si ya hay sesión activa y alguien entra a /login
+  // a mano (ej. escribiendo la URL), lo mandamos al dashboard.
+  // La redirección post-login exitoso la hace SOLO handleSubmit,
+  // para no disparar dos navigate() casi al mismo tiempo (eso era
+  // lo que causaba el parpadeo/loop con /dashboard).
+  // ============================================
+  useEffect(() => {
+    if (user) {
+      navigate('/dashboard', { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ============================================
+  // HANDLE SUBMIT
   // ============================================
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
-    
+
     try {
       const result = await login(email, password);
       setLoading(false);
-      
+
       if (result.success) {
         // Redirigir a la página que intentaba visitar o al dashboard
         const from = location.state?.from?.pathname || '/dashboard';
