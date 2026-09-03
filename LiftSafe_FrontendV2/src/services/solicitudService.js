@@ -55,8 +55,8 @@ const apiDelete = (endpoint) => {
 };
 
 export const solicitudService = {
-    crear: (data) => apiPost('/solicitudes', data),
-    listar: () => apiGet('/solicitudes'),
+    crear: (data) => apiPost('/solicitudes/', data),
+    listar: () => apiGet('/solicitudes/'),
     obtener: (id) => apiGet(`/solicitudes/${id}`),
     modificar: (id, data) => apiPut(`/solicitudes/${id}`, data),
     eliminar: (id) => apiDelete(`/solicitudes/${id}`),

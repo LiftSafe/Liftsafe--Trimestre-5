@@ -33,7 +33,7 @@ const apiPut = (endpoint) => {
 };
 
 export const notificacionService = {
-    listar: () => apiGet('/notificaciones'),
+    listar: () => apiGet('/notificaciones/'),
     marcarLeida: (id) => apiPut(`/notificaciones/${id}/leer`),
     marcarTodasLeidas: () => apiPut('/notificaciones/leer-todas'),
 };

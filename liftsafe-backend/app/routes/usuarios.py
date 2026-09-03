@@ -5,7 +5,7 @@ from app.database import get_db
 from app.models.models import Usuario, Rol
 from app.schemas.schemas import UsuarioCreate, UsuarioUpdate, MessageResponse
 from app.controllers.usuario_controller import get_user_profile, get_admin_stats, get_cliente_ascensores, get_inspector_inspecciones
-from app.utils.auth_deps import require_admin
+from app.utils.auth_deps import require_admin_from_request
 from sqlalchemy import text
 
 router = APIRouter(prefix="/usuarios", tags=["Usuarios"])
@@ -31,7 +31,7 @@ def crear_usuario(
     user_data: UsuarioCreate,
     db: Session = Depends(get_db)
 ):
-    require_admin(request)
+    require_admin_from_request(request)
 
     existing = db.query(Usuario).filter(Usuario.correo == user_data.correo).first()
     if existing:
@@ -108,7 +108,7 @@ def dashboard_inspector(inspector_id: int, db: Session = Depends(get_db)):
 # ============================================
 @router.get("/listado")
 def listado_usuarios(request: Request, db: Session = Depends(get_db)):
-    require_admin(request)
+    require_admin_from_request(request)
     
     # ✅ Usar vista segura que NO incluye contrasena
     result = db.execute(text("""
@@ -141,7 +141,7 @@ def editar_usuario(
     request: Request,
     db: Session = Depends(get_db)
 ):
-    require_admin(request)
+    require_admin_from_request(request)
 
     user = db.query(Usuario).filter(Usuario.id_usuario == user_id).first()
     if not user:
@@ -205,7 +205,7 @@ def eliminar_usuario(
     request: Request,
     db: Session = Depends(get_db)
 ):
-    require_admin(request)
+    require_admin_from_request(request)
     
     # Verificar que el usuario existe
     user = db.query(Usuario).filter(Usuario.id_usuario == user_id).first()

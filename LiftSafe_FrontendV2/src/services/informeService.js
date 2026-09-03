@@ -2,7 +2,7 @@ import { apiGet, apiPost, apiPut } from './apiClient';
 
 export const informeService = {
   generar: (idInspeccion) => apiPost(`/informes/${idInspeccion}/generar`),
-  listar: () => apiGet('/informes'),
+  listar: () => apiGet('/informes/'),
   obtenerPorInspeccion: (id) => apiGet(`/informes/inspeccion/${id}`),
   enviar: (idInforme) => apiPut(`/informes/${idInforme}/enviar`),
   // RF-023 - Aprobación (paso 7 del flujo)
