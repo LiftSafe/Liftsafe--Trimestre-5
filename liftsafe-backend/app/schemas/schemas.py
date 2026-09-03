@@ -200,6 +200,7 @@ class UsuarioAscensorResponse(UsuarioAscensorBase):
 class AuditoriaResponse(BaseModel):
     id_auditoria: int
     id_usuario: int | None
+    usuario_nombre: str | None = None
     tabla_afectada: str
     operacion: str
     id_registro: int | None
@@ -449,3 +450,11 @@ class InspeccionUpdate(BaseModel):
     fecha_fin: Optional[datetime] = None
     firma_inspector: Optional[str] = None
     firma_cliente: Optional[str] = None
+
+# ==========================================
+# ESQUEMA DE APROBACIÓN DE INFORME (RF-023, paso 7 del flujo)
+# ==========================================
+class InformeRevisionRequest(BaseModel):
+    decision: Literal["Aprobado", "Rechazado"]
+    concepto_tecnico: Optional[str] = None
+    observaciones_revision: Optional[str] = None

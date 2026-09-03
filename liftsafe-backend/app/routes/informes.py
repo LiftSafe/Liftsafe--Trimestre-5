@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from app.database import get_db
 from app.models.models import Informe, Inspeccion
-from app.schemas.schemas import MessageResponse
+from app.schemas.schemas import MessageResponse, InformeRevisionRequest
 from app.controllers.informe_controller import generar_pdf_informe
 from datetime import datetime
 import os
@@ -93,6 +93,38 @@ def obtener_informe_por_inspeccion(
     return informe
 
 # ============================================
+# 3.5 APROBAR / RECHAZAR INFORME (RF-023, paso 7 del flujo)
+# ============================================
+@router.put("/{id}/revisar", response_model=MessageResponse)
+def revisar_informe(
+    id: int,
+    data: InformeRevisionRequest,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    if current_user["rol"] not in ["Coordinador", "Director Técnico", "Administrador"]:
+        raise HTTPException(status_code=403, detail="Solo un Coordinador o Director Técnico puede revisar informes")
+
+    informe = db.query(Informe).filter(Informe.id_informe == id).first()
+    if not informe:
+        raise HTTPException(status_code=404, detail="Informe no encontrado")
+
+    if informe.estado != "Generado":
+        raise HTTPException(status_code=400, detail="Solo se pueden revisar informes en estado 'Generado'")
+
+    informe.fecha_revision = datetime.now()
+    informe.id_revisor = current_user["user_id"]
+    informe.observaciones_revision = data.observaciones_revision
+    informe.concepto_tecnico = data.concepto_tecnico
+    informe.estado = data.decision  # "Aprobado" o "Rechazado"
+
+    if data.decision == "Aprobado":
+        informe.fecha_aprobacion = datetime.now()
+
+    db.commit()
+    return {"message": f"Informe {data.decision.lower()} correctamente"}
+
+# ============================================
 # 4. ENVIAR INFORME (ESTEBAN)
 # ============================================
 @router.put("/{id}/enviar", response_model=MessageResponse)
@@ -104,10 +136,10 @@ def enviar_informe(
     informe = db.query(Informe).filter(Informe.id_informe == id).first()
     if not informe:
         raise HTTPException(status_code=404, detail="Informe no encontrado")
-    
-    if informe.estado != "Generado":
-        raise HTTPException(status_code=400, detail="El informe debe estar generado")
-    
+
+    if informe.estado != "Aprobado":
+        raise HTTPException(status_code=400, detail="El informe debe estar aprobado antes de enviarse")
+
     informe.estado = "Enviado"
     db.commit()
     return {"message": "Informe enviado correctamente"}

@@ -14,6 +14,9 @@ import DrawIcon from '@mui/icons-material/Draw';
 import VerifiedIcon from '@mui/icons-material/Verified';
 import DownloadOutlinedIcon from '@mui/icons-material/DownloadOutlined';
 import PageHeader from '../components/PageHeader';
+import SearchBar from '../components/SearchBar';
+import ListPagination from '../components/ListPagination';
+import { usePaginatedSearch } from '../hooks/usePaginatedSearch';
 import { brand } from '../theme/colors';
 import { useAuth } from '../context/AuthContext';
 import { apiClient } from '../services/apiClient';
@@ -332,6 +335,11 @@ export default function Inspections() {
   const [inspections, setInspections] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  const { search, setSearch, page, setPage, paginated, totalCount } = usePaginatedSearch(
+    inspections,
+    ['codigo_ascensor', 'elevator', 'marca', 'tipo_servicio', 'type', 'nombre_inspector', 'inspector', 'estado', 'status']
+  );
 
   const [openCreate, setOpenCreate] = useState(false);
   const [newInspection, setNewInspection] = useState({
@@ -736,13 +744,16 @@ export default function Inspections() {
         </Box>
       )}
 
+      <Box sx={{ mb: 2 }}>
+        <SearchBar value={search} onChange={setSearch} placeholder="Buscar por ascensor, inspector o estado..." />
+      </Box>
+
       <Card>
         <CardContent sx={{ p: 0 }}>
           <TableContainer>
             <Table>
               <TableHead>
                 <TableRow sx={{ bgcolor: 'grey.50' }}>
-                  <TableCell><strong>ID</strong></TableCell>
                   <TableCell><strong>Ascensor</strong></TableCell>
                   <TableCell><strong>Tipo</strong></TableCell>
                   <TableCell><strong>Inspector</strong></TableCell>
@@ -752,14 +763,14 @@ export default function Inspections() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {!inspections || inspections.length === 0 ? (
+                {!paginated || paginated.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
+                    <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
                       No hay inspecciones registradas
                     </TableCell>
                   </TableRow>
                 ) : (
-                  inspections.map((row) => (
+                  paginated.map((row) => (
                     <TableRow
                       key={row.id_inspeccion || row.id}
                       hover
@@ -767,12 +778,7 @@ export default function Inspections() {
                       onClick={() => abrirDetalle(row)}
                     >
                       <TableCell>
-                        <Typography fontWeight={600} color="primary.main">
-                          {row.id_inspeccion || row.id}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2">{row.codigo_ascensor || row.elevator || 'N/A'}</Typography>
+                        <Typography variant="body2" fontWeight={600}>{row.codigo_ascensor || row.elevator || 'N/A'}</Typography>
                         <Typography variant="caption" color="text.secondary">{row.marca || ''}</Typography>
                       </TableCell>
                       <TableCell>{row.tipo_servicio || row.type || 'Periódica'}</TableCell>
@@ -796,6 +802,7 @@ export default function Inspections() {
               </TableBody>
             </Table>
           </TableContainer>
+          <ListPagination count={totalCount} page={page} onPageChange={setPage} />
         </CardContent>
       </Card>
 

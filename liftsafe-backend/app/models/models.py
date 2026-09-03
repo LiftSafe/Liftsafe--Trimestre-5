@@ -311,6 +311,9 @@ class Auditoria(Base):
     user_agent = Column(String(255), nullable=True)
     fecha_evento = Column(DateTime, nullable=False, default=datetime.utcnow)
 
+    # Relación con usuario (para mostrar el nombre en vez del ID en el frontend)
+    usuario = relationship("Usuario", foreign_keys=[id_usuario])
+
 # ============ MODELO NOTIFICACION (LUZ) ============
 
 class Notificacion(Base):

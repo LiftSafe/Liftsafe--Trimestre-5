@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from typing import List
 from app.database import get_db
 from app.models.models import Auditoria
@@ -17,9 +17,26 @@ def listar_auditoria(
     db: Session = Depends(get_db),
     rol: str = Depends(require_admin)
 ):
-    query = db.query(Auditoria)
+    query = db.query(Auditoria).options(joinedload(Auditoria.usuario))
     if tabla:
         query = query.filter(Auditoria.tabla_afectada == tabla)
     if usuario:
         query = query.filter(Auditoria.id_usuario == usuario)
-    return query.order_by(Auditoria.fecha_evento.desc()).all()
+    registros = query.order_by(Auditoria.fecha_evento.desc()).all()
+
+    return [
+        {
+            "id_auditoria": r.id_auditoria,
+            "id_usuario": r.id_usuario,
+            "usuario_nombre": r.usuario.nombre_completo if r.usuario else None,
+            "tabla_afectada": r.tabla_afectada,
+            "operacion": r.operacion,
+            "id_registro": r.id_registro,
+            "datos_anteriores": r.datos_anteriores,
+            "datos_nuevos": r.datos_nuevos,
+            "ip_origen": r.ip_origen,
+            "user_agent": r.user_agent,
+            "fecha_evento": r.fecha_evento,
+        }
+        for r in registros
+    ]

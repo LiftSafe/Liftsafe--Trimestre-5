@@ -10,6 +10,8 @@ import PictureAsPdfOutlinedIcon from '@mui/icons-material/PictureAsPdfOutlined';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import DownloadOutlinedIcon from '@mui/icons-material/DownloadOutlined';
 import SendOutlinedIcon from '@mui/icons-material/SendOutlined';
+import CheckCircleOutlinedIcon from '@mui/icons-material/CheckCircleOutlined';
+import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
@@ -53,7 +55,9 @@ function ConfirmDialog({
 export default function Reports() {
   const { user } = useAuth();
   const isClient = user?.role === 'Cliente';
-  
+  // RF-023: quién puede aprobar/rechazar un informe generado (paso 7 del flujo)
+  const isReviewer = ['Coordinador', 'Director Técnico', 'Administrador'].includes(user?.role);
+
   const { data: docs = [], loading: loadingDocs, error: errorDocs, refetch } = useDashboardData(fetchInformes);
   const { data: inspecciones = [], loading: loadingInsp, error: errorInsp } = useDashboardData(fetchInspecciones);
   
@@ -119,8 +123,8 @@ export default function Reports() {
         alert('Esta inspección todavía no tiene un informe generado.');
         return;
       }
-      if (inf.estado !== 'Generado') {
-        alert(`El informe debe estar en estado "Generado" para enviarlo (estado actual: ${inf.estado}).`);
+      if (inf.estado !== 'Aprobado') {
+        alert(`El informe debe estar "Aprobado" para enviarlo (estado actual: ${inf.estado}).`);
         return;
       }
       await informeService.enviar(inf.id_informe);
@@ -128,6 +132,53 @@ export default function Reports() {
       if (refetch) refetch();
     } catch (err) {
       alert(err.message || 'Error al enviar el informe');
+    } finally {
+      setProcesandoInformeId(null);
+    }
+  };
+
+  // ---- RF-023: Aprobar / Rechazar informe (Coordinador / Director Técnico) ----
+  const handleAprobarInforme = async (doc) => {
+    setProcesandoInformeId(doc.id);
+    try {
+      const inf = await informeService.obtenerPorInspeccion(doc.id);
+      if (!inf?.id_informe) {
+        alert('Esta inspección todavía no tiene un informe generado.');
+        return;
+      }
+      if (inf.estado !== 'Generado') {
+        alert(`Solo se pueden revisar informes en estado "Generado" (estado actual: ${inf.estado}).`);
+        return;
+      }
+      const concepto = window.prompt('Concepto técnico (opcional):', '') || '';
+      await informeService.aprobar(inf.id_informe, { concepto_tecnico: concepto });
+      alert('Informe aprobado correctamente');
+      if (refetch) refetch();
+    } catch (err) {
+      alert(err.message || 'Error al aprobar el informe');
+    } finally {
+      setProcesandoInformeId(null);
+    }
+  };
+
+  const handleRechazarInforme = async (doc) => {
+    setProcesandoInformeId(doc.id);
+    try {
+      const inf = await informeService.obtenerPorInspeccion(doc.id);
+      if (!inf?.id_informe) {
+        alert('Esta inspección todavía no tiene un informe generado.');
+        return;
+      }
+      if (inf.estado !== 'Generado') {
+        alert(`Solo se pueden revisar informes en estado "Generado" (estado actual: ${inf.estado}).`);
+        return;
+      }
+      const motivo = window.prompt('Motivo del rechazo:', '') || '';
+      await informeService.rechazar(inf.id_informe, { observaciones_revision: motivo });
+      alert('Informe rechazado');
+      if (refetch) refetch();
+    } catch (err) {
+      alert(err.message || 'Error al rechazar el informe');
     } finally {
       setProcesandoInformeId(null);
     }
@@ -232,6 +283,28 @@ export default function Reports() {
                           >
                             PDF
                           </Button>
+                          {isReviewer && (
+                            <>
+                              <IconButton
+                                size="small"
+                                color="success"
+                                onClick={() => handleAprobarInforme(doc)}
+                                disabled={procesandoInformeId === doc.id}
+                                title="Aprobar informe"
+                              >
+                                <CheckCircleOutlinedIcon fontSize="small" />
+                              </IconButton>
+                              <IconButton
+                                size="small"
+                                color="error"
+                                onClick={() => handleRechazarInforme(doc)}
+                                disabled={procesandoInformeId === doc.id}
+                                title="Rechazar informe"
+                              >
+                                <CancelOutlinedIcon fontSize="small" />
+                              </IconButton>
+                            </>
+                          )}
                           {!isClient && (
                             <IconButton
                               size="small"

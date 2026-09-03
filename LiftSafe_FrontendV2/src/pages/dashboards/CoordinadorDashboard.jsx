@@ -246,7 +246,8 @@ export default function CoordinadorDashboard() {
       >
         <Box sx={style}>
           <Typography id="modal-title" variant="h6" component="h2" sx={{ mb: 2 }}>
-            Asignar Inspector a Solicitud #{selectedSolicitud?.id_solicitud}
+            Asignar Inspector — {selectedSolicitud?.ascensor?.codigo_interno || 'Ascensor'}
+            {selectedSolicitud?.cliente?.nombre_completo ? ` (${selectedSolicitud.cliente.nombre_completo})` : ''}
           </Typography>
           <form onSubmit={handleSubmit}>
             <FormControl fullWidth sx={{ mb: 2 }}>

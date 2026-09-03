@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react';
 import { Box, Typography, Table, TableHead, TableBody, TableRow, TableCell, TextField, MenuItem, Skeleton, Alert, Card, CardContent } from '@mui/material';
 import { useAuth } from '../context/AuthContext';
 import { auditoriaService } from '../services/auditoriaService';
+import SearchBar from '../components/SearchBar';
+import ListPagination from '../components/ListPagination';
+import { usePaginatedSearch } from '../hooks/usePaginatedSearch';
 
 const TABLAS_AUDITABLES = [
   'usuario', 'ascensor', 'solicitud', 'inspeccion', 'checklist_item',
@@ -14,6 +17,11 @@ export default function Auditoria() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [filtroTabla, setFiltroTabla] = useState('');
+
+  const { search, setSearch, page, setPage, paginated, totalCount } = usePaginatedSearch(
+    logs,
+    ['usuario_nombre', 'tabla_afectada', 'operacion']
+  );
 
   const cargarAuditoria = async () => {
     setLoading(true);
@@ -71,38 +79,45 @@ export default function Auditoria() {
             ))}
           </TextField>
 
+          <Box sx={{ mb: 2 }}>
+            <SearchBar value={search} onChange={setSearch} placeholder="Buscar por usuario, tabla u operación..." />
+          </Box>
+
           {loading ? (
             <Skeleton variant="rounded" height={200} />
           ) : (
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell>Fecha</TableCell>
-                  <TableCell>Usuario</TableCell>
-                  <TableCell>Tabla</TableCell>
-                  <TableCell>Operación</TableCell>
-                  <TableCell>ID registro</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {logs.map((log) => (
-                  <TableRow key={log.id_auditoria}>
-                    <TableCell>{new Date(log.fecha_evento).toLocaleString()}</TableCell>
-                    <TableCell>{log.id_usuario ?? '—'}</TableCell>
-                    <TableCell>{log.tabla_afectada}</TableCell>
-                    <TableCell>{log.operacion}</TableCell>
-                    <TableCell>{log.id_registro ?? '—'}</TableCell>
-                  </TableRow>
-                ))}
-                {logs.length === 0 && (
+            <>
+              <Table size="small">
+                <TableHead>
                   <TableRow>
-                    <TableCell colSpan={5} align="center">
-                      No hay registros de auditoría todavía
-                    </TableCell>
+                    <TableCell>Fecha</TableCell>
+                    <TableCell>Usuario</TableCell>
+                    <TableCell>Tabla</TableCell>
+                    <TableCell>Operación</TableCell>
+                    <TableCell>Registro afectado</TableCell>
                   </TableRow>
-                )}
-              </TableBody>
-            </Table>
+                </TableHead>
+                <TableBody>
+                  {paginated.map((log) => (
+                    <TableRow key={log.id_auditoria}>
+                      <TableCell>{new Date(log.fecha_evento).toLocaleString()}</TableCell>
+                      <TableCell>{log.usuario_nombre || 'Sistema'}</TableCell>
+                      <TableCell>{log.tabla_afectada}</TableCell>
+                      <TableCell>{log.operacion}</TableCell>
+                      <TableCell>{log.tabla_afectada} #{log.id_registro ?? '—'}</TableCell>
+                    </TableRow>
+                  ))}
+                  {paginated.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={5} align="center">
+                        No hay registros de auditoría todavía
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+              <ListPagination count={totalCount} page={page} onPageChange={setPage} />
+            </>
           )}
         </CardContent>
       </Card>

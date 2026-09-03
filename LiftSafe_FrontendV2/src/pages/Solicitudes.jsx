@@ -34,6 +34,9 @@ import {
   Cancel as CancelIcon
 } from '@mui/icons-material';
 import PageHeader from '../components/PageHeader';
+import SearchBar from '../components/SearchBar';
+import ListPagination from '../components/ListPagination';
+import { usePaginatedSearch } from '../hooks/usePaginatedSearch';
 import { useAuth } from '../context/AuthContext';
 import { solicitudService } from '../services/solicitudService';
 import { ascensorService } from '../services/ascensorService';
@@ -76,6 +79,11 @@ export default function Solicitudes() {
   const esCliente = user?.rol === 'Cliente';
   const esAdmin = user?.rol === 'Administrador';
   const esCoordinador = user?.rol === 'Coordinador';
+
+  const { search, setSearch, page, setPage, paginated, totalCount } = usePaginatedSearch(
+    solicitudes,
+    [(s) => s.ascensor?.codigo_interno, (s) => s.cliente?.nombre_completo, 'tipo_servicio', 'prioridad', 'estado']
+  );
 
   const cargarDatos = async () => {
     setLoading(true);
@@ -293,13 +301,16 @@ export default function Solicitudes() {
       )}
 
       {/* Tabla de solicitudes */}
+      <Box sx={{ mb: 2 }}>
+        <SearchBar value={search} onChange={setSearch} placeholder="Buscar por ascensor, cliente o estado..." />
+      </Box>
+
       <Card>
         <CardContent sx={{ p: 0 }}>
           <TableContainer>
             <Table>
               <TableHead>
                 <TableRow sx={{ bgcolor: 'grey.50' }}>
-                  <TableCell><strong>ID</strong></TableCell>
                   <TableCell><strong>Ascensor</strong></TableCell>
                   <TableCell><strong>Cliente</strong></TableCell>
                   <TableCell><strong>Tipo</strong></TableCell>
@@ -310,16 +321,15 @@ export default function Solicitudes() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {solicitudes.length === 0 ? (
+                {paginated.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} align="center" sx={{ py: 4 }}>
+                    <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
                       No hay solicitudes registradas
                     </TableCell>
                   </TableRow>
                 ) : (
-                  solicitudes.map((s) => (
+                  paginated.map((s) => (
                     <TableRow key={s.id_solicitud} hover>
-                      <TableCell>{s.id_solicitud}</TableCell>
                       <TableCell>{s.ascensor?.codigo_interno || 'N/A'}</TableCell>
                       <TableCell>{s.cliente?.nombre_completo || 'N/A'}</TableCell>
                       <TableCell>{s.tipo_servicio}</TableCell>
@@ -384,6 +394,7 @@ export default function Solicitudes() {
               </TableBody>
             </Table>
           </TableContainer>
+          <ListPagination count={totalCount} page={page} onPageChange={setPage} />
         </CardContent>
       </Card>
 

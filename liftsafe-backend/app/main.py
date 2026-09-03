@@ -22,6 +22,7 @@ from app.routes import (
     auditoria,
     programacion,
     solicitudes,
+    notificaciones,
 )
 
 app = FastAPI(
@@ -57,13 +58,14 @@ app.include_router(ascensores.router)        # Equipo
 app.include_router(inspecciones.router)      # Valentina
 app.include_router(dashboard.router)         # Equipo
 app.include_router(fotografias.router)       # Valentina
-# app.include_router(usuario_ascensor.router)  # Dayan - COMENTADO temporalmente
+app.include_router(usuario_ascensor.router)  # Dayan - reactivado (no se encontró causa técnica para desactivarlo)
 app.include_router(checklist.router)         # Felipe
 app.include_router(observaciones.router)     # Felipe
 app.include_router(informes.router)          # Esteban
 app.include_router(auditoria.router)         # Dayan
 app.include_router(programacion.router)      # Luz
 app.include_router(solicitudes.router)       # Luz
+app.include_router(notificaciones.router)    # Equipo - requiere correr migrations/add_notificacion_table.sql antes de usar
 
 # ============================================
 # SERVIR FOTOS SUBIDAS

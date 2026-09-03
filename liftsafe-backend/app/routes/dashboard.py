@@ -1,7 +1,7 @@
 # app/routes/dashboard.py
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from app.database import get_db
 from app.utils.auth_deps import get_current_user, require_admin
 from app.models.models import Usuario, Ascensor, Inspeccion  # ✅ SIN Edificio
@@ -123,3 +123,29 @@ def get_ascensores(current_user = Depends(get_current_user), db: Session = Depen
         } for a in ascensores]
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al obtener ascensores: {str(e)}")
+
+# ============================================
+# 6. INFORMES (para la pantalla de Reportes)
+# ============================================
+@router.get("/informes")
+def get_informes(current_user = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Obtiene lista de informes/certificados generados para el dashboard de Reportes.
+    Restaurado: este endpoint se perdió en una fusión anterior y rompía Reports.jsx."""
+    try:
+        inspecciones = db.query(Inspeccion).options(
+            joinedload(Inspeccion.ascensor),
+            joinedload(Inspeccion.inspector_rel),
+        ).filter(
+            Inspeccion.estado.in_(["Aprobada", "Finalizada", "Completada"])
+        ).order_by(Inspeccion.fecha_creacion.desc()).all()
+
+        return [{
+            "id": i.id_inspeccion,
+            "elevator": i.ascensor.codigo_interno if i.ascensor else None,
+            "building": i.ascensor.direccion_completa if i.ascensor else None,
+            "date": i.fecha_fin or i.fecha_inicio,
+            "status": i.estado,
+            "inspector": i.inspector_rel.nombre_completo if i.inspector_rel else None,
+        } for i in inspecciones]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al obtener informes: {str(e)}")
