@@ -62,7 +62,11 @@ def generar_pdf_informe(db: Session, id_inspeccion: int):
     y -= 30
     c.setFont("Helvetica", 12)
     if inspeccion.firma_inspector:
-        c.drawString(50, y, f"Inspector: {inspeccion.inspector.nombre_completo}")
+        # ✅ FIX: el modelo Inspeccion define la relación con Usuario como
+        # "inspector_rel" (no "inspector"), que no existe -> generar el PDF
+        # siempre fallaba con AttributeError en cuanto el inspector ya había
+        # firmado ("'Inspeccion' object has no attribute 'inspector'").
+        c.drawString(50, y, f"Inspector: {inspeccion.inspector_rel.nombre_completo}")
         c.drawString(50, y - 20, f"Fecha: {inspeccion.fecha_firma_inspector.strftime('%d/%m/%Y %H:%M')}")
     else:
         c.drawString(50, y, "Inspector: No firmado")

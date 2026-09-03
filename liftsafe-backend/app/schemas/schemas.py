@@ -388,7 +388,13 @@ class FotografiaResponse(FotografiaBase):
     fecha_captura: datetime
     latitud: float | None = None
     longitud: float | None = None
-    sincronizado: bool
+    # ✅ FIX: la columna "sincronizado" en la BD es nullable (Boolean,
+    # nullable=True), pero este schema la pedía obligatoria -> cualquier
+    # fila antigua con sincronizado=NULL hacía fallar la validación de
+    # Pydantic con un 500 (y ese 500 sin headers CORS se veía en el
+    # navegador como si fuera un bloqueo de CORS). Mismo patrón de bug que
+    # ya se corrigió antes en otros endpoints de este proyecto.
+    sincronizado: bool | None = None
 
     class Config:
         from_attributes = True

@@ -156,11 +156,23 @@ def obtener_inspeccion(
 
     informe = db.query(Informe).filter(Informe.id_inspeccion == inspeccion.id_inspeccion).first()
 
+    # ✅ FIX: este endpoint no devolvía el código del ascensor (solo el id
+    # numérico), a diferencia de /mis-inspecciones que sí lo trae con un
+    # join. Como Inspections.jsx usa "codigo_ascensor" para el título del
+    # modal de detalle, cada vez que se abría una inspección el título
+    # mostraba "N/A" aunque la fila de la tabla sí mostrara el código
+    # correcto. Se agrega el join a Ascensor (y de paso el inspector, útil
+    # para el detalle) para que el detalle traiga la misma info que la lista.
+    ascensor = db.query(Ascensor).filter(Ascensor.id_ascensor == inspeccion.id_ascensor).first()
+    inspector = db.query(Usuario).filter(Usuario.id_usuario == inspeccion.id_inspector).first()
+
     return {
         "id_inspeccion": inspeccion.id_inspeccion,
         "id_informe": informe.id_informe if informe else None,
         "id_ascensor": inspeccion.id_ascensor,
+        "codigo_ascensor": ascensor.codigo_interno if ascensor else None,
         "id_inspector": inspeccion.id_inspector,
+        "nombre_inspector": inspector.nombre_completo if inspector else None,
         "estado": inspeccion.estado,
         "fecha_inicio": inspeccion.fecha_inicio,
         "fecha_fin": inspeccion.fecha_fin,

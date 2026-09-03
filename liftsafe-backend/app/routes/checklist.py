@@ -5,7 +5,7 @@ from jose import jwt, JWTError
 
 from app.database import get_db
 from app.config import settings
-from app.models.models import DetalleChecklist, Inspeccion, ChecklistItem, ChecklistCategoria
+from app.models.models import DetalleChecklist, Inspeccion, ChecklistItem, ChecklistCategoria, Ascensor
 from app.schemas.schemas import (
     DetalleChecklistCreate,
     DetalleChecklistResponse,
@@ -87,8 +87,18 @@ def listar_checklist_inspeccion(
     if not inspeccion:
         raise HTTPException(status_code=404, detail="Inspección no encontrada")
 
+    # ✅ FIX: al Cliente ahora sí se le permite entrar a Inspecciones (ver
+    # roles.js), pero este endpoint solo dejaba ver el checklist a
+    # Administrador/Director Técnico/Coordinador o al inspector asignado ->
+    # el Cliente siempre recibía 403 al abrir el detalle de su propia
+    # inspección. Se agrega el mismo chequeo de dueño que ya usan
+    # obtener_inspeccion y verificar_firmas (ascensor.id_cliente == user_id).
     if rol not in ["Administrador", "Director Técnico", "Coordinador"]:
-        if inspeccion.id_inspector != user_id:
+        if rol == "Cliente":
+            ascensor = db.query(Ascensor).filter(Ascensor.id_ascensor == inspeccion.id_ascensor).first()
+            if not ascensor or ascensor.id_cliente != user_id:
+                raise HTTPException(status_code=403, detail="No tienes permiso para ver esta inspección")
+        elif inspeccion.id_inspector != user_id:
             raise HTTPException(status_code=403, detail="No tienes permiso para ver esta inspección")
 
     return db.query(DetalleChecklist).filter(
