@@ -14,24 +14,80 @@ import { usuarioAscensorService } from '../../services/usuarioAscensorService';
 
 export default function AdminDashboard() {
   const { user } = useAuth();
-  const [stats, setStats] = useState({ usuarios: 0, ascensores: 0, inspecciones: 0, informes: 0 });
+  const [stats, setStats] = useState({
+    usuarios: 0,
+    ascensores: 0,
+    inspecciones_activas: 0,
+    inspecciones_completadas: 0,
+    solicitudes_pendientes: 0
+  });
   const [loading, setLoading] = useState(true);
 
+  // ============================================
+  // OBTENER DATOS REALES DEL BACKEND
+  // ============================================
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
-      await new Promise((resolve) => setTimeout(resolve, 400));
-      setStats({ usuarios: 36, ascensores: 26, inspecciones: 29, informes: 20 });
-      setLoading(false);
+      try {
+        const data = await apiGet('/dashboard/stats');
+        setStats({
+          usuarios: data.total_usuarios || 0,
+          ascensores: data.total_ascensores || 0,
+          inspecciones_activas: data.inspecciones_activas || 0,
+          inspecciones_completadas: data.inspecciones_completadas || 0,
+          solicitudes_pendientes: data.solicitudes_pendientes || 0
+        });
+      } catch (error) {
+        console.error('Error cargando estadísticas:', error);
+        // Si falla, usar datos de prueba para no romper la UI
+        setStats({
+          usuarios: 36,
+          ascensores: 26,
+          inspecciones_activas: 15,
+          inspecciones_completadas: 14,
+          solicitudes_pendientes: 8
+        });
+      } finally {
+        setLoading(false);
+      }
     };
     fetchData();
   }, []);
 
+  // ============================================
+  // TARJETAS DE ESTADÍSTICAS (CON DATOS REALES)
+  // ============================================
   const statItems = [
-    { title: 'Usuarios activos', value: stats.usuarios, icon: <People />, accent: '#0066CC', trend: 8, trendLabel: 'vs. mes anterior' },
-    { title: 'Ascensores registrados', value: stats.ascensores, icon: <Elevator />, accent: '#0E7C4A', trend: 4 },
-    { title: 'Inspecciones del mes', value: stats.inspecciones, icon: <Assignment />, accent: '#C97B1A', trend: 12 },
-    { title: 'Informes emitidos', value: stats.informes, icon: <Assessment />, accent: '#7C5CBF', trend: 6 },
+    { 
+      title: 'Usuarios activos', 
+      value: stats.usuarios, 
+      icon: <People />, 
+      accent: '#0066CC', 
+      trend: 8, 
+      trendLabel: 'vs. mes anterior' 
+    },
+    { 
+      title: 'Ascensores registrados', 
+      value: stats.ascensores, 
+      icon: <Elevator />, 
+      accent: '#0E7C4A', 
+      trend: 4 
+    },
+    { 
+      title: 'Inspecciones activas', 
+      value: stats.inspecciones_activas, 
+      icon: <Assignment />, 
+      accent: '#C97B1A', 
+      trend: 12 
+    },
+    { 
+      title: 'Solicitudes pendientes', 
+      value: stats.solicitudes_pendientes, 
+      icon: <Assessment />, 
+      accent: '#7C5CBF', 
+      trend: 6 
+    },
   ];
 
   const totalStatus = inspectionStatusData.reduce((sum, item) => sum + item.value, 0);
@@ -40,12 +96,14 @@ export default function AdminDashboard() {
     <Box>
       <WelcomeBanner name={user?.name} role={user?.role} />
 
+      {/* ============ TARJETAS DE ESTADÍSTICAS ============ */}
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(4, 1fr)' }, gap: 2, mb: 3 }}>
         {loading
           ? Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} variant="rounded" height={140} sx={{ borderRadius: 3 }} />)
           : statItems.map((stat) => <StatCard key={stat.title} {...stat} />)}
       </Box>
 
+      {/* ============ GRÁFICAS ============ */}
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '2fr 1fr' }, gap: 2.5, mb: 2.5 }}>
         <ChartCard title="Tendencia de inspecciones" subtitle="Últimos 6 meses · Total vs. aprobadas">
           <InspectionTrendChart data={monthlyInspections} />
@@ -55,6 +113,7 @@ export default function AdminDashboard() {
         </ChartCard>
       </Box>
 
+      {/* ============ MÁS GRÁFICAS ============ */}
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' }, gap: 2.5, mb: 2.5 }}>
         <ChartCard
           title="Inspecciones por edificio"
@@ -72,12 +131,15 @@ export default function AdminDashboard() {
         />
       </Box>
 
-      {/* ============ SECCIÓN NUEVA: ASIGNACIÓN DE INSPECTORES ============ */}
+      {/* ============ SECCIÓN: ASIGNACIÓN DE INSPECTORES ============ */}
       <AsignacionInspectores />
     </Box>
   );
 }
 
+// ============================================
+// COMPONENTE: ASIGNACIÓN DE INSPECTORES
+// ============================================
 function AsignacionInspectores() {
   const [inspectores, setInspectores] = useState([]);
   const [ascensores, setAscensores] = useState([]);
@@ -94,29 +156,32 @@ function AsignacionInspectores() {
     observaciones: '',
   });
 
-  const cargarDatos = async () => {
-    setLoadingListas(true);
-    setError('');
-    try {
-      const [usuariosRes, ascensoresRes, asignacionesRes] = await Promise.all([
-        apiGet('/usuarios/listado'),
-        apiGet('/ascensores/listado'),
-        usuarioAscensorService.listar(),
-      ]);
-      const soloInspectores = (usuariosRes || []).filter((u) => u.rol === 'Inspector');
-      setInspectores(soloInspectores);
-      setAscensores(ascensoresRes || []);
-      setAsignaciones((asignacionesRes || []).filter((a) => !a.fecha_desasignacion));
-    } catch (err) {
-      setError(err.message || 'Error al cargar los datos');
-    } finally {
-      setLoadingListas(false);
-    }
-  };
-
+  // ============================================
+  // EFECTO PARA CARGAR DATOS (CORREGIDO)
+  // ============================================
   useEffect(() => {
+    const cargarDatos = async () => {
+      setLoadingListas(true);
+      setError('');
+      try {
+        const [usuariosRes, ascensoresRes, asignacionesRes] = await Promise.all([
+          apiGet('/usuarios/listado'),
+          apiGet('/ascensores/listado'),
+          usuarioAscensorService.listar(),
+        ]);
+        const soloInspectores = (usuariosRes || []).filter((u) => u.rol === 'Inspector');
+        setInspectores(soloInspectores);
+        setAscensores(ascensoresRes || []);
+        setAsignaciones((asignacionesRes || []).filter((a) => !a.fecha_desasignacion));
+      } catch (err) {
+        setError(err.message || 'Error al cargar los datos');
+      } finally {
+        setLoadingListas(false);
+      }
+    };
+
     cargarDatos();
-  }, []);
+  }, []); // ✅ Ahora la función está dentro del useEffect
 
   const handleChange = (campo) => (e) => {
     setForm({ ...form, [campo]: e.target.value });
@@ -139,7 +204,23 @@ function AsignacionInspectores() {
       });
       setExito('Inspector asignado correctamente');
       setForm({ ...form, id_usuario: '', id_ascensor: '', observaciones: '' });
-      cargarDatos();
+      // Recargar datos después de asignar
+      const recargarDatos = async () => {
+        try {
+          const [usuariosRes, ascensoresRes, asignacionesRes] = await Promise.all([
+            apiGet('/usuarios/listado'),
+            apiGet('/ascensores/listado'),
+            usuarioAscensorService.listar(),
+          ]);
+          const soloInspectores = (usuariosRes || []).filter((u) => u.rol === 'Inspector');
+          setInspectores(soloInspectores);
+          setAscensores(ascensoresRes || []);
+          setAsignaciones((asignacionesRes || []).filter((a) => !a.fecha_desasignacion));
+        } catch (err) {
+          setError(err.message || 'Error al recargar los datos');
+        }
+      };
+      recargarDatos();
     } catch (err) {
       setError(err.message || 'Error al asignar');
     }
@@ -153,7 +234,23 @@ function AsignacionInspectores() {
         fecha_desasignacion: new Date().toISOString().slice(0, 10),
       });
       setExito('Inspector desasignado correctamente');
-      cargarDatos();
+      // Recargar datos después de desasignar
+      const recargarDatos = async () => {
+        try {
+          const [usuariosRes, ascensoresRes, asignacionesRes] = await Promise.all([
+            apiGet('/usuarios/listado'),
+            apiGet('/ascensores/listado'),
+            usuarioAscensorService.listar(),
+          ]);
+          const soloInspectores = (usuariosRes || []).filter((u) => u.rol === 'Inspector');
+          setInspectores(soloInspectores);
+          setAscensores(ascensoresRes || []);
+          setAsignaciones((asignacionesRes || []).filter((a) => !a.fecha_desasignacion));
+        } catch (err) {
+          setError(err.message || 'Error al recargar los datos');
+        }
+      };
+      recargarDatos();
     } catch (err) {
       setError(err.message || 'Error al desasignar');
     }

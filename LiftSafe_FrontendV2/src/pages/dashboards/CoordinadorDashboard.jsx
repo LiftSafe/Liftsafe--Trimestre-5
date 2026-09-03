@@ -1,81 +1,117 @@
-import { Box, Button } from '@mui/material';
+import { Box, Button, Skeleton, Typography } from '@mui/material';
 import AssignmentOutlinedIcon from '@mui/icons-material/AssignmentOutlined';
 import ScheduleOutlinedIcon from '@mui/icons-material/ScheduleOutlined';
 import RateReviewOutlinedIcon from '@mui/icons-material/RateReviewOutlined';
 import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { apiGet } from '../../services/apiClient';
 import StatCard from '../../components/StatCard';
 import WelcomeBanner from '../../components/WelcomeBanner';
-import ChartCard from '../../components/dashboard/ChartCard';
-import ActivityPanel from '../../components/dashboard/ActivityPanel';
-import { InspectionTrendChart } from '../../components/dashboard/DashboardCharts';
-import { monthlyInspections } from '../../data/dashboardData';
 import { useAuth } from '../../context/AuthContext';
-
-const pendingAssignments = [
-  { id: 13, building: 'Torres del Río', elevator: 'ASC-013', desiredDate: '20/02/2025', priority: 'Alta' },
-  { id: 14, building: 'Torres del Río', elevator: 'ASC-014', desiredDate: '25/02/2025', priority: 'Media' },
-  { id: 15, building: 'Centro Empresarial', elevator: 'ASC-008', desiredDate: '28/02/2025', priority: 'Alta' },
-];
-
-const reportsToReview = [
-  { id: 5, building: 'Edificio Lago Azul', elevator: 'ASC-005', inspector: 'Daniela Torres', status: 'En revisión' },
-  { id: 6, building: 'Torre Central', elevator: 'ASC-01', inspector: 'Carlos Ruiz', status: 'Pendiente firma' },
-];
 
 export default function CoordinadorDashboard() {
   const { user } = useAuth();
+  const [stats, setStats] = useState({
+    solicitudes_pendientes: 0,
+    programadas: 0,
+    inspecciones_activas: 0,
+    inspecciones_completadas: 0
+  });
+  const [loading, setLoading] = useState(true);
 
-  const assignmentItems = pendingAssignments.map((item) => ({
-    id: item.id,
-    title: `${item.elevator} — ${item.building}`,
-    subtitle: `Fecha deseada: ${item.desiredDate}`,
-    chip: item.priority,
-    chipColor: item.priority === 'Alta' ? 'error' : 'warning',
-    actionBtn: <Button size="small" variant="contained" sx={{ ml: 1, flexShrink: 0 }}>Asignar</Button>,
-    type: item.priority === 'Alta' ? 'error' : 'warning',
-  }));
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const data = await apiGet('/dashboard/stats');
+        setStats({
+          solicitudes_pendientes: data.solicitudes_pendientes || 0,
+          programadas: data.programadas || 0,
+          inspecciones_activas: data.inspecciones_activas || 0,
+          inspecciones_completadas: data.inspecciones_completadas || 0
+        });
+      } catch (error) {
+        console.error('Error cargando estadísticas:', error);
+        setStats({
+          solicitudes_pendientes: 0,
+          programadas: 0,
+          inspecciones_activas: 0,
+          inspecciones_completadas: 0
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
 
-  const reviewItems = reportsToReview.map((rep) => ({
-    id: rep.id,
-    title: `${rep.elevator} — ${rep.building}`,
-    subtitle: `Inspector: ${rep.inspector} · ${rep.status}`,
-    actionBtn: <Button size="small" variant="outlined" sx={{ flexShrink: 0 }}>Revisar</Button>,
-    type: 'info',
-  }));
+  const statItems = [
+    { 
+      title: 'Solicitudes Pendientes', 
+      value: stats.solicitudes_pendientes, 
+      icon: <AssignmentOutlinedIcon />, 
+      accent: '#E65100' 
+    },
+    { 
+      title: 'Inspecciones Programadas', 
+      value: stats.programadas, 
+      icon: <ScheduleOutlinedIcon />, 
+      accent: '#2C3E50' 
+    },
+    { 
+      title: 'Inspecciones Activas', 
+      value: stats.inspecciones_activas, 
+      icon: <AssignmentOutlinedIcon />, 
+      accent: '#0066CC' 
+    },
+    { 
+      title: 'Inspecciones Completadas', 
+      value: stats.inspecciones_completadas, 
+      icon: <RateReviewOutlinedIcon />, 
+      accent: '#0E7C4A' 
+    },
+  ];
 
   return (
     <Box>
       <WelcomeBanner name={user?.name} role={user?.role} />
 
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 2, mb: 3 }}>
-        <StatCard title="Por asignar" value="4" subtitle="Requieren inspector" icon={<AssignmentOutlinedIcon />} accent="#E65100" trend={-2} />
-        <StatCard title="Programadas" value="7" subtitle="Esta semana" icon={<ScheduleOutlinedIcon />} accent="#2C3E50" trend={10} />
-        <StatCard title="Por revisar" value="3" subtitle="Informes pendientes" icon={<RateReviewOutlinedIcon />} accent="#0066CC" />
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(4, 1fr)' }, gap: 2, mb: 3 }}>
+        {loading
+          ? Array.from({ length: 4 }).map((_, i) => (
+              <Skeleton key={i} variant="rounded" height={140} sx={{ borderRadius: 3 }} />
+            ))
+          : statItems.map((stat) => <StatCard key={stat.title} {...stat} />)}
       </Box>
 
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1.4fr 1fr' }, gap: 2.5, mb: 2.5 }}>
-        <ChartCard
-          title="Carga de inspecciones"
-          subtitle="Evolución mensual del equipo"
-          action={<Button component={Link} to="/dashboard/inspecciones" size="small" variant="outlined">Gestionar</Button>}
-        >
-          <InspectionTrendChart data={monthlyInspections} height={220} />
-        </ChartCard>
-        <ActivityPanel
-          title="Informes por revisar"
-          subtitle="Requieren tu aprobación"
-          items={reviewItems}
-          accent="#0066CC"
-        />
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2.5 }}>
+        <Button component={Link} to="/dashboard/solicitudes" variant="contained" sx={{ boxShadow: '0 4px 14px rgba(0,102,204,0.3)' }}>
+          Ver solicitudes
+        </Button>
       </Box>
 
-      <ActivityPanel
-        title="Inspecciones pendientes de asignación"
-        subtitle="Ordenadas por prioridad"
-        items={assignmentItems}
-        accent="#E65100"
-        action={<Button component={Link} to="/dashboard/inspecciones" size="small" variant="outlined">Ver todas</Button>}
-      />
+      <Box sx={{ borderRadius: 3, border: '1px solid', borderColor: 'divider', borderLeft: '4px solid #E65100', bgcolor: '#fff', p: 2.5 }}>
+        <Typography variant="subtitle1" fontWeight={700} gutterBottom>
+          Resumen de gestión
+        </Typography>
+        {loading ? (
+          <Skeleton height={100} />
+        ) : (
+          <Typography variant="body2" color="text.secondary">
+            {stats.solicitudes_pendientes > 0 
+              ? `Tienes ${stats.solicitudes_pendientes} solicitudes pendientes de asignación.` 
+              : 'No hay solicitudes pendientes de asignación.'}
+            <br />
+            {stats.inspecciones_activas > 0 
+              ? `Hay ${stats.inspecciones_activas} inspecciones en progreso.` 
+              : 'No hay inspecciones en progreso.'}
+            <br />
+            {stats.inspecciones_completadas > 0 
+              ? `Se han completado ${stats.inspecciones_completadas} inspecciones.` 
+              : 'Aún no hay inspecciones completadas.'}
+          </Typography>
+        )}
+      </Box>
     </Box>
   );
 }
