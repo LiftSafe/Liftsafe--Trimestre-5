@@ -12,6 +12,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
 import DrawIcon from '@mui/icons-material/Draw';
 import VerifiedIcon from '@mui/icons-material/Verified';
+import DownloadOutlinedIcon from '@mui/icons-material/DownloadOutlined';
 import PageHeader from '../components/PageHeader';
 import { brand } from '../theme/colors';
 import { useAuth } from '../context/AuthContext';
@@ -20,6 +21,7 @@ import { fotografiaService } from '../services/fotografiaService';
 import { firmaService } from '../services/firmaService';
 import { checklistService } from '../services/checklistService';
 import { observacionService } from '../services/observacionService';
+import { informeService } from '../services/informeService';
 import { API_BASE_URL } from '../config/api';
 
 const NIVELES_RIESGO = ['Bajo', 'Medio', 'Alto', 'Crítico'];
@@ -371,6 +373,12 @@ export default function Inspections() {
   });
   const [creandoObs, setCreandoObs] = useState(false);
 
+  // ---- Informe PDF (Esteban) ----
+  const [informe, setInforme] = useState(null);
+  const [informeError, setInformeError] = useState('');
+  const [generandoInforme, setGenerandoInforme] = useState(false);
+  const [enviandoInforme, setEnviandoInforme] = useState(false);
+
   const cargarInspecciones = async (showLoading = false) => {
     if (showLoading) setLoading(true);
     setError(null);
@@ -447,6 +455,16 @@ export default function Inspections() {
     }
   }
 
+  async function cargarInforme(idInspeccion) {
+    setInformeError('');
+    try {
+      const data = await informeService.obtenerPorInspeccion(idInspeccion);
+      setInforme(data || null);
+    } catch {
+      setInforme(null);
+    }
+  }
+
   const abrirDetalle = async (row) => {
     setSelected(row);
     setDetailOpen(true);
@@ -460,6 +478,8 @@ export default function Inspections() {
       fecha_firma_cliente: null,
     });
     setNuevaObs({ tipo_observacion: 'Preventiva', descripcion: '', nivel_riesgo: 'Bajo', requiere_atencion_inmediata: false });
+    setInforme(null);
+    setInformeError('');
 
     try {
       const id = row.id_inspeccion || row.id;
@@ -497,6 +517,7 @@ export default function Inspections() {
       await Promise.all([
         cargarChecklist(id),
         cargarObservaciones(detalle.id_informe),
+        cargarInforme(id),
       ]);
     } catch (err) {
       console.error('Error cargando detalle:', err);
@@ -585,6 +606,37 @@ export default function Inspections() {
       alert('Firma del cliente registrada');
     } catch (err) {
       alert('Error al registrar firma: ' + (err.message || ''));
+    }
+  };
+
+  const generarInforme = async () => {
+    const id = selected?.id_inspeccion || selected?.id;
+    setGenerandoInforme(true);
+    setInformeError('');
+    try {
+      await informeService.generar(id);
+      await cargarInforme(id);
+      alert('Informe PDF generado exitosamente');
+    } catch (err) {
+      setInformeError(err.message || 'Error al generar el informe');
+    } finally {
+      setGenerandoInforme(false);
+    }
+  };
+
+  const enviarInforme = async () => {
+    if (!informe?.id_informe) return;
+    setEnviandoInforme(true);
+    setInformeError('');
+    try {
+      await informeService.enviar(informe.id_informe);
+      const id = selected?.id_inspeccion || selected?.id;
+      await cargarInforme(id);
+      alert('Informe marcado como enviado');
+    } catch (err) {
+      setInformeError(err.message || 'Error al enviar el informe');
+    } finally {
+      setEnviandoInforme(false);
     }
   };
 
@@ -1049,6 +1101,56 @@ export default function Inspections() {
                   ))
                 )}
               </Box>
+
+              <Divider sx={{ my: 2 }} />
+
+              {/* ============ INFORME PDF (Esteban) ============ */}
+              <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem', mb: 1.5, color: '#1a237e' }}>
+                Informe de inspección
+              </Typography>
+
+              {informeError && <Alert severity="error" sx={{ mb: 2 }}>{informeError}</Alert>}
+
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+                <Chip
+                  size="small"
+                  label={informe?.estado ? `Estado: ${informe.estado}` : 'Sin generar'}
+                  color={informe?.estado === 'Enviado' ? 'success' : informe?.estado === 'Generado' ? 'info' : 'default'}
+                  variant={informe?.estado ? 'filled' : 'outlined'}
+                />
+                <Button
+                  variant="contained"
+                  size="small"
+                  onClick={generarInforme}
+                  disabled={generandoInforme || !firmas?.firma_inspector || !firmas?.firma_cliente}
+                >
+                  {generandoInforme ? 'Generando...' : 'Generar informe PDF'}
+                </Button>
+                {informe?.ruta_pdf && (
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    startIcon={<DownloadOutlinedIcon />}
+                    component="a"
+                    href={`${API_BASE_URL}/${informe.ruta_pdf.replace(/\\/g, '/')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Descargar PDF
+                  </Button>
+                )}
+                {informe?.estado === 'Generado' && (
+                  <Button variant="outlined" size="small" onClick={enviarInforme} disabled={enviandoInforme}>
+                    {enviandoInforme ? 'Enviando...' : 'Enviar informe'}
+                  </Button>
+                )}
+              </Box>
+
+              {(!firmas?.firma_inspector || !firmas?.firma_cliente) && (
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+                  Se necesitan ambas firmas (inspector y cliente) para poder generar el informe.
+                </Typography>
+              )}
             </>
           )}
         </DialogContent>

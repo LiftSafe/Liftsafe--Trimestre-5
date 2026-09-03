@@ -71,6 +71,12 @@ app.include_router(solicitudes.router)       # Luz
 os.makedirs("uploads/fotos", exist_ok=True)
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
+# ============================================
+# SERVIR INFORMES PDF GENERADOS (Esteban)
+# ============================================
+os.makedirs("informes", exist_ok=True)
+app.mount("/informes", StaticFiles(directory="informes"), name="informes")
+
 @app.get("/")
 def root():
     return {"message": "LiftSafe API funcionando"}

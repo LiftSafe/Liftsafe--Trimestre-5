@@ -9,6 +9,7 @@ import {
 import PictureAsPdfOutlinedIcon from '@mui/icons-material/PictureAsPdfOutlined';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import DownloadOutlinedIcon from '@mui/icons-material/DownloadOutlined';
+import SendOutlinedIcon from '@mui/icons-material/SendOutlined';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
@@ -19,6 +20,8 @@ import { useAuth } from '../context/AuthContext';
 import { useDashboardData } from '../hooks/useDashboardData';
 import { usePaginatedSearch } from '../hooks/usePaginatedSearch';
 import { fetchInformes, fetchInspecciones } from '../services/dashboardService';
+import { informeService } from '../services/informeService';
+import { API_BASE_URL } from '../config/api';
 
 // ========== COMPONENTE CONFIRM DIALOG ==========
 function ConfirmDialog({
@@ -66,6 +69,9 @@ export default function Reports() {
   const [deleteDialog, setDeleteDialog] = useState({ open: false, doc: null });
   const [deleting, setDeleting] = useState(false);
 
+  // ---- Informe PDF / Envío (Esteban) ----
+  const [procesandoInformeId, setProcesandoInformeId] = useState(null);
+
   const certificados = docs.filter(d => d.status === 'Aprobada' || d.status === 'Finalizada').length;
   const pendientes = inspecciones.filter(i => 
     i.status === 'Borrador' || i.status === 'En Proceso' || i.status === 'Programada'
@@ -87,6 +93,44 @@ export default function Reports() {
 
   const handleDeleteClick = (doc) => {
     setDeleteDialog({ open: true, doc });
+  };
+
+  const handleVerPdf = async (doc) => {
+    setProcesandoInformeId(doc.id);
+    try {
+      const inf = await informeService.obtenerPorInspeccion(doc.id);
+      if (!inf?.ruta_pdf) {
+        alert('Esta inspección todavía no tiene un PDF generado. Genérelo desde Inspecciones.');
+        return;
+      }
+      window.open(`${API_BASE_URL}/${inf.ruta_pdf.replace(/\\/g, '/')}`, '_blank', 'noopener,noreferrer');
+    } catch (err) {
+      alert(err.message || 'No se encontró un informe generado para esta inspección');
+    } finally {
+      setProcesandoInformeId(null);
+    }
+  };
+
+  const handleEnviarInforme = async (doc) => {
+    setProcesandoInformeId(doc.id);
+    try {
+      const inf = await informeService.obtenerPorInspeccion(doc.id);
+      if (!inf?.id_informe) {
+        alert('Esta inspección todavía no tiene un informe generado.');
+        return;
+      }
+      if (inf.estado !== 'Generado') {
+        alert(`El informe debe estar en estado "Generado" para enviarlo (estado actual: ${inf.estado}).`);
+        return;
+      }
+      await informeService.enviar(inf.id_informe);
+      alert('Informe enviado correctamente');
+      if (refetch) refetch();
+    } catch (err) {
+      alert(err.message || 'Error al enviar el informe');
+    } finally {
+      setProcesandoInformeId(null);
+    }
   };
 
   const handleDeleteConfirm = async () => {
@@ -172,10 +216,35 @@ export default function Reports() {
                         </TableCell>
                         
                         <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
-                          <Button size="small" startIcon={<VisibilityOutlinedIcon />}>Ver</Button>
-                          <Button size="small" startIcon={<DownloadOutlinedIcon />}>PDF</Button>
-                          <IconButton 
-                            size="small" 
+                          <Button
+                            size="small"
+                            startIcon={<VisibilityOutlinedIcon />}
+                            onClick={() => handleVerPdf(doc)}
+                            disabled={procesandoInformeId === doc.id}
+                          >
+                            Ver
+                          </Button>
+                          <Button
+                            size="small"
+                            startIcon={<DownloadOutlinedIcon />}
+                            onClick={() => handleVerPdf(doc)}
+                            disabled={procesandoInformeId === doc.id}
+                          >
+                            PDF
+                          </Button>
+                          {!isClient && (
+                            <IconButton
+                              size="small"
+                              color="primary"
+                              onClick={() => handleEnviarInforme(doc)}
+                              disabled={procesandoInformeId === doc.id}
+                              title="Enviar informe"
+                            >
+                              <SendOutlinedIcon fontSize="small" />
+                            </IconButton>
+                          )}
+                          <IconButton
+                            size="small"
                             color="primary"
                             onClick={() => {
                               console.log('Editar reporte:', doc.id);
@@ -184,8 +253,8 @@ export default function Reports() {
                           >
                             <EditIcon fontSize="small" />
                           </IconButton>
-                          <IconButton 
-                            size="small" 
+                          <IconButton
+                            size="small"
                             color="error"
                             onClick={() => handleDeleteClick(doc)}
                             title="Eliminar"
