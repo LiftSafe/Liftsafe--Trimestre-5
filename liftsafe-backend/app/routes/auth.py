@@ -75,7 +75,7 @@ def register(user_data: UsuarioRegister, db: Session = Depends(get_db)):
         text("""
             INSERT INTO usuario (id_rol, nombre_completo, correo, contrasena_encriptada,
                                telefono, tipo_documento, documento_identidad, estado)
-            VALUES (:id_rol, :nombre, :correo, AES_ENCRYPT(:contrasena, 'LiftSafeSecretKey2026!'),
+            VALUES (:id_rol, :nombre, :correo, AES_ENCRYPT(:contrasena, :aes_key),
                     :telefono, :tipo_doc, :documento, 'activo')
         """),
         {
@@ -86,6 +86,7 @@ def register(user_data: UsuarioRegister, db: Session = Depends(get_db)):
             "telefono": user_data.telefono,
             "tipo_doc": user_data.tipo_documento,
             "documento": user_data.documento_identidad,
+            "aes_key": settings.SECRET_KEY_MYSQL,
         }
     )
     db.commit()
@@ -123,8 +124,8 @@ def reset_clave(request: VerifyCodeRequest, db: Session = Depends(get_db)):
     
     # Actualizar contraseña con AES_ENCRYPT
     db.execute(
-        text("UPDATE usuario SET contrasena_encriptada = AES_ENCRYPT(:pwd, 'LiftSafeSecretKey2026!') WHERE correo = :correo"),
-        {"pwd": request.nueva_contrasena, "correo": request.correo}
+        text("UPDATE usuario SET contrasena_encriptada = AES_ENCRYPT(:pwd, :aes_key) WHERE correo = :correo"),
+        {"pwd": request.nueva_contrasena, "correo": request.correo, "aes_key": settings.SECRET_KEY_MYSQL}
     )
     db.commit()
     

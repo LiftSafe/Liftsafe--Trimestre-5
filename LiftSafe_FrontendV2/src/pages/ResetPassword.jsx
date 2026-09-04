@@ -15,6 +15,11 @@ const fieldSx = {
     '& fieldset': { borderColor: 'rgba(43,124,184,0.3)' },
     '&:hover fieldset': { borderColor: brand.accent },
     '&.Mui-focused fieldset': { borderColor: brand.accent },
+    '& input:-webkit-autofill, & input:-webkit-autofill:hover, & input:-webkit-autofill:focus': {
+      WebkitBoxShadow: `0 0 0 100px ${brand.charcoalLight} inset`,
+      WebkitTextFillColor: '#fff',
+      caretColor: '#fff',
+    },
   },
   '& .MuiInputLabel-root': { color: brand.silverDark },
   '& .MuiInputLabel-root.Mui-focused': { color: brand.accent },
@@ -70,15 +75,16 @@ export default function ResetPassword() {
             fullWidth size="small" label="Nueva contraseña" type="password"
             value={password} onChange={(e) => setPassword(e.target.value)} required
             sx={fieldSx}
-            InputProps={{
+            slotProps={{ input: {
               startAdornment: <InputAdornment position="start"><LockOutlinedIcon sx={{ color: brand.accent, fontSize: 20 }} /></InputAdornment>
-            }}
+            } , inputLabel: { shrink: true } }}
           />
           <PasswordRequirements password={password} />
           <TextField
             fullWidth size="small" label="Confirmar contraseña" type="password"
             value={confirm} onChange={(e) => setConfirm(e.target.value)} required
             sx={fieldSx}
+            slotProps={{ inputLabel: { shrink: true } }}
           />
         </Box>
         <Button

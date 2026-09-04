@@ -8,6 +8,7 @@ from app.models.models import Usuario, Rol, Programacion
 from app.schemas.schemas import UsuarioCreate, UsuarioUpdate, MessageResponse
 from app.controllers.usuario_controller import get_user_profile, get_admin_stats, get_cliente_ascensores, get_inspector_inspecciones
 from app.utils.auth_deps import require_admin_from_request, get_current_user, INSPECTOR_ROL_ID
+from app.config import settings
 from sqlalchemy import text
 
 router = APIRouter(prefix="/usuarios", tags=["Usuarios"])
@@ -48,7 +49,7 @@ def crear_usuario(
         text("""
             INSERT INTO usuario (id_rol, nombre_completo, correo, contrasena_encriptada, 
                                telefono, tipo_documento, documento_identidad, nit, razon_social, estado)
-            VALUES (:id_rol, :nombre, :correo, AES_ENCRYPT(:contrasena, 'LiftSafeSecretKey2026!'),
+            VALUES (:id_rol, :nombre, :correo, AES_ENCRYPT(:contrasena, :aes_key),
                     :telefono, :tipo_doc, :documento, :nit, :razon_social, 'activo')
         """),
         {
@@ -61,6 +62,7 @@ def crear_usuario(
             "documento": user_data.documento_identidad,
             "nit": user_data.nit if user_data.tipo_documento == "NIT" else None,
             "razon_social": user_data.razon_social if user_data.tipo_documento == "NIT" else None,
+            "aes_key": settings.SECRET_KEY_MYSQL,
         }
     )
     db.commit()
@@ -240,8 +242,8 @@ def editar_usuario(
     # La contraseña se maneja aparte porque va encriptada con AES_ENCRYPT
     if user_data.contrasena:
         db.execute(
-            text("UPDATE usuario SET contrasena_encriptada = AES_ENCRYPT(:contrasena, 'LiftSafeSecretKey2026!') WHERE id_usuario = :id"),
-            {"contrasena": user_data.contrasena, "id": user_id}
+            text("UPDATE usuario SET contrasena_encriptada = AES_ENCRYPT(:contrasena, :aes_key) WHERE id_usuario = :id"),
+            {"contrasena": user_data.contrasena, "id": user_id, "aes_key": settings.SECRET_KEY_MYSQL}
         )
         db.commit()
 

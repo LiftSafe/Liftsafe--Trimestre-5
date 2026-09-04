@@ -17,6 +17,11 @@ const fieldSx = {
     '& fieldset': { borderColor: 'rgba(43,124,184,0.3)' },
     '&:hover fieldset': { borderColor: brand.accent },
     '&.Mui-focused fieldset': { borderColor: brand.accent },
+    '& input:-webkit-autofill, & input:-webkit-autofill:hover, & input:-webkit-autofill:focus': {
+      WebkitBoxShadow: `0 0 0 100px ${brand.charcoalLight} inset`,
+      WebkitTextFillColor: '#fff',
+      caretColor: '#fff',
+    },
   },
   '& .MuiInputLabel-root': { color: brand.silverDark },
   '& .MuiInputLabel-root.Mui-focused': { color: brand.accent },
@@ -93,13 +98,13 @@ export default function Login() {
             required
             autoComplete="email"
             sx={fieldSx}
-            InputProps={{
+            slotProps={{ input: {
               startAdornment: (
                 <InputAdornment position="start">
                   <EmailOutlinedIcon sx={{ color: brand.accent, fontSize: 20 }} />
                 </InputAdornment>
               )
-            }}
+            } , inputLabel: { shrink: true } }}
           />
           <TextField
             fullWidth 
@@ -111,13 +116,13 @@ export default function Login() {
             required
             autoComplete="current-password"
             sx={fieldSx}
-            InputProps={{
+            slotProps={{ input: {
               startAdornment: (
                 <InputAdornment position="start">
                   <LockOutlinedIcon sx={{ color: brand.accent, fontSize: 20 }} />
                 </InputAdornment>
               )
-            }}
+            } , inputLabel: { shrink: true } }}
           />
         </Box>
         <Box sx={{ textAlign: 'right', mt: 1 }}>

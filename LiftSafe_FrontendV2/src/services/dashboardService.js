@@ -48,13 +48,24 @@ export const fetchAscensores = () => apiClient('/dashboard/ascensores');
 
 export const fetchEdificios = async () => {
   const raw = await apiClient('/ascensores/edificios');
-  // El backend devuelve { cliente, direccion, total_ascensores } (español).
-  // Buildings.jsx espera { name, address, elevators } (inglés).
-  // Se traduce aquí para no tener que tocar el backend.
-  return (raw || []).map((e, idx) => ({
-    id: idx,
+  // ✅ FIX: el backend ahora devuelve toda la info disponible del cliente
+  // dueño del edificio (antes solo mandaba cliente/direccion/total_ascensores
+  // y Buildings.jsx mostraba casi todo el modal de detalle vacío). Se traduce
+  // a los nombres en inglés que ya usa Buildings.jsx, agregando los campos
+  // nuevos (id real, ciudad, estado, correo, teléfono, documento, etc.)
+  return (raw || []).map((e) => ({
+    id: e.id_cliente,
     name: e.cliente || null,
     address: e.direccion || null,
+    city: e.ciudad || null,
+    status: e.estado || null,
+    email: e.correo || null,
+    phone: e.telefono || null,
+    tipoDocumento: e.tipo_documento || null,
+    documento: e.documento_identidad || null,
+    razonSocial: e.razon_social || null,
+    nit: e.nit || null,
+    fechaRegistro: e.fecha_registro || null,
     elevators: e.total_ascensores || 0,
   }));
 };

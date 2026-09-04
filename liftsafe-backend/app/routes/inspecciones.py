@@ -36,17 +36,29 @@ def mis_inspecciones(
     db: Session = Depends(get_db)
 ):
     rol, correo, user_id = get_current_user_role(credentials)
-    
-    if rol in ['Administrador', 'Director Técnico']:
+
+    # ✅ FIX: al Coordinador (que sí tiene acceso al menú "Inspecciones" y al
+    # botón "Nueva inspección" en el frontend, ver roles.js) le faltaba estar
+    # aquí -> caía al "else" de abajo y siempre recibía 403 "Rol no
+    # autorizado" al abrir la pantalla. Su rol es "Programa inspecciones,
+    # asigna inspectores y revisa informes", así que debe ver todas las
+    # inspecciones igual que Administrador y Director Técnico.
+    if rol in ['Administrador', 'Director Técnico', 'Coordinador']:
         result = db.execute(text(
             "SELECT * FROM vista_resumen_inspecciones ORDER BY id_inspeccion DESC"
         )).mappings().all()
         return [dict(row) for row in result]
 
     elif rol == 'Inspector':
+        # ✅ FIX: el diccionario que se devolvía no traía ningún campo de
+        # nombre de inspector ("nombre_inspector"/"inspector"), y esos son
+        # los campos que lee la tabla de Inspecciones.jsx -> la columna
+        # "Inspector" siempre mostraba "N/A" para este rol. Se agrega el
+        # join con Usuario para incluir el nombre.
         result = (
-            db.query(Inspeccion, Ascensor.codigo_interno, Informe.id_informe)
+            db.query(Inspeccion, Ascensor.codigo_interno, Informe.id_informe, Usuario.nombre_completo)
             .join(Ascensor, Inspeccion.id_ascensor == Ascensor.id_ascensor)
+            .join(Usuario, Inspeccion.id_inspector == Usuario.id_usuario)
             .outerjoin(Informe, Informe.id_inspeccion == Inspeccion.id_inspeccion)
             .filter(Inspeccion.id_inspector == user_id)
             .order_by(Inspeccion.id_inspeccion.desc())
@@ -56,6 +68,7 @@ def mis_inspecciones(
             {
                 "id_inspeccion": i.id_inspeccion,
                 "codigo_ascensor": codigo,
+                "nombre_inspector": nombre_inspector,
                 "fecha_inicio": i.fecha_inicio,
                 "fecha_fin": i.fecha_fin,
                 "estado": i.estado,
@@ -64,13 +77,16 @@ def mis_inspecciones(
                 "firma_cliente": bool(i.firma_cliente),
                 "id_informe": id_informe,
             }
-            for i, codigo, id_informe in result
+            for i, codigo, id_informe, nombre_inspector in result
         ]
     
     elif rol == 'Cliente':
+        # ✅ FIX: mismo problema que en la rama de Inspector -> tampoco
+        # traía el nombre del inspector asignado.
         result = (
-            db.query(Inspeccion, Ascensor.codigo_interno, Informe.id_informe)
+            db.query(Inspeccion, Ascensor.codigo_interno, Informe.id_informe, Usuario.nombre_completo)
             .join(Ascensor, Inspeccion.id_ascensor == Ascensor.id_ascensor)
+            .join(Usuario, Inspeccion.id_inspector == Usuario.id_usuario)
             .outerjoin(Informe, Informe.id_inspeccion == Inspeccion.id_inspeccion)
             .filter(Ascensor.id_cliente == user_id)
             .order_by(Inspeccion.id_inspeccion.desc())
@@ -80,6 +96,7 @@ def mis_inspecciones(
             {
                 "id_inspeccion": i.id_inspeccion,
                 "codigo_ascensor": codigo,
+                "nombre_inspector": nombre_inspector,
                 "fecha_inicio": i.fecha_inicio,
                 "fecha_fin": i.fecha_fin,
                 "estado": i.estado,
@@ -88,7 +105,7 @@ def mis_inspecciones(
                 "firma_cliente": bool(i.firma_cliente),
                 "id_informe": id_informe,
             }
-            for i, codigo, id_informe in result
+            for i, codigo, id_informe, nombre_inspector in result
         ]
     
     else:

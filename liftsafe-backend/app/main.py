@@ -35,6 +35,13 @@ app = FastAPI(
 
 # ============================================
 # CORS - CON MÚLTIPLES ORÍGENES
+# ✅ FIX: Vite corre en el primer puerto libre a partir de 5173 (5174, 5175,
+# ...) cuando ya hay otro "npm run dev" abierto. Como allow_origins era una
+# lista fija de puertos, cualquier origen que no fuera EXACTAMENTE
+# localhost:5173 fallaba el preflight con "No 'Access-Control-Allow-Origin'
+# header" (se ve en el navegador como "Failed to fetch"). Se agrega
+# allow_origin_regex para aceptar cualquier puerto de localhost/127.0.0.1 en
+# desarrollo, sin perder la lista explícita.
 # ============================================
 app.add_middleware(
     CORSMiddleware,
@@ -43,6 +50,7 @@ app.add_middleware(
         "http://127.0.0.1:5173",
         "http://localhost:3000",
     ],
+    allow_origin_regex=r"http://(localhost|127\.0\.0\.1):\d+",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

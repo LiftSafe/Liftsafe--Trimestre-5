@@ -30,12 +30,20 @@ def listado_ascensores(
     db: Session = Depends(get_db)
 ):
     rol, correo, user_id = get_current_user_role(credentials)
-    
-    # Admin y Director Técnico ven todo
-    if rol in ['Administrador', 'Director Técnico']:
+
+    # ✅ FIX: Coordinador (y también Inspector) tienen "Ascensores" en su
+    # menú (ver roles.js), pero como no eran Administrador/Director Técnico
+    # caían al "else" y se les filtraba como si fueran el Cliente dueño del
+    # ascensor -> como ningún ascensor tiene id_cliente = su propio
+    # id_usuario, siempre veían la lista vacía, sin ningún error visible.
+    # Coordinador programa inspecciones sobre cualquier ascensor e Inspector
+    # necesita ver los que tiene asignados, así que ambos deben ver el
+    # listado completo igual que Administrador y Director Técnico. Cliente
+    # sigue viendo solo los suyos.
+    if rol in ['Administrador', 'Director Técnico', 'Coordinador', 'Inspector']:
         ascensores = db.query(Ascensor, Usuario.nombre_completo).join(Usuario, Ascensor.id_cliente == Usuario.id_usuario).order_by(Ascensor.id_ascensor.desc()).all()
     else:
-        # Otros roles: solo ven ascensores del cliente logueado
+        # Cliente: solo ve ascensores propios
         user = db.query(Usuario).filter(Usuario.correo == correo).first()
         if not user:
             raise HTTPException(status_code=404, detail="Usuario no encontrado")
@@ -65,42 +73,61 @@ def edificios(
     db: Session = Depends(get_db)
 ):
     rol, correo, user_id = get_current_user_role(credentials)
-    
+
+    # ✅ FIX: el endpoint solo devolvía {cliente, direccion, total_ascensores}
+    # -> en Buildings.jsx el modal "Información completa del edificio" tiene
+    # campos para ciudad, estado, gestor, teléfono, id, etc. pero como el
+    # backend nunca los mandaba, siempre se veían vacíos ("—"). No existe una
+    # tabla "Edificio" propia (cada edificio es el Usuario con rol Cliente al
+    # que están asociados sus ascensores), así que acá se trae todo lo que la
+    # base de datos sí tiene sobre ese cliente/edificio: datos de contacto,
+    # documento, razón social/NIT si es empresa, estado, fecha de registro,
+    # y la ciudad se toma de sus ascensores (Usuario no tiene columna ciudad).
+    columnas = (
+        Usuario.id_usuario,
+        Usuario.nombre_completo,
+        Usuario.correo,
+        Usuario.telefono,
+        Usuario.tipo_documento,
+        Usuario.documento_identidad,
+        Usuario.razon_social,
+        Usuario.nit,
+        Usuario.direccion,
+        Usuario.estado,
+        Usuario.fecha_registro,
+        func.count(Ascensor.id_ascensor).label('total_ascensores'),
+        func.max(Ascensor.ciudad).label('ciudad'),
+        func.max(Ascensor.direccion_completa).label('direccion_ascensor'),
+    )
+
+    query = db.query(*columnas).join(Ascensor, Usuario.id_usuario == Ascensor.id_cliente)
+
     # Inspector: edificios donde ha hecho inspecciones
     if rol == 'Inspector':
-        resultado = db.query(
-            Usuario.nombre_completo.label('cliente'),
-            Usuario.direccion,
-            func.count(Ascensor.id_ascensor).label('total_ascensores')
-        ).join(Ascensor, Usuario.id_usuario == Ascensor.id_cliente)\
-         .join(Inspeccion, Ascensor.id_ascensor == Inspeccion.id_ascensor)\
-         .filter(Inspeccion.id_inspector == user_id)\
-         .group_by(Usuario.id_usuario).all()
-    
+        query = query.join(Inspeccion, Ascensor.id_ascensor == Inspeccion.id_ascensor) \
+                      .filter(Inspeccion.id_inspector == user_id)
     # Cliente: solo su edificio
     elif rol == 'Cliente':
-        resultado = db.query(
-            Usuario.nombre_completo.label('cliente'),
-            Usuario.direccion,
-            func.count(Ascensor.id_ascensor).label('total_ascensores')
-        ).join(Ascensor, Usuario.id_usuario == Ascensor.id_cliente)\
-         .filter(Usuario.correo == correo)\
-         .group_by(Usuario.id_usuario).all()
-    
-    # Admin y Director Técnico: todos
-    else:
-        resultado = db.query(
-            Usuario.nombre_completo.label('cliente'),
-            Usuario.direccion,
-            func.count(Ascensor.id_ascensor).label('total_ascensores')
-        ).join(Ascensor, Usuario.id_usuario == Ascensor.id_cliente)\
-         .group_by(Usuario.id_usuario).all()
-    
+        query = query.filter(Usuario.correo == correo)
+    # Admin, Director Técnico, Coordinador: todos (sin filtro adicional)
+
+    resultado = query.group_by(Usuario.id_usuario).all()
+
     return [
         {
-            "cliente": r.cliente,
-            "direccion": r.direccion,
-            "total_ascensores": r.total_ascensores
+            "id_cliente": r.id_usuario,
+            "cliente": r.nombre_completo,
+            "correo": r.correo,
+            "telefono": r.telefono,
+            "tipo_documento": r.tipo_documento,
+            "documento_identidad": r.documento_identidad,
+            "razon_social": r.razon_social,
+            "nit": r.nit,
+            "direccion": r.direccion or r.direccion_ascensor,
+            "ciudad": r.ciudad,
+            "estado": r.estado,
+            "fecha_registro": r.fecha_registro,
+            "total_ascensores": r.total_ascensores,
         }
         for r in resultado
     ]
@@ -151,7 +178,9 @@ def crear_ascensor(
 ):
     rol, correo, user_id = get_current_user_role(credentials)
     
-    if rol not in ['Administrador', 'Director Técnico', 'Coordinador']:
+    # ✅ FIX: Director Técnico opera en "modo supervisión" (ve todo, aprueba
+    # informes) y no debería poder crear ascensores desde acá.
+    if rol not in ['Administrador', 'Coordinador']:
         raise HTTPException(status_code=403, detail="No autorizado para crear ascensores")
     
     # Validar que el cliente exista
@@ -198,7 +227,8 @@ def editar_ascensor(
 ):
     rol, correo, user_id = get_current_user_role(credentials)
     
-    if rol not in ['Administrador', 'Director Técnico', 'Coordinador']:
+    # ✅ FIX: mismo motivo que en crear_ascensor -> "modo supervisión".
+    if rol not in ['Administrador', 'Coordinador']:
         raise HTTPException(status_code=403, detail="No autorizado para editar ascensores")
     
     ascensor = db.query(Ascensor).filter(Ascensor.id_ascensor == id_ascensor).first()
@@ -264,7 +294,8 @@ def eliminar_ascensor(
 ):
     rol, correo, user_id = get_current_user_role(credentials)
     
-    if rol not in ['Administrador', 'Director Técnico']:
+    # ✅ FIX: mismo motivo -> "modo supervisión", Director Técnico no elimina.
+    if rol != 'Administrador':
         raise HTTPException(status_code=403, detail="No autorizado para eliminar ascensores")
     
     ascensor = db.query(Ascensor).filter(Ascensor.id_ascensor == id_ascensor).first()

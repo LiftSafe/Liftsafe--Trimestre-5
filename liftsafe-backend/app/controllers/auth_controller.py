@@ -15,7 +15,6 @@ from app.config import settings
 # ============ CONFIGURACIÓN ============
 
 CODES_FILE = "reset_codes.json"
-SECRET_KEY_MYSQL = 'LiftSafeSecretKey2026!'
 
 # ============ CÓDIGOS DE RECUPERACIÓN (JSON) ============
 
@@ -77,7 +76,7 @@ def verify_password(plain_password: str, stored_password: str, db: Session = Non
     """Verifica contraseña usando AES_DECRYPT de MySQL."""
     if db and correo:
         result = db.execute(
-            text(f"SELECT AES_DECRYPT(contrasena_encriptada, '{SECRET_KEY_MYSQL}') as pwd FROM usuario WHERE correo = :correo"),
+            text(f"SELECT AES_DECRYPT(contrasena_encriptada, '{settings.SECRET_KEY_MYSQL}') as pwd FROM usuario WHERE correo = :correo"),
             {"correo": correo}
         ).mappings().first()
         if result and result["pwd"]:
@@ -93,7 +92,7 @@ def authenticate_user(db: Session, correo: str, password: str):
         return None
     
     result = db.execute(
-        text(f"SELECT AES_DECRYPT(contrasena_encriptada, '{SECRET_KEY_MYSQL}') as pwd FROM usuario WHERE correo = :correo"),
+        text(f"SELECT AES_DECRYPT(contrasena_encriptada, '{settings.SECRET_KEY_MYSQL}') as pwd FROM usuario WHERE correo = :correo"),
         {"correo": correo}
     ).mappings().first()
     

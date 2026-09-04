@@ -62,10 +62,10 @@ export default function DashboardLayout() {
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', background: gradients.sidebar }}>
       <Box sx={{ py: 2, px: 2, textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         <Logo width={115} sx={{ filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.5))' }} />
-        {/* <Typography variant="caption" sx={{ color: brand.silver, display: 'block', mt: 0.5, fontSize: 10, 
+        <Typography variant="caption" sx={{ color: brand.silver, display: 'block', mt: 0.5, fontSize: 10,
           letterSpacing: '0.08em' }}>
           {user?.role?.toUpperCase()}
-        </Typography> */}
+        </Typography>
       </Box>
       <List sx={{ flex: 1, px: 1.2, py: 1.5 }}>
         {menuItems.map((item) => {
@@ -102,25 +102,25 @@ export default function DashboardLayout() {
         </Box>
         <ListItemButton onClick={() => { logout(); }} component={Link} to="/login" sx={{ borderRadius: 2, color: '#E87070', py: 0.5 }}>
           <ListItemIcon sx={{ minWidth: 30, color: '#E87070' }}><LogoutIcon sx={{ fontSize: 18 }} /></ListItemIcon>
-          <ListItemText primary="Cerrar sesión" primaryTypographyProps={{ fontSize: 12 }} />
+          <ListItemText primary="Cerrar sesión" slotProps={{ primary: { fontSize: 12 } }} />
         </ListItemButton>
       </Box>
     </Box>
   );
 
-  // En la página de Inicio (/dashboard) no mostramos el título arriba:
-  // ya se ve "Inicio" resaltado en el menú lateral, y aquí se repetía sin
-  // aportar nada. En el resto de páginas el título se conserva igual.
-  const currentTitle = location.pathname === '/dashboard'
-    ? ''
-    : (menuItems.find((m) => m.path === location.pathname)?.text || 'LiftSafe');
+  // ✅ FIX: cada página ya muestra su propio título con PageHeader
+  // (breadcrumb "Inicio / X" + encabezado "X" + subtítulo), así que este
+  // título de la barra superior quedaba repetido arriba de todo (se veía
+  // "Inspecciones" dos veces en la misma pantalla, en todos los roles).
+  // Se quita para todas las páginas y todos los roles; la barra superior
+  // se queda solo con la campanita y el avatar del usuario.
 
   return (
     <Box sx={{ display: 'flex', height: '100vh', overflow: 'hidden', bgcolor: brand.surface }}>
       <AppBar position="fixed" elevation={0} sx={{ bgcolor: '#fff', borderBottom: '1px solid', borderColor: 'divider', width: { md: `calc(100% - ${DRAWER_WIDTH}px)` }, ml: { md: `${DRAWER_WIDTH}px` } }}>
         <Toolbar variant="dense" sx={{ minHeight: 52 }}>
           {isMobile && <IconButton edge="start" onClick={() => setMobileOpen(true)} size="small" sx={{ mr: 1 }}><MenuIcon /></IconButton>}
-          <Typography variant="subtitle1" fontWeight={700} sx={{ flexGrow: 1, color: brand.navy }}>{currentTitle}</Typography>
+          <Box sx={{ flexGrow: 1 }} />
           
           {/* CAMPANITA DE NOTIFICACIONES */}
           <IconButton size="small" sx={{ mr: 1 }}>

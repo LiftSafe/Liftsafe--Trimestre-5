@@ -17,6 +17,11 @@ const fieldSx = {
     '& fieldset': { borderColor: 'rgba(43,124,184,0.3)' },
     '&:hover fieldset': { borderColor: brand.accent },
     '&.Mui-focused fieldset': { borderColor: brand.accent },
+    '& input:-webkit-autofill, & input:-webkit-autofill:hover, & input:-webkit-autofill:focus': {
+      WebkitBoxShadow: `0 0 0 100px ${brand.charcoalLight} inset`,
+      WebkitTextFillColor: '#fff',
+      caretColor: '#fff',
+    },
   },
   '& .MuiInputLabel-root': { color: brand.silverDark },
   '& .MuiInputLabel-root.Mui-focused': { color: brand.accent },
@@ -104,9 +109,9 @@ const data = await resetPasswordWithCodeRequest(email, code, password);
             fullWidth size="small" label="Correo electrónico" type="email"
             value={email} onChange={(e) => setEmail(e.target.value)} required
             sx={fieldSx}
-            InputProps={{
+            slotProps={{ input: {
               startAdornment: <InputAdornment position="start"><EmailOutlinedIcon sx={{ color: brand.accent, fontSize: 20 }} /></InputAdornment>
-            }}
+            } , inputLabel: { shrink: true } }}
           />
           <Button
             type="submit" fullWidth variant="contained" size="medium" disabled={loading}
@@ -137,23 +142,24 @@ const data = await resetPasswordWithCodeRequest(email, code, password);
               inputProps={{ maxLength: 6, pattern: '[0-9]*', inputMode: 'numeric' }}
               value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} required
               sx={fieldSx}
-              InputProps={{
+              slotProps={{ input: {
                 startAdornment: <InputAdornment position="start"><TagOutlinedIcon sx={{ color: brand.accent, fontSize: 20 }} /></InputAdornment>
-              }}
+              } , inputLabel: { shrink: true } }}
             />
             <TextField
               fullWidth size="small" label="Nueva contraseña" type="password"
               value={password} onChange={(e) => setPassword(e.target.value)} required
               sx={fieldSx}
-              InputProps={{
+              slotProps={{ input: {
                 startAdornment: <InputAdornment position="start"><LockOutlinedIcon sx={{ color: brand.accent, fontSize: 20 }} /></InputAdornment>
-              }}
+              } , inputLabel: { shrink: true } }}
             />
             <PasswordRequirements password={password} />
             <TextField
               fullWidth size="small" label="Confirmar contraseña" type="password"
               value={confirm} onChange={(e) => setConfirm(e.target.value)} required
               sx={fieldSx}
+              slotProps={{ inputLabel: { shrink: true } }}
             />
           </Box>
           <Button

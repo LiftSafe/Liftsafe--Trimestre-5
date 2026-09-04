@@ -262,6 +262,11 @@ class ProgramacionUpdate(BaseModel):
     id_inspector: Optional[int] = None
     fecha_programada: Optional[date] = None
     hora_inicio: Optional[str] = None
+    # ✅ FIX: faltaba este campo -> routes/programacion.py (reasignar_inspector)
+    # ya intentaba leer data.hora_fin_estimada y como Pydantic no deja leer un
+    # atributo que no existe en el modelo, esa rama tiraba AttributeError
+    # (500) apenas alguien reasignaba con una hora de fin.
+    hora_fin_estimada: Optional[str] = None
     estado: Optional[str] = None
     motivo_cancelacion: Optional[str] = None
 

@@ -31,6 +31,11 @@ const fieldSx = {
     '& fieldset': { borderColor: 'rgba(43,124,184,0.3)' },
     '&:hover fieldset': { borderColor: brand.accent },
     '&.Mui-focused fieldset': { borderColor: brand.accent },
+    '& input:-webkit-autofill, & input:-webkit-autofill:hover, & input:-webkit-autofill:focus': {
+      WebkitBoxShadow: `0 0 0 100px ${brand.charcoalLight} inset`,
+      WebkitTextFillColor: '#fff',
+      caretColor: '#fff',
+    },
   },
   '& .MuiInputLabel-root': { color: brand.silverDark },
   '& .MuiInputLabel-root.Mui-focused': { color: brand.accent },
@@ -107,13 +112,13 @@ export default function Register() {
             onChange={handleChange} 
             sx={fieldSx}
             required
-            InputProps={{ 
+            slotProps={{ input: { 
               startAdornment: (
                 <InputAdornment position="start">
                   <PersonOutlinedIcon sx={{ color: brand.accent, fontSize: 20 }} />
                 </InputAdornment>
               ) 
-            }} 
+            } , inputLabel: { shrink: true } }} 
           />
 
           {/* Apellidos */}
@@ -126,13 +131,13 @@ export default function Register() {
             onChange={handleChange} 
             sx={fieldSx}
             required
-            InputProps={{ 
+            slotProps={{ input: { 
               startAdornment: (
                 <InputAdornment position="start">
                   <PersonOutlinedIcon sx={{ color: brand.accent, fontSize: 20 }} />
                 </InputAdornment>
               ) 
-            }} 
+            } , inputLabel: { shrink: true } }} 
           />
 
           {/* Correo */}
@@ -146,13 +151,13 @@ export default function Register() {
             onChange={handleChange} 
             sx={fieldSx}
             required
-            InputProps={{ 
+            slotProps={{ input: { 
               startAdornment: (
                 <InputAdornment position="start">
                   <EmailOutlinedIcon sx={{ color: brand.accent, fontSize: 20 }} />
                 </InputAdornment>
               ) 
-            }} 
+            } , inputLabel: { shrink: true } }} 
           />
 
           {/* ========== TIPO DE DOCUMENTO CON INFO ========== */}
@@ -166,7 +171,7 @@ export default function Register() {
             onChange={handleChange} 
             sx={fieldSx}
             required
-            InputProps={{ 
+            slotProps={{ input: { 
               startAdornment: (
                 <InputAdornment position="start">
                   <BadgeOutlinedIcon sx={{ color: brand.accent, fontSize: 20 }} />
@@ -179,7 +184,7 @@ export default function Register() {
                   </Tooltip>
                 </InputAdornment>
               )
-            }}
+            } , inputLabel: { shrink: true } }}
           >
             {ADULT_DOCUMENT_TYPES.map((doc) => (
               <MenuItem key={doc.value} value={doc.value}>
@@ -204,6 +209,7 @@ export default function Register() {
             value={form.document} 
             onChange={handleChange} 
             sx={fieldSx}
+            slotProps={{ inputLabel: { shrink: true } }}
             required
           />
 
@@ -217,6 +223,7 @@ export default function Register() {
               value={form.businessName} 
               onChange={handleChange} 
               sx={fieldSx} 
+              slotProps={{ inputLabel: { shrink: true } }}
             />
           )}
 
@@ -231,13 +238,13 @@ export default function Register() {
             onChange={handleChange} 
             sx={fieldSx}
             required
-            InputProps={{ 
+            slotProps={{ input: { 
               startAdornment: (
                 <InputAdornment position="start">
                   <LockOutlinedIcon sx={{ color: brand.accent, fontSize: 20 }} />
                 </InputAdornment>
               ) 
-            }} 
+            } , inputLabel: { shrink: true } }} 
           />
           <PasswordRequirements password={form.password} />
 
@@ -251,6 +258,7 @@ export default function Register() {
             value={form.confirm} 
             onChange={handleChange} 
             sx={fieldSx}
+            slotProps={{ inputLabel: { shrink: true } }}
             required
           />
         </Box>

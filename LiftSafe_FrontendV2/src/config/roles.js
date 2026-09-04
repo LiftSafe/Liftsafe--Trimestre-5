@@ -17,7 +17,19 @@ export const ROLE_PERMISSIONS = {
   Administrador: ['dashboard', 'inspecciones', 'solicitudes', 'ascensores', 'edificios', 'reportes', 'usuarios', 'auditoria', 'configuracion'],
   Asesor: ['dashboard', 'solicitudes', 'reportes', 'configuracion'],
   Coordinador: ['dashboard', 'inspecciones', 'solicitudes', 'ascensores', 'edificios', 'reportes', 'configuracion'],
-  'Director Técnico': ['dashboard', 'inspecciones', 'solicitudes', 'reportes', 'auditoria', 'configuracion'],
+  // ✅ FIX: la documentación del rol dice "Ve inspecciones, ascensores,
+  // edificios e informes de todo el sistema en modo supervisión", pero
+  // 'ascensores' y 'edificios' no estaban en su lista -> ni el menú ni las
+  // rutas dejaban llegar a esas pantallas, aunque el backend ya lo
+  // autorizaba (ver listado_ascensores/edificios en ascensores.py).
+  // ✅ FIX: se había agregado 'auditoria' pensando que Admin y Director
+  // Técnico debían compartir esa pantalla, pero tanto Auditoria.jsx
+  // (user?.role !== 'Administrador') como el backend (auditoria.py, "solo
+  // Administrador") la restringen exclusivamente a Administrador -> Director
+  // Técnico veía el ítem en el menú pero siempre chocaba con "No tienes
+  // permisos para ver esta página". Se quita del menú para que coincida con
+  // el permiso real.
+  'Director Técnico': ['dashboard', 'inspecciones', 'solicitudes', 'ascensores', 'edificios', 'reportes', 'configuracion'],
   Inspector: ['dashboard', 'inspecciones', 'solicitudes', 'ascensores', 'edificios', 'reportes', 'configuracion'],
   // ✅ FIX: le faltaba 'inspecciones' -> el Cliente no podía ni siquiera
   // navegar a /dashboard/inspecciones (RoleRoute lo redirigía a /dashboard),

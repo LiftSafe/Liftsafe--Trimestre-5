@@ -61,7 +61,7 @@ export default function Buildings() {
   
   const { search, setSearch, page, setPage, paginated, totalCount } = usePaginatedSearch(
     edificios,
-    ['name', 'address', 'manager', 'phone', 'status']
+    ['name', 'address', 'city', 'email', 'phone', 'status', 'razonSocial', 'nit']
   );
 
   // ✅ ESTADO PARA MODAL DE DETALLE (reemplaza comprobante)
@@ -150,13 +150,13 @@ export default function Buildings() {
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                         <ElevatorOutlinedIcon fontSize="small" color="action" />
                         <Typography variant="body2">
-                          {b.elevators || 0} ascensores
+                          {b.elevators || 0} ascensores{b.city ? ` · ${b.city}` : ''}
                         </Typography>
                       </Box>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                         <PhoneOutlinedIcon fontSize="small" color="action" />
                         <Typography variant="body2">
-                          {b.manager || 'Sin gestor'} — {b.phone || 'Sin teléfono'}
+                          {b.phone || b.email || 'Sin contacto'}
                         </Typography>
                       </Box>
 
@@ -261,10 +261,10 @@ export default function Buildings() {
 
             <Box>
               <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
-                UBICACIÓN / CIUDAD
+                CIUDAD
               </Typography>
               <Typography variant="body1">
-                {detailBuilding?.location || '—'}, {detailBuilding?.city || '—'}
+                {detailBuilding?.city || '—'}
               </Typography>
             </Box>
 
@@ -273,16 +273,16 @@ export default function Buildings() {
                 ESTADO
               </Typography>
               <Typography variant="body1">
-                {detailBuilding?.status || 'Activo'}
+                {detailBuilding?.status || '—'}
               </Typography>
             </Box>
 
             <Box>
               <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
-                GESTOR / ADMINISTRADOR
+                CORREO DE CONTACTO
               </Typography>
               <Typography variant="body1">
-                {detailBuilding?.manager || '—'}
+                {detailBuilding?.email || '—'}
               </Typography>
             </Box>
 
@@ -292,6 +292,39 @@ export default function Buildings() {
               </Typography>
               <Typography variant="body1">
                 {detailBuilding?.phone || '—'}
+              </Typography>
+            </Box>
+
+            <Box>
+              <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
+                DOCUMENTO
+              </Typography>
+              <Typography variant="body1">
+                {detailBuilding?.tipoDocumento || detailBuilding?.documento
+                  ? `${detailBuilding?.tipoDocumento || ''} ${detailBuilding?.documento || ''}`.trim()
+                  : '—'}
+              </Typography>
+            </Box>
+
+            <Box>
+              <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
+                RAZÓN SOCIAL / NIT
+              </Typography>
+              <Typography variant="body1">
+                {detailBuilding?.razonSocial || detailBuilding?.nit
+                  ? `${detailBuilding?.razonSocial || '—'}${detailBuilding?.nit ? ` (NIT ${detailBuilding.nit})` : ''}`
+                  : '—'}
+              </Typography>
+            </Box>
+
+            <Box>
+              <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
+                FECHA DE REGISTRO
+              </Typography>
+              <Typography variant="body1">
+                {detailBuilding?.fechaRegistro
+                  ? new Date(detailBuilding.fechaRegistro).toLocaleDateString()
+                  : '—'}
               </Typography>
             </Box>
 
@@ -312,7 +345,7 @@ export default function Buildings() {
                 ID EN SISTEMA
               </Typography>
               <Typography variant="body1" fontFamily="monospace" color="text.secondary">
-                #{detailBuilding?.id || '—'}
+                #{detailBuilding?.id ?? '—'}
               </Typography>
             </Box>
           </Box>

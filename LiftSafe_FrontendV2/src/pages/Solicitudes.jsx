@@ -189,6 +189,11 @@ export default function Solicitudes() {
       setAssignError('Completa todos los campos');
       return;
     }
+    const hoyStr = new Date().toISOString().slice(0, 10);
+    if (assignForm.fecha_programada < hoyStr) {
+      setAssignError('No se puede agendar en una fecha anterior a hoy');
+      return;
+    }
     setAssignLoading(true);
     setAssignError('');
     try {
@@ -652,7 +657,10 @@ export default function Solicitudes() {
               value={assignForm.fecha_programada}
               onChange={(e) => setAssignForm({ ...assignForm, fecha_programada: e.target.value, id_inspector: '' })}
               fullWidth
-              slotProps={{ inputLabel: { shrink: true } }}
+              slotProps={{
+                inputLabel: { shrink: true },
+                htmlInput: { min: new Date().toISOString().slice(0, 10) },
+              }}
             />
 
             <TextField

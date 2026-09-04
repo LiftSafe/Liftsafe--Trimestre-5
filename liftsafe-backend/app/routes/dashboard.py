@@ -77,12 +77,59 @@ def get_charts(current_user = Depends(get_current_user), db: Session = Depends(g
             Inspeccion.estado, func.count(Inspeccion.id_inspeccion)
         ).group_by(Inspeccion.estado).all()
 
+        # ✅ FIX: Director Técnico ("modo supervisión") debe poder "ver el top de
+        # edificios y tendencias de cumplimiento" según su rol, pero estos dos
+        # datasets nunca se calculaban -> BuildingBarChart y ComplianceLineChart
+        # existían en DashboardCharts.jsx pero ningún dashboard los usaba
+        # porque no había datos que pasarles.
+
+        # Top 5 edificios (clientes/direcciones) con más inspecciones
+        top_edificios = db.query(
+            Usuario.direccion, Usuario.nombre_completo,
+            func.count(Inspeccion.id_inspeccion).label('total')
+        ).join(Ascensor, Ascensor.id_cliente == Usuario.id_usuario) \
+         .join(Inspeccion, Inspeccion.id_ascensor == Ascensor.id_ascensor) \
+         .group_by(Usuario.id_usuario) \
+         .order_by(func.count(Inspeccion.id_inspeccion).desc()) \
+         .limit(5).all()
+
+        # Tendencia de cumplimiento: % de informes aprobados sobre informes
+        # revisados (aprobados + rechazados), por mes, últimos 6 meses
+        informes_revisados = db.query(
+            func.date_format(Informe.fecha_revision, '%Y-%m').label('mes'),
+            Informe.estado,
+            func.count(Informe.id_informe).label('total')
+        ).filter(
+            Informe.fecha_revision >= seis_meses,
+            Informe.estado.in_(['Aprobado', 'Rechazado'])
+        ).group_by('mes', Informe.estado).order_by('mes').all()
+
+        cumplimiento_por_mes = {}
+        for mes, estado, total in informes_revisados:
+            if mes not in cumplimiento_por_mes:
+                cumplimiento_por_mes[mes] = {'aprobados': 0, 'total': 0}
+            cumplimiento_por_mes[mes]['total'] += total
+            if estado == 'Aprobado':
+                cumplimiento_por_mes[mes]['aprobados'] += total
+
         return {
             "inspecciones_mes": [{"mes": m, "total": t} for m, t in inspecciones_mes],
             "ascensores_estado": [{"estado": e, "cantidad": c} for e, c in ascensores_estado],
             # Alias que espera AdminDashboard.jsx (antes no existían: la gráfica salía vacía)
             "monthlyInspections": [{"month": m, "total": t} for m, t in inspecciones_mes],
             "inspectionStatusData": [{"name": e, "value": c} for e, c in inspecciones_estado],
+            # Alias que espera DirectorTecnicoDashboard.jsx
+            "topBuildings": [
+                {"building": direccion or nombre or "Sin dirección", "inspecciones": total}
+                for direccion, nombre, total in top_edificios
+            ],
+            "complianceTrend": [
+                {
+                    "month": mes,
+                    "cumplimiento": round((datos['aprobados'] / datos['total']) * 100, 1) if datos['total'] else 0,
+                }
+                for mes, datos in sorted(cumplimiento_por_mes.items())
+            ],
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al obtener datos de gráficos: {str(e)}")

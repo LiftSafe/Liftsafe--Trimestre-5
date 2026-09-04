@@ -20,8 +20,25 @@ export function useDashboardData(fetchFunction) {
         const result = await fetchFunction();
 
         if (mounted) {
-          // ✅ Asegurar que siempre sea un array
-          setData(Array.isArray(result) ? result : []);
+          // ✅ FIX: este hook se usa tanto para endpoints que devuelven listas
+          // (fetchUsuarios, fetchInspecciones, fetchAscensores...) como para
+          // endpoints que devuelven un objeto único (fetchStats, fetchCharts).
+          // Forzar SIEMPRE a array (Array.isArray(result) ? result : [])
+          // funcionaba para las listas, pero convertía cualquier objeto de
+          // stats/charts en [] -> stats?.usuarios_activos quedaba undefined
+          // y todas las tarjetas del dashboard (en los 6 roles) mostraban 0,
+          // y los gráficos se quedaban sin datos. Ahora se respeta la forma
+          // real de la respuesta: arrays se quedan como arrays, objetos como
+          // objetos, y solo se cae a [] cuando la respuesta es null/undefined
+          // o un tipo inesperado (para no romper los .map()/.slice() que
+          // asumen array en los consumidores de listas).
+          if (Array.isArray(result)) {
+            setData(result);
+          } else if (result && typeof result === 'object') {
+            setData(result);
+          } else {
+            setData([]);
+          }
         }
       } catch (err) {
         if (mounted) {

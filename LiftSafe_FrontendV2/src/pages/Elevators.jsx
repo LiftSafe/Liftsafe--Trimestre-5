@@ -72,7 +72,13 @@ const FORM_VACIO = {
 };
 
 export default function Elevators() {
-  const { hasAction } = useAuth();
+  const { user, hasAction } = useAuth();
+  // ✅ Director Técnico opera en "modo supervisión" sobre Ascensores/Edificios
+  // (ve todo el sistema, aprueba informes) pero no debe poder editar/eliminar
+  // ascensores desde acá -> antes los íconos de Editar/Eliminar se mostraban
+  // a cualquier rol con acceso a esta pantalla, sin distinción.
+  const userRol = user?.role || user?.rol;
+  const esDirectorTecnico = userRol === 'Director Técnico';
   const { data: elevators = [], loading, error, refetch } = useDashboardData(fetchAscensores);
   const { search, setSearch, page, setPage, paginated, totalCount } = usePaginatedSearch(
     elevators,
@@ -237,22 +243,26 @@ export default function Elevators() {
                         </TableCell>
 
                         <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
-                          <IconButton
-                            size="small"
-                            color="primary"
-                            onClick={() => abrirEditar(row)}
-                            title="Editar ascensor"
-                          >
-                            <EditIcon fontSize="small" />
-                          </IconButton>
-                          <IconButton
-                            size="small"
-                            color="error"
-                            onClick={() => handleDeleteClick(row)}
-                            title="Eliminar ascensor"
-                          >
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
+                          {!esDirectorTecnico && (
+                            <>
+                              <IconButton
+                                size="small"
+                                color="primary"
+                                onClick={() => abrirEditar(row)}
+                                title="Editar ascensor"
+                              >
+                                <EditIcon fontSize="small" />
+                              </IconButton>
+                              <IconButton
+                                size="small"
+                                color="error"
+                                onClick={() => handleDeleteClick(row)}
+                                title="Eliminar ascensor"
+                              >
+                                <DeleteIcon fontSize="small" />
+                              </IconButton>
+                            </>
+                          )}
                         </TableCell>
                       </TableRow>
                     ))}
