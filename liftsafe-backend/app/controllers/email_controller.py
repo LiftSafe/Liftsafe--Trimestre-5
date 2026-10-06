@@ -51,3 +51,39 @@ async def send_reset_email(email: str, code: str):
     except Exception as e:
         logger.error(f"❌ Error enviando email: {str(e)}")
         raise Exception(f"Error al enviar correo: {str(e)}")
+
+async def send_encuesta_email(email: str, nombre_cliente: str, codigo_ascensor: str):
+    """Avisa al cliente que su inspección terminó y lo invita a calificar el
+    servicio desde la sección "Encuestas" de la app (no se manda un enlace
+    directo a la encuesta: igual que send_reset_email, todo se hace
+    iniciando sesión dentro de LiftSafe)."""
+
+    logger.info(f"📩 Aviso de encuesta para: {email} (ascensor {codigo_ascensor})")
+
+    try:
+        message = MessageSchema(
+            subject="Tu inspección ha finalizado - LiftSafe",
+            recipients=[email],
+            body=f"""
+            <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px; background: #f9f9f9; border-radius: 8px;">
+                <h2 style="color: #1a1a2e; margin-bottom: 8px;">¡Tu inspección ha finalizado!</h2>
+                <p style="color: #555;">Hola {nombre_cliente}, la inspección del ascensor <strong>{codigo_ascensor}</strong> ya fue finalizada.</p>
+                <p style="color: #555; margin-bottom: 24px;">Nos gustaría conocer tu opinión sobre el servicio. Ingresa a LiftSafe y ve a la sección <strong>Encuestas</strong> para calificarlo — solo toma un minuto.</p>
+                <p style="color: #888; font-size: 13px;">Gracias por confiar en LiftSafe.</p>
+            </div>
+            """,
+            subtype="html"
+        )
+        fm = FastMail(conf)
+        await fm.send_message(message)
+        logger.info(f"✅ Email de encuesta enviado a {email}")
+        return True
+
+    except Exception as e:
+        logger.error(f"❌ Error enviando email de encuesta: {str(e)}")
+        # ✅ A propósito NO relanzamos la excepción: la encuesta y la
+        # notificación dentro de la app ya quedaron creadas en ese punto
+        # (ver actualizar_estado en routes/inspecciones.py) -> un problema
+        # de correo (credenciales vencidas, sin internet, etc.) no debe
+        # tumbar el finalizar la inspección completa.
+        return False

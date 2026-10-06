@@ -351,14 +351,6 @@ export default function Reports() {
                           >
                             <EditIcon fontSize="small" />
                           </IconButton>
-                          <IconButton
-                            size="small"
-                            color="error"
-                            onClick={() => handleDeleteClick(doc)}
-                            title="Eliminar"
-                          >
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
                         </TableCell>
                       </TableRow>
                     ))}

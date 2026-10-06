@@ -652,6 +652,14 @@ export default function Inspections() {
   };
 
   const crearInspeccion = async () => {
+    // FIX: este campo tampoco tenia limite -> se podia crear una inspeccion
+    // "nueva" con fecha ya pasada (el backend si la rechaza, pero conviene
+    // avisar antes de llamarlo).
+    const hoyStr = new Date().toISOString().slice(0, 10);
+    if (newInspection.fecha_programada && newInspection.fecha_programada < hoyStr) {
+      showMessage('No se puede agendar en una fecha anterior a hoy', 'error');
+      return;
+    }
     try {
       // ✅ FIX: el backend (InspeccionCreate) espera el campo "observaciones",
       // no "observaciones_generales" -> antes las observaciones iniciales se
@@ -1033,7 +1041,10 @@ export default function Inspections() {
               label="Fecha programada"
               type="date"
               fullWidth
-              slotProps={{ inputLabel: { shrink: true } }}
+              slotProps={{
+                inputLabel: { shrink: true },
+                htmlInput: { min: new Date().toISOString().slice(0, 10) },
+              }}
               value={newInspection.fecha_programada}
               onChange={(e) => setNewInspection({ ...newInspection, fecha_programada: e.target.value })}
               required

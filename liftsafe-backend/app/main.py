@@ -23,6 +23,7 @@ from app.routes import (
     programacion,
     solicitudes,
     notificaciones,
+    encuestas,
 )
 
 app = FastAPI(
@@ -74,6 +75,7 @@ app.include_router(auditoria.router)         # Dayan
 app.include_router(programacion.router)      # Luz
 app.include_router(solicitudes.router)       # Luz
 app.include_router(notificaciones.router)    # Equipo - requiere correr migrations/add_notificacion_table.sql antes de usar
+app.include_router(encuestas.router)         # requiere correr migrations/add_encuesta_table.sql antes de usar
 
 # ============================================
 # SERVIR FOTOS SUBIDAS

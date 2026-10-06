@@ -159,7 +159,22 @@ export default function Solicitudes() {
       setLoadingInspectores(true);
       try {
         const data = await usuarioService.listarInspectores(assignForm.fecha_programada || undefined);
-        if (active) setInspectores(data || []);
+        if (!active) return;
+        setInspectores(data || []);
+        // FIX: antes se borraba el inspector seleccionado cada vez que
+        // cambiaba la fecha (ver el onChange de "Fecha programada" mas abajo),
+        // aunque ese mismo inspector siguiera disponible para la nueva fecha
+        // -> tocaba volver a seleccionarlo siempre. Ahora solo se limpia si
+        // deja de aparecer en la lista de disponibles para la fecha elegida.
+        setAssignForm((prev) => {
+          const sigueDisponible = (data || []).some(
+            (i) => String(i.id_usuario) === String(prev.id_inspector)
+          );
+          if (prev.id_inspector && !sigueDisponible) {
+            return { ...prev, id_inspector: '' };
+          }
+          return prev;
+        });
       } catch (err) {
         console.error('Error cargando inspectores:', err);
         if (active) setInspectores([]);
@@ -255,6 +270,14 @@ export default function Solicitudes() {
     if (!formData.id_ascensor) errors.id_ascensor = 'Selecciona un ascensor';
     if (!formData.tipo_servicio) errors.tipo_servicio = 'Selecciona un tipo de servicio';
     if (!formData.prioridad) errors.prioridad = 'Selecciona una prioridad';
+    // FIX: el campo de "Fecha deseada" no tenia limite -> se podia crear una
+    // solicitud pidiendo una inspeccion en una fecha que ya paso.
+    if (formData.fecha_deseada) {
+      const hoyStr = new Date().toISOString().slice(0, 10);
+      if (formData.fecha_deseada < hoyStr) {
+        errors.fecha_deseada = 'No se puede seleccionar una fecha anterior a hoy';
+      }
+    }
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -590,7 +613,12 @@ export default function Solicitudes() {
               value={formData.fecha_deseada}
               onChange={handleChange}
               fullWidth
-              slotProps={{ inputLabel: { shrink: true } }}
+              slotProps={{
+                inputLabel: { shrink: true },
+                htmlInput: { min: new Date().toISOString().slice(0, 10) },
+              }}
+              error={!!formErrors.fecha_deseada}
+              helperText={formErrors.fecha_deseada}
             />
 
             <TextField
@@ -655,7 +683,7 @@ export default function Solicitudes() {
               label="Fecha programada *"
               type="date"
               value={assignForm.fecha_programada}
-              onChange={(e) => setAssignForm({ ...assignForm, fecha_programada: e.target.value, id_inspector: '' })}
+              onChange={(e) => setAssignForm({ ...assignForm, fecha_programada: e.target.value })}
               fullWidth
               slotProps={{
                 inputLabel: { shrink: true },

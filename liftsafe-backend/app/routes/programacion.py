@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Body
 from sqlalchemy.orm import Session
 from typing import List, Optional
-from datetime import date, datetime
+from datetime import date, datetime, time
 from app.database import get_db
 from app.models.models import Programacion, Solicitud, Usuario, Notificacion, Inspeccion
 from app.schemas.schemas import ProgramacionCreate, ProgramacionUpdate, ProgramacionResponse, MessageResponse
@@ -11,20 +11,19 @@ router = APIRouter(prefix="/programacion", tags=["Programación"])
 
 
 # ✅ FIX: el frontend manda la hora como texto suelto "HH:MM" (un <input
-# type="time">, ver Solicitudes.jsx), pero Programacion.hora_inicio /
-# hora_fin_estimada son columnas DATETIME (app/models/models.py). Guardar el
-# string "HH:MM" directo en un DATETIME hacía que MySQL rechazara el INSERT
-# ("Incorrect datetime value") -> 500 en el backend, que el navegador
-# mostraba como "bloqueado por CORS" (FastAPI no agrega headers de CORS a
-# una excepción no controlada). Esta función arma un datetime real
-# combinando la fecha programada con la hora recibida.
-def _combinar_fecha_hora(fecha: date, hora_str: Optional[str]) -> Optional[datetime]:
-    if not fecha or not hora_str:
+# type="time">, ver Solicitudes.jsx). Programacion.hora_inicio /
+# hora_fin_estimada son columnas TIME de verdad en la base de datos (ver
+# liftsafe_db.sql y app/models/models.py) -> lo correcto es parsear ese
+# texto a un datetime.time, no combinarlo con la fecha (eso fue lo que se
+# intentó antes, y como el modelo también decía DateTime, la respuesta de
+# /programacion/ fallaba justo después de guardar: PyMySQL lee una columna
+# TIME como datetime.timedelta y no como datetime.datetime).
+def _parse_hora(hora_str: Optional[str]) -> Optional[time]:
+    if not hora_str:
         return None
     hora_str = hora_str.strip()
     formato = "%H:%M:%S" if hora_str.count(":") == 2 else "%H:%M"
-    hora = datetime.strptime(hora_str, formato).time()
-    return datetime.combine(fecha, hora)
+    return datetime.strptime(hora_str, formato).time()
 
 # ============================================
 # 1. ASIGNAR INSPECTOR A SOLICITUD (Coordinador)
@@ -51,13 +50,23 @@ def asignar_inspector(
     if not inspector:
         raise HTTPException(status_code=404, detail="Inspector no encontrado")
 
+    # FIX: el frontend ya bloquea fechas pasadas en "Fecha programada", pero
+    # el backend no lo validaba -> se podia asignar un inspector para una
+    # fecha ya pasada llamando directo al API.
+    if data.fecha_programada < date.today():
+        raise HTTPException(
+            status_code=400,
+            detail=f"La fecha programada ({data.fecha_programada}) no puede ser anterior a hoy ({date.today()})"
+        )
+
     # Crear la programación
+    hora_inicio_parseada = _parse_hora(data.hora_inicio)
     nueva = Programacion(
         id_solicitud=data.id_solicitud,
         id_inspector=data.id_inspector,
         fecha_programada=data.fecha_programada,
-        hora_inicio=_combinar_fecha_hora(data.fecha_programada, data.hora_inicio),
-        hora_fin_estimada=_combinar_fecha_hora(data.fecha_programada, data.hora_fin_estimada),
+        hora_inicio=hora_inicio_parseada,
+        hora_fin_estimada=_parse_hora(data.hora_fin_estimada),
         estado="Programada"
     )
     db.add(nueva)
@@ -76,7 +85,9 @@ def asignar_inspector(
         id_ascensor=solicitud.id_ascensor,
         id_inspector=data.id_inspector,
         id_solicitud=data.id_solicitud,
-        fecha_inicio=nueva.hora_inicio or datetime.combine(data.fecha_programada, datetime.min.time()),
+        # Inspeccion.fecha_inicio SI es una columna DATETIME real -> aqui hay
+        # que combinar fecha + hora; nueva.hora_inicio ya es solo un time.
+        fecha_inicio=datetime.combine(data.fecha_programada, hora_inicio_parseada or datetime.min.time()),
         estado="Programada"
     )
     db.add(nueva_inspeccion)
@@ -85,13 +96,28 @@ def asignar_inspector(
     solicitud.estado = "Programada"
 
     # Crear notificación para el Inspector (Luz)
+    # FIX: "fecha_creacion=date.today()" guardaba siempre medianoche (00:00),
+    # sin la hora real -> en el listado de notificaciones (campanita) todas
+    # las del mismo día se veían con la misma hora "00:00". El modelo ya
+    # tiene default=datetime.utcnow, así que basta con no pisarlo.
     notificacion = Notificacion(
         id_usuario_destino=data.id_inspector,
         mensaje=f"Se te ha asignado una nueva inspección para la solicitud #{data.id_solicitud}.",
+        enlace="/dashboard/inspecciones",
         leida=False,
-        fecha_creacion=date.today()
     )
     db.add(notificacion)
+
+    # FIX: el cliente que pidió la inspección nunca se enteraba de que ya
+    # tenía inspector y fecha asignada -> tenía que entrar a revisar el
+    # estado de su solicitud manualmente.
+    if solicitud.id_cliente:
+        db.add(Notificacion(
+            id_usuario_destino=solicitud.id_cliente,
+            mensaje=f"Tu solicitud #{data.id_solicitud} fue programada para el {data.fecha_programada}.",
+            enlace="/dashboard/solicitudes",
+            leida=False,
+        ))
 
     db.commit()
     db.refresh(nueva)
@@ -138,23 +164,45 @@ def reasignar_inspector(
         
         programacion.id_inspector = data.id_inspector
         
-        # Crear notificación para el nuevo inspector (Luz)
+        # Crear notificación para el nuevo inspector (Luz) -- mismo FIX que
+        # en asignar_inspector: dejar que el modelo ponga la hora real.
         notificacion = Notificacion(
             id_usuario_destino=data.id_inspector,
             mensaje=f"Se te ha reasignado la inspección de la solicitud #{programacion.id_solicitud}.",
+            enlace="/dashboard/inspecciones",
             leida=False,
-            fecha_creacion=date.today()
         )
         db.add(notificacion)
+
+    # FIX: mismo problema que en asignar_inspector -> el cliente no se
+    # enteraba cuando le cambiaban el inspector o la fecha/hora de su
+    # inspección ya programada.
+    solicitud_cliente = db.query(Solicitud).filter(
+        Solicitud.id_solicitud == programacion.id_solicitud
+    ).first()
+    if solicitud_cliente and solicitud_cliente.id_cliente:
+        db.add(Notificacion(
+            id_usuario_destino=solicitud_cliente.id_cliente,
+            mensaje=f"Tu solicitud #{programacion.id_solicitud} fue reprogramada.",
+            enlace="/dashboard/solicitudes",
+            leida=False,
+        ))
+
+    # FIX: misma validacion que en asignar_inspector -> tampoco se podia
+    # reasignar hacia una fecha ya pasada.
+    if data.fecha_programada and data.fecha_programada < date.today():
+        raise HTTPException(
+            status_code=400,
+            detail=f"La fecha programada ({data.fecha_programada}) no puede ser anterior a hoy ({date.today()})"
+        )
 
     # Actualizar fechas y horas
     if data.fecha_programada:
         programacion.fecha_programada = data.fecha_programada
-    fecha_referencia = data.fecha_programada or programacion.fecha_programada
     if data.hora_inicio:
-        programacion.hora_inicio = _combinar_fecha_hora(fecha_referencia, data.hora_inicio)
+        programacion.hora_inicio = _parse_hora(data.hora_inicio)
     if data.hora_fin_estimada:
-        programacion.hora_fin_estimada = _combinar_fecha_hora(fecha_referencia, data.hora_fin_estimada)
+        programacion.hora_fin_estimada = _parse_hora(data.hora_fin_estimada)
 
     # Mantener estado como Programada (no se cambia en reasignación)
     programacion.estado = "Programada"
@@ -169,7 +217,12 @@ def reasignar_inspector(
         if data.id_inspector:
             inspeccion_vinculada.id_inspector = data.id_inspector
         if programacion.hora_inicio:
-            inspeccion_vinculada.fecha_inicio = programacion.hora_inicio
+            # FIX: programacion.hora_inicio ahora es solo un time (columna
+            # TIME real en la base de datos); Inspeccion.fecha_inicio SI es
+            # DATETIME, asi que hay que combinarla con la fecha programada.
+            inspeccion_vinculada.fecha_inicio = datetime.combine(
+                programacion.fecha_programada, programacion.hora_inicio
+            )
 
     db.commit()
     db.refresh(programacion)
@@ -196,7 +249,24 @@ def cancelar_programacion(
     solicitud = db.query(Solicitud).filter(Solicitud.id_solicitud == programacion.id_solicitud).first()
     if solicitud:
         solicitud.estado = "Pendiente"
-    
+
+    # FIX: al cancelar una programación no se avisaba ni al inspector que
+    # tenía asignada esa inspección, ni al cliente que la había pedido.
+    if programacion.id_inspector:
+        db.add(Notificacion(
+            id_usuario_destino=programacion.id_inspector,
+            mensaje=f"Se canceló la inspección de la solicitud #{programacion.id_solicitud}. Motivo: {motivo}",
+            enlace="/dashboard/inspecciones",
+            leida=False,
+        ))
+    if solicitud and solicitud.id_cliente:
+        db.add(Notificacion(
+            id_usuario_destino=solicitud.id_cliente,
+            mensaje=f"Tu inspección programada (solicitud #{programacion.id_solicitud}) fue cancelada. Motivo: {motivo}",
+            enlace="/dashboard/solicitudes",
+            leida=False,
+        ))
+
     db.commit()
     return {"message": "Programación cancelada correctamente"}
 

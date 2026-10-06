@@ -1,6 +1,6 @@
 from pydantic import BaseModel, EmailStr, field_validator
 from typing import Optional, List, Literal
-from datetime import datetime, date
+from datetime import datetime, date, time
 from app.utils.password_validator import validate_password
 from app.utils.auth_deps import DOCUMENT_TYPES, CLIENTE_ROL_ID
 
@@ -270,12 +270,30 @@ class ProgramacionUpdate(BaseModel):
     estado: Optional[str] = None
     motivo_cancelacion: Optional[str] = None
 
-class ProgramacionResponse(ProgramacionBase):
+# FIX: no puede heredar de ProgramacionBase (que define hora_inicio/
+# hora_fin_estimada como str, el formato "HH:MM" que manda el frontend al
+# CREAR). El objeto que realmente se devuelve es la fila de la tabla
+# `programacion` ya guardada, donde esas columnas son DATETIME reales
+# (ver models.py) -> validarlas contra "str" fallaba con un error de
+# pydantic. Ademas "solicitud"/"inspector" como Optional[dict] tampoco
+# servian: `Programacion.solicitud` es una relacion SQLAlchemy (un objeto,
+# no un dict) y `Programacion` ni siquiera tiene una relacion `inspector`.
+# Cualquiera de los dos problemas hacia que la respuesta fallara DESPUES del
+# db.commit() -> el navegador veia "Failed to fetch"/bloqueado por CORS (FastAPI
+# no agrega headers de CORS a una excepcion no controlada) aunque la
+# asignacion ya habia quedado guardada en la base de datos.
+class ProgramacionResponse(BaseModel):
     id_programacion: int
+    id_solicitud: int
+    id_inspector: int
+    fecha_programada: date
+    # FIX: son columnas TIME reales en la base de datos (ver
+    # liftsafe_db.sql), no DATETIME -> el tipo aqui tiene que ser time, no
+    # datetime, o la respuesta vuelve a fallar despues de guardar.
+    hora_inicio: Optional[time] = None
+    hora_fin_estimada: Optional[time] = None
     estado: str
     fecha_creacion: datetime
-    solicitud: Optional[dict] = None
-    inspector: Optional[dict] = None
 
     class Config:
         from_attributes = True
@@ -286,6 +304,7 @@ class ProgramacionResponse(ProgramacionBase):
 class NotificacionBase(BaseModel):
     id_usuario_destino: int
     mensaje: str
+    enlace: str | None = None
     leida: bool = False
 
 class NotificacionCreate(NotificacionBase):
@@ -300,6 +319,20 @@ class NotificacionResponse(NotificacionBase):
 
     class Config:
         from_attributes = True
+
+# ==========================================
+# ESQUEMAS DE ENCUESTA DE SATISFACCIÓN
+# ==========================================
+class EncuestaRespuestaCreate(BaseModel):
+    calificacion: int  # 1 (peor) a 5 (mejor)
+    comentario: Optional[str] = None
+
+    @field_validator('calificacion')
+    @classmethod
+    def validar_calificacion(cls, v):
+        if v < 1 or v > 5:
+            raise ValueError('La calificación debe estar entre 1 y 5')
+        return v
 
 # ==========================================
 # ESQUEMAS DE CHECKLIST (FELIPE)

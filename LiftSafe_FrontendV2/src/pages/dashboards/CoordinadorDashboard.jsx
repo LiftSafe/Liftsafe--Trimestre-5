@@ -130,6 +130,13 @@ export default function CoordinadorDashboard() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    // FIX: este campo no tenia limite -> se podia asignar un inspector para
+    // una fecha ya pasada (ver el mismo fix en Solicitudes.jsx).
+    const hoyStr = new Date().toISOString().slice(0, 10);
+    if (formData.fecha_programada && formData.fecha_programada < hoyStr) {
+      setMessageDialog({ open: true, title: 'Error', message: 'No se puede agendar en una fecha anterior a hoy', severity: 'error' });
+      return;
+    }
     try {
       await programacionService.asignar(formData);
       handleCloseModal();
@@ -275,7 +282,10 @@ export default function CoordinadorDashboard() {
               value={formData.fecha_programada}
               onChange={(e) => setFormData({ ...formData, fecha_programada: e.target.value })}
               sx={{ mb: 2 }}
-              slotProps={{ inputLabel: { shrink: true } }}
+              slotProps={{
+                inputLabel: { shrink: true },
+                htmlInput: { min: new Date().toISOString().slice(0, 10) },
+              }}
               required
             />
 

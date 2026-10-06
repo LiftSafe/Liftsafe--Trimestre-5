@@ -1,7 +1,7 @@
 # app/models/models.py
 
 from app.database import Base
-from sqlalchemy import Column, Integer, String, Float, Date, DateTime, ForeignKey, Text, Boolean, LargeBinary
+from sqlalchemy import Column, Integer, String, Float, Date, DateTime, Time, ForeignKey, Text, Boolean, LargeBinary
 from sqlalchemy.orm import relationship
 from datetime import datetime
 
@@ -115,8 +115,16 @@ class Programacion(Base):
     id_inspector = Column(Integer, ForeignKey("usuario.id_usuario"), nullable=False, 
                          comment="Usuario con rol Inspector")
     fecha_programada = Column(Date, nullable=False)
-    hora_inicio = Column(DateTime, nullable=False)
-    hora_fin_estimada = Column(DateTime, nullable=True)
+    # FIX: la tabla real en MySQL tiene estas dos columnas como TIME, no
+    # DATETIME (ver liftsafe_db.sql) -> PyMySQL devuelve un TIME leido como
+    # datetime.timedelta, y el modelo decia DateTime, asi que SQLAlchemy
+    # esperaba un datetime.datetime real. Ese desajuste era lo que hacia
+    # fallar la respuesta de /programacion/ justo despues de guardar
+    # (db.commit() ya habia quedado hecho, pero la serializacion posterior
+    # tronaba con "Input should be a valid datetime"). Ahora coincide con la
+    # base de datos.
+    hora_inicio = Column(Time, nullable=False)
+    hora_fin_estimada = Column(Time, nullable=True)
     estado = Column(String(255), nullable=False)
     motivo_cancelacion = Column(String(255), nullable=True)
     fecha_creacion = Column(DateTime, nullable=False, default=datetime.utcnow)
@@ -328,9 +336,35 @@ class Notificacion(Base):
     id_usuario_destino = Column(Integer, ForeignKey("usuario.id_usuario"), nullable=False,
                                 comment="Usuario que recibe la notificación")
     mensaje = Column(String(255), nullable=False, comment="Contenido de la notificación")
+    # FIX: al hacer clic en una notificación no pasaba nada -> se agrega un
+    # "enlace" (ruta del frontend, ej. "/dashboard/reportes") para que el
+    # campanita pueda llevar directo a la sección correspondiente.
+    enlace = Column(String(255), nullable=True, comment="Ruta del frontend a la que debe llevar al hacer clic")
     leida = Column(Boolean, nullable=False, default=False, comment="Indica si la notificación fue leída")
     fecha_creacion = Column(DateTime, nullable=False, default=datetime.utcnow,
                            comment="Fecha y hora de creación")
     
     # Relación con usuario
     usuario_destino = relationship("Usuario", back_populates="notificaciones", foreign_keys=[id_usuario_destino])
+
+# ============ MODELO ENCUESTA DE SATISFACCIÓN ============
+# Se crea automáticamente cuando una inspección pasa a estado "Finalizada"
+# (ver actualizar_estado en app/routes/inspecciones.py) para que el cliente
+# califique el servicio. Requiere correr
+# migrations/add_encuesta_table.sql antes de usar.
+
+class Encuesta(Base):
+    __tablename__ = "encuesta"
+
+    id_encuesta = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    id_inspeccion = Column(Integer, ForeignKey("inspeccion.id_inspeccion"), nullable=False)
+    id_cliente = Column(Integer, ForeignKey("usuario.id_usuario"), nullable=False,
+                        comment="Cliente que debe responder la encuesta")
+    calificacion = Column(Integer, nullable=True, comment="De 1 (peor) a 5 (mejor)")
+    comentario = Column(Text, nullable=True)
+    respondida = Column(Boolean, nullable=False, default=False)
+    fecha_creacion = Column(DateTime, nullable=False, default=datetime.utcnow)
+    fecha_respuesta = Column(DateTime, nullable=True)
+
+    inspeccion = relationship("Inspeccion")
+    cliente = relationship("Usuario")

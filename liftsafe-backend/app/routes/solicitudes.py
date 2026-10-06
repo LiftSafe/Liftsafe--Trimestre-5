@@ -3,9 +3,9 @@ from sqlalchemy.orm import Session, joinedload
 from typing import List
 from datetime import datetime, date
 from app.database import get_db
-from app.models.models import Solicitud, Ascensor
+from app.models.models import Solicitud, Ascensor, Usuario, Notificacion
 from app.schemas.schemas import SolicitudCreate, SolicitudUpdate, SolicitudResponse
-from app.utils.auth_deps import get_current_user_role, require_admin
+from app.utils.auth_deps import get_current_user_role, require_admin, ADMIN_ROL_ID, COORDINADOR_ROL_ID
 
 router = APIRouter(prefix="/solicitudes", tags=["Solicitudes"])
 
@@ -69,6 +69,17 @@ def crear_solicitud(
     if ascensor.id_cliente != user_id:
         raise HTTPException(status_code=403, detail="El ascensor no pertenece a este cliente")
 
+    # FIX: el frontend (Solicitudes.jsx) ya bloquea fechas pasadas en el
+    # campo "Fecha deseada", pero el backend no validaba nada -> se podia
+    # crear una solicitud pidiendo una inspeccion para una fecha ya pasada
+    # llamando directo al API. Misma regla que ya existe en /inspecciones
+    # (crear_inspeccion) para el flujo de "Nueva inspección".
+    if data.fecha_deseada and data.fecha_deseada < date.today():
+        raise HTTPException(
+            status_code=400,
+            detail=f"La fecha deseada ({data.fecha_deseada}) no puede ser anterior a hoy ({date.today()})"
+        )
+
     nueva = Solicitud(
         id_cliente=user_id,
         id_ascensor=data.id_ascensor,
@@ -82,6 +93,23 @@ def crear_solicitud(
     db.add(nueva)
     db.commit()
     db.refresh(nueva)
+
+    # FIX: al crear una solicitud no se avisaba a nadie -> Coordinadores y
+    # Administradores solo se enteraban de una solicitud nueva si entraban
+    # manualmente a revisar la lista. Se les crea una notificación (misma
+    # tabla/patrón que ya usa asignar_inspector en programacion.py), así les
+    # suena la alarma y les aparece en la campanita.
+    destinatarios = db.query(Usuario).filter(
+        Usuario.id_rol.in_([ADMIN_ROL_ID, COORDINADOR_ROL_ID])
+    ).all()
+    for destinatario in destinatarios:
+        db.add(Notificacion(
+            id_usuario_destino=destinatario.id_usuario,
+            mensaje=f"Nueva solicitud de inspección para el ascensor {ascensor.codigo_interno} (prioridad {data.prioridad}).",
+            enlace="/dashboard/solicitudes",
+            leida=False,
+        ))
+    db.commit()
 
     nueva = _con_relaciones(db.query(Solicitud)).filter(
         Solicitud.id_solicitud == nueva.id_solicitud
@@ -142,10 +170,28 @@ def modificar_solicitud(
         if solicitud.estado != "Pendiente":
             raise HTTPException(status_code=400, detail="Solo se pueden modificar solicitudes pendientes")
 
+    estado_anterior = solicitud.estado
     for key, value in data.model_dump(exclude_unset=True).items():
         setattr(solicitud, key, value)
     db.commit()
     db.refresh(solicitud)
+
+    # FIX: cuando el cliente cancelaba una solicitud pendiente, Coordinador
+    # y Administrador no se enteraban -> les toca revisarla manualmente para
+    # darse cuenta. Se les avisa igual que cuando se crea una solicitud
+    # nueva.
+    if solicitud.estado == "Cancelada" and estado_anterior != "Cancelada":
+        destinatarios = db.query(Usuario).filter(
+            Usuario.id_rol.in_([ADMIN_ROL_ID, COORDINADOR_ROL_ID])
+        ).all()
+        for destinatario in destinatarios:
+            db.add(Notificacion(
+                id_usuario_destino=destinatario.id_usuario,
+                mensaje=f"La solicitud #{solicitud.id_solicitud} fue cancelada por el cliente.",
+                enlace="/dashboard/solicitudes",
+                leida=False,
+            ))
+        db.commit()
 
     solicitud = _con_relaciones(db.query(Solicitud)).filter(Solicitud.id_solicitud == id).first()
     return _serializar_solicitud(solicitud)

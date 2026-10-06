@@ -3,10 +3,10 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from app.database import get_db
-from app.models.models import Inspeccion, Ascensor, Usuario, Informe
+from app.models.models import Inspeccion, Ascensor, Usuario, Informe, Notificacion
 from app.schemas.schemas import InspeccionCreate, InspeccionUpdate, FirmaRequest, MessageResponse
 from app.controllers.inspeccion_controller import crear_inspeccion
-from app.utils.auth_deps import get_current_user_role
+from app.utils.auth_deps import get_current_user_role, ADMIN_ROL_ID, COORDINADOR_ROL_ID
 from app.config import settings
 from jose import jwt, JWTError
 from datetime import datetime, date
@@ -298,7 +298,7 @@ def firmar_inspector(
 # 7. FIRMAR COMO CLIENTE (VALENTINA)
 # ============================================
 @router.put("/{id}/firma-cliente", response_model=MessageResponse)
-def firmar_cliente(
+async def firmar_cliente(
     id: int,
     data: FirmaRequest,
     credentials: HTTPAuthorizationCredentials = Security(security),
@@ -324,7 +324,7 @@ def firmar_cliente(
     inspeccion.fecha_firma_cliente = datetime.now()
     db.commit()
     db.refresh(inspeccion)
-    
+
     return {"message": "Firma del cliente registrada exitosamente"}
 
 # ============================================
@@ -363,7 +363,7 @@ def verificar_firmas(
 # 9. ACTUALIZAR ESTADO DE INSPECCIÓN
 # ============================================
 @router.put("/{id}/estado")
-def actualizar_estado(
+async def actualizar_estado(
     id: int,
     estado: str,
     credentials: HTTPAuthorizationCredentials = Security(security),
@@ -381,14 +381,69 @@ def actualizar_estado(
     estados_validos = ['Programada', 'En Progreso', 'Completada', 'Cancelada', 'Finalizada', 'Aprobada']
     if estado not in estados_validos:
         raise HTTPException(status_code=400, detail=f"Estado inválido. Opciones: {estados_validos}")
-    
+
+    # ✅ Detecta si esta llamada es la que realmente termina la inspección,
+    # para no crear una encuesta cada vez que alguien vuelva a llamar este
+    # endpoint con el mismo estado (por ejemplo, un doble clic).
+    pasa_a_finalizada = estado == "Finalizada" and inspeccion.estado != "Finalizada"
+
     inspeccion.estado = estado
     if estado in ['Completada', 'Finalizada', 'Aprobada']:
         inspeccion.fecha_fin = datetime.now()
     
     db.commit()
     db.refresh(inspeccion)
-    
+
+    # ✅ FIX: cuando el Inspector finaliza la inspección, el cliente no se
+    # enteraba de nada -> no había encuesta, ni notificación en la app, ni
+    # correo. Ahora, en el mismo momento en que la inspección pasa a
+    # "Finalizada", se crea la encuesta de satisfacción, se le notifica al
+    # cliente dentro de la app (campanita) y se le manda un correo.
+    # Requiere haber corrido migrations/add_encuesta_table.sql y
+    # migrations/add_notificacion_table.sql.
+    if pasa_a_finalizada:
+        ascensor = db.query(Ascensor).filter(Ascensor.id_ascensor == inspeccion.id_ascensor).first()
+        cliente = db.query(Usuario).filter(Usuario.id_usuario == ascensor.id_cliente).first() if ascensor else None
+
+        # FIX: la encuesta de satisfacción YA NO se crea aquí. Ahora se crea
+        # únicamente cuando el informe se envía al cliente (ver
+        # enviar_informe en informes.py), para que la encuesta solo le
+        # aparezca al cliente después de recibir el informe completo, no
+        # apenas se finaliza o firma la inspección.
+        if cliente:
+            if inspeccion.firma_cliente:
+                db.add(Notificacion(
+                    id_usuario_destino=cliente.id_usuario,
+                    mensaje=f"La inspección del ascensor {ascensor.codigo_interno} finalizó correctamente.",
+                    enlace="/dashboard/inspecciones",
+                    leida=False,
+                ))
+            else:
+                db.add(Notificacion(
+                    id_usuario_destino=cliente.id_usuario,
+                    mensaje=f"La inspección del ascensor {ascensor.codigo_interno} finalizó. Falta tu firma para completarla.",
+                    enlace="/dashboard/inspecciones",
+                    leida=False,
+                ))
+            db.commit()
+
+        # FIX: Coordinador y Administrador tampoco se enteraban de que una
+        # inspección ya había sido finalizada por el inspector -> no había
+        # forma de saber que ya se podía revisar/generar el informe sin
+        # entrar a mirar la lista manualmente.
+        staff = db.query(Usuario).filter(
+            Usuario.id_rol.in_([ADMIN_ROL_ID, COORDINADOR_ROL_ID])
+        ).all()
+        codigo_ascensor = ascensor.codigo_interno if ascensor else inspeccion.id_ascensor
+        for miembro in staff:
+            db.add(Notificacion(
+                id_usuario_destino=miembro.id_usuario,
+                mensaje=f"El inspector finalizó la inspección del ascensor {codigo_ascensor}. Ya se puede generar el informe.",
+                enlace="/dashboard/inspecciones",
+                leida=False,
+            ))
+        db.commit()
+
     return {
         "message": "Estado actualizado exitosamente",
         "nuevo_estado": inspeccion.estado

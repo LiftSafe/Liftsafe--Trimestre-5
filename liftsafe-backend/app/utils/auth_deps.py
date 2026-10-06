@@ -13,8 +13,15 @@ from app.models.models import Usuario
 # ============================================
 CLIENTE_ROL_ID = 6
 INSPECTOR_ROL_ID = 4
-COORDINADOR_ROL_ID = 5
+# FIX: estaba en 5, pero en la tabla `rol` (liftsafe_db.sql) el id 5 es
+# "Asesor" y Coordinador es el id 3. Esta constante no se usaba en ningún
+# query hasta ahora (solo se comparaba el string "rol" que viene del JWT),
+# así que el valor incorrecto nunca se había notado -> se corrige antes de
+# usarla para filtrar destinatarios de notificaciones.
+COORDINADOR_ROL_ID = 3
 ADMIN_ROL_ID = 1
+DIRECTOR_TECNICO_ROL_ID = 2
+ASESOR_ROL_ID = 5
 
 DOCUMENT_TYPES = {"CC", "CE", "PA", "RC", "TI", "NIT", "PEP", "PPT", "CD"}
 

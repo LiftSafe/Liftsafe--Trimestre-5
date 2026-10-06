@@ -30,7 +30,11 @@ def crear_inspeccion(db: Session, data: dict, id_inspector: int):
         id_solicitud=nueva_solicitud.id_solicitud,
         id_inspector=id_inspector,
         fecha_programada=fecha_programada.date() if hasattr(fecha_programada, 'date') else fecha_programada,
-        hora_inicio=fecha_programada,
+        # FIX: Programacion.hora_inicio es una columna TIME real (ver
+        # liftsafe_db.sql) -> hay que guardar solo la hora, no el datetime
+        # completo, o la fila queda con un valor que luego no se puede leer
+        # de vuelta como time.
+        hora_inicio=fecha_programada.time() if hasattr(fecha_programada, 'time') else fecha_programada,
         estado='Programada'
     )
     db.add(nueva_programacion)
