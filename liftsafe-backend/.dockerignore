@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+ENV/
+
+# Tests
+.pytest_cache/
+.coverage
+htmlcov/
+tests/
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+.cursor/
+
+# Datos sensibles
+.env
+.env.local
+*.sql
+
+# Uploads y archivos generados
+uploads/
+informes/
+comprobantes/
+
+# Documentos
+*.docx
+*.md

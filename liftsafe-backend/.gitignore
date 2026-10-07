@@ -1,5 +1,51 @@
-__pycache__/ *
-.pyc 
-.venv/ 
-venv/*.pyc
+# uv
+.venv/
+uv.lock
+
+# Python
 __pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Pytest
+.pytest_cache/
+.coverage
+htmlcov/
+coverage/
+
+# Datos sensibles
+.env
+.env.local
+.env.*.local
+
+# Uploads y archivos generados
+uploads/
+informes/
+comprobantes/
+
+# Scripts de parche locales
+fix_config.py
+fix_contrasena.py
+reset_codes.json
+
+# IDE
+.vscode/
+.idea/
+.cursor/
