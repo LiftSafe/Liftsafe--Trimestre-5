@@ -1,0 +1,110 @@
+# ========================
+# LiftSafe — Docker Compose
+# ========================
+# ¿Qué? Orquesta MySQL, backend FastAPI y frontend React.
+# ¿Para qué? Levantar toda la aplicación con un solo comando.
+# ¿Impacto? Entorno reproducible para todos los desarrolladores.
+
+services:
+  # ────────────────────────────
+  # 🐘 MySQL 8.0 — Base de datos
+  # ────────────────────────────
+  db:
+    image: mysql:8.0
+    container_name: liftsafe-mysql
+    restart: unless-stopped
+
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: liftsafe_db
+      MYSQL_USER: liftsafe_app
+      MYSQL_PASSWORD: 123456
+
+    ports:
+      - "3306:3306"
+
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+    networks:
+      - liftsafe_network
+
+  # ────────────────────────────
+  # 🐍 Backend — FastAPI + Uvicorn
+  # ────────────────────────────
+  be:
+    build:
+      context: ./liftsafe-backend
+      dockerfile: Dockerfile
+
+    container_name: liftsafe-be
+    restart: unless-stopped
+
+    env_file:
+      - ./liftsafe-backend/.env
+
+    environment:
+      # URL de conexión a MySQL usando el hostname del servicio db
+      DATABASE_URL: mysql+pymysql://liftsafe_app:123456@db:3306/liftsafe_db
+
+      # JWT
+      SECRET_KEY: dev-secret-key-change-in-production-liftsafe-2026
+      ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 480
+
+      # Clave AES de MySQL
+      SECRET_KEY_MYSQL: LiftSafeSecretKey2026!
+
+      # Frontend URL para CORS
+      FRONTEND_URL: http://localhost:3000
+
+    ports:
+      - "8000:8000"
+
+    depends_on:
+      db:
+        condition: service_healthy
+
+    networks:
+      - liftsafe_network
+
+  # ────────────────────────────
+  # ⚛️ Frontend — React + Nginx
+  # ────────────────────────────
+  fe:
+    build:
+      context: ./LiftSafe_FrontendV2
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: http://localhost:8000
+
+    container_name: liftsafe-fe
+    restart: unless-stopped
+
+    ports:
+      - "3000:80"
+
+    depends_on:
+      - be
+
+    networks:
+      - liftsafe_network
+
+# ────────────────────────────
+# 🌐 Redes
+# ────────────────────────────
+networks:
+  liftsafe_network:
+    driver: bridge
+
+# ────────────────────────────
+# 📦 Volúmenes
+# ────────────────────────────
+volumes:
+  mysql_data:
