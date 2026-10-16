@@ -1,6 +1,5 @@
-# uv
+# uv (uv.lock SÍ se sube: fija las versiones para todo el equipo)
 .venv/
-uv.lock
 
 # Python
 __pycache__/
