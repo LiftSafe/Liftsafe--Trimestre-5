@@ -1,0 +1,44 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: LiftSafe_FrontendV2
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: LiftSafe_FrontendV2/package-lock.json
+      - run: npm ci
+      - run: npm test
+
+  backend-fastapi:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: liftsafe-backend
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: astral-sh/setup-uv@v10.2.0
+      - run: uv sync --frozen
+      - run: uv run pytest
+
+  evidencia-individual:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Commits de test por autor esta semana
+        run: |
+          echo "### Commits de test por autor desde el lunes" >> "$GITHUB_STEP_SUMMARY"
+          git shortlog -sn --since="last Monday" HEAD -- '*tests/*' '*.test.*' '*e2e/*' >> "$GITHUB_STEP_SUMMARY"
