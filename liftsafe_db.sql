@@ -745,3 +745,39 @@ DELIMITER ;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
 -- Dump completed on 2026-07-02 14:48:23
+
+-- ------------------------------------------------------------------
+-- Tablas agregadas después del dump original (antes estaban solo en
+-- liftsafe-backend/migrations/). Sin ellas la campana de notificaciones
+-- y las encuestas dan error 500 en una instalación nueva.
+-- ------------------------------------------------------------------
+
+
+CREATE TABLE IF NOT EXISTS `notificacion` (
+  `id_notificacion` int(11) NOT NULL AUTO_INCREMENT,
+  `id_usuario_destino` int(11) NOT NULL COMMENT 'Usuario que recibe la notificación',
+  `mensaje` varchar(255) NOT NULL COMMENT 'Contenido de la notificación',
+  `enlace` varchar(255) DEFAULT NULL COMMENT 'Ruta del frontend a la que lleva al hacer clic',
+  `leida` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'Indica si la notificación fue leída',
+  `fecha_creacion` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id_notificacion`),
+  KEY `idx_notificacion_usuario` (`id_usuario_destino`),
+  CONSTRAINT `fk_notificacion_usuario` FOREIGN KEY (`id_usuario_destino`) REFERENCES `usuario` (`id_usuario`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+CREATE TABLE IF NOT EXISTS `encuesta` (
+  `id_encuesta` int(11) NOT NULL AUTO_INCREMENT,
+  `id_inspeccion` int(11) NOT NULL,
+  `id_cliente` int(11) NOT NULL COMMENT 'Cliente que debe responder la encuesta',
+  `calificacion` int(11) DEFAULT NULL COMMENT 'De 1 (peor) a 5 (mejor)',
+  `comentario` text DEFAULT NULL,
+  `respondida` tinyint(1) NOT NULL DEFAULT 0,
+  `fecha_creacion` timestamp NOT NULL DEFAULT current_timestamp(),
+  `fecha_respuesta` datetime DEFAULT NULL,
+  PRIMARY KEY (`id_encuesta`),
+  KEY `idx_encuesta_inspeccion` (`id_inspeccion`),
+  KEY `idx_encuesta_cliente` (`id_cliente`),
+  CONSTRAINT `fk_encuesta_inspeccion` FOREIGN KEY (`id_inspeccion`) REFERENCES `inspeccion` (`id_inspeccion`) ON DELETE CASCADE,
+  CONSTRAINT `fk_encuesta_cliente` FOREIGN KEY (`id_cliente`) REFERENCES `usuario` (`id_usuario`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
