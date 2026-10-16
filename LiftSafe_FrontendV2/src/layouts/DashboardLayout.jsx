@@ -146,6 +146,32 @@ export default function DashboardLayout() {
 
   const noLeidas = notificaciones.filter(n => !n.leida).length;
 
+  // Notificaciones sin leer de cada sección del menú (según su "enlace"),
+  // para mostrar el contador también al lado de Inspecciones, Solicitudes...
+  const enlaceEsDeRuta = (enlace, ruta) => (
+    !!enlace && (ruta === '/dashboard' ? enlace === ruta : enlace === ruta || enlace.startsWith(`${ruta}/`))
+  );
+  const noLeidasDeRuta = (ruta) => notificaciones.filter((n) => !n.leida && enlaceEsDeRuta(n.enlace, ruta));
+
+  // Nombre de la sección a la que lleva la notificación (ej. "Inspecciones").
+  const seccionDeNotificacion = (n) => (
+    menuItems.find((item) => item.path !== '/dashboard' && enlaceEsDeRuta(n.enlace, item.path))?.text || null
+  );
+
+  // Al entrar a una sección desde el menú, sus notificaciones quedan vistas
+  // (igual que al hacer clic en ellas desde la campana).
+  const marcarLeidasDeRuta = async (ruta) => {
+    const pendientes = noLeidasDeRuta(ruta);
+    if (pendientes.length === 0) return;
+    const ids = new Set(pendientes.map((n) => n.id_notificacion));
+    setNotificaciones((prev) => prev.map((x) => (ids.has(x.id_notificacion) ? { ...x, leida: true } : x)));
+    try {
+      await Promise.all(pendientes.map((n) => notificacionService.marcarLeida(n.id_notificacion)));
+    } catch (e) {
+      console.error('Error marcando notificaciones de la sección como leídas:', e);
+    }
+  };
+
   // FIX: hacer clic en una notificación no llevaba a ningún lado -> ahora,
   // si la notificación trae un "enlace" (lo arma el backend según el tipo
   // de evento), se navega ahí y se cierra el menú desplegable.
@@ -187,12 +213,13 @@ export default function DashboardLayout() {
       <List sx={{ flex: 1, px: 1.2, py: 1.5 }}>
         {menuItems.map((item) => {
           const active = location.pathname === item.path;
+          const pendientesSeccion = noLeidasDeRuta(item.path).length;
           return (
             <ListItemButton
               key={item.path}
               component={Link}
               to={item.path}
-              onClick={() => setMobileOpen(false)}
+              onClick={() => { setMobileOpen(false); marcarLeidasDeRuta(item.path); }}
               sx={{
                 borderRadius: 2, mb: 0.4, py: 1,
                 color: active ? '#fff' : brand.silver,
@@ -207,6 +234,20 @@ export default function DashboardLayout() {
                 primary={item.text} 
                 slotProps={{ primary: { fontWeight: active ? 600 : 400, fontSize: 13 } }} 
               />
+              {pendientesSeccion > 0 && (
+                <Box
+                  component="span"
+                  aria-label={`${pendientesSeccion} notificaciones sin leer en ${item.text}`}
+                  sx={{
+                    minWidth: 20, height: 20, px: 0.75, borderRadius: 10,
+                    bgcolor: 'error.main', color: '#fff', fontSize: 11, fontWeight: 700,
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    boxShadow: '0 0 0 2px rgba(211,47,47,0.25)',
+                  }}
+                >
+                  {pendientesSeccion > 99 ? '99+' : pendientesSeccion}
+                </Box>
+              )}
             </ListItemButton>
           );
         })}
@@ -287,9 +328,22 @@ export default function DashboardLayout() {
                   <Typography variant="body2" sx={{ fontWeight: n.leida ? 400 : 600 }}>
                     {n.mensaje}
                   </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {formatearFechaNotificacion(n.fecha_creacion)}
-                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.25 }}>
+                    {seccionDeNotificacion(n) && (
+                      <Box
+                        component="span"
+                        sx={{
+                          fontSize: 10, fontWeight: 700, px: 0.75, py: 0.1, borderRadius: 1,
+                          bgcolor: 'rgba(0,102,204,0.10)', color: brand.accent,
+                        }}
+                      >
+                        {seccionDeNotificacion(n)}
+                      </Box>
+                    )}
+                    <Typography variant="caption" color="text.secondary">
+                      {formatearFechaNotificacion(n.fecha_creacion)}
+                    </Typography>
+                  </Box>
                 </Box>
               </MenuItem>
             ))}
