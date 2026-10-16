@@ -927,6 +927,7 @@ export default function Inspections() {
 
       <Card>
         <CardContent sx={{ p: 0 }}>
+          <ListPagination count={totalCount} page={page} onPageChange={setPage} position="top" />
           <TableContainer>
             <Table>
               <TableHead>

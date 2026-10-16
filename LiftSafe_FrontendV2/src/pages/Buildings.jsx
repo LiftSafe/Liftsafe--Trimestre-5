@@ -102,6 +102,7 @@ export default function Buildings() {
         </Box>
       ) : (
         <>
+          <ListPagination count={totalCount} page={page} onPageChange={setPage} position="top" sx={{ mb: 2 }} />
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' }, gap: 3 }}>
             {paginated.length > 0 ? (
               paginated.map((b) => {

@@ -115,6 +115,7 @@ export default function Encuestas() {
               <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 1.5 }}>
                 Pendientes ({totalPendientes})
               </Typography>
+              <ListPagination count={totalPendientes} page={paginaPendientes} onPageChange={setPaginaPendientes} rowsPerPage={5} position="top" sx={{ mb: 2 }} />
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 {pendientes.map((e) => {
                   const borrador = borradores[e.id_encuesta] || {};
@@ -169,6 +170,7 @@ export default function Encuestas() {
               <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 1.5 }}>
                 Respondidas ({totalRespondidas})
               </Typography>
+              <ListPagination count={totalRespondidas} page={paginaRespondidas} onPageChange={setPaginaRespondidas} rowsPerPage={5} position="top" sx={{ mb: 2 }} />
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 {respondidas.map((e) => (
                   <Card key={e.id_encuesta} variant="outlined" sx={{ bgcolor: 'action.hover' }}>
