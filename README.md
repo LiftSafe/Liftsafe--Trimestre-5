@@ -104,76 +104,122 @@ LiftSafe/
 
 ## Instalación Paso a Paso
 
-### 1. Base de Datos (XAMPP + phpMyAdmin)
+> Sigue los pasos en orden. Si un paso falla, mira **Problemas frecuentes** al final de esta sección.
 
-1. Descarga e instala **XAMPP** desde: https://www.apachefriends.org/
-2. Abre el **XAMPP Control Panel**
-3. Inicia **Apache** y **MySQL**
-4. Abre tu navegador en: http://localhost/phpmyadmin
-5. Crea una nueva base de datos llamada `liftsafe_db`
-6. Ve a la pestaña **Importar**
-7. Selecciona el archivo `liftsafe_db.sql` del proyecto
-8. Haz clic en **Go / Continuar**
+### 0. Programas necesarios (una sola vez)
 
-### 2. Backend (Python)
+| Programa | Para qué | Cómo comprobarlo |
+|----------|----------|------------------|
+| **XAMPP** (https://www.apachefriends.org/) | Base de datos MySQL | Abre el XAMPP Control Panel |
+| **uv** | Instala Python y las librerías del backend | `uv --version` |
+| **Node.js 20 o más** (https://nodejs.org/) | Frontend | `node --version` |
+| **Git** | Descargar el proyecto | `git --version` |
 
-```bash
-# Entrar al directorio del backend
-cd liftsafe-backend
+Instalar **uv** en Windows (PowerShell):
 
-# Crear entorno virtual
-python -m venv .venv
-
-# Activar entorno virtual (Windows Git Bash)
-source .venv/Scripts/activate
-
-# Instalar dependencias
-pip install -r requirements.txt
-
-# Iniciar servidor de desarrollo
-uvicorn app.main:app --reload --port 8000
+```powershell
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
 ```
 
-La API estará disponible en: http://localhost:8000
+Cierra y vuelve a abrir la terminal después de instalarlo. No hace falta instalar Python aparte: `uv` descarga la versión correcta solo.
 
-Documentación interactiva (Swagger UI): http://localhost:8000/docs
+### 1. Base de Datos (XAMPP + phpMyAdmin)
+
+1. Abre el **XAMPP Control Panel** e inicia **Apache** y **MySQL**.
+2. Abre http://localhost/phpmyadmin
+3. Si ya tenías una base `liftsafe_db` vieja, bórrala (pestaña **Operaciones → Eliminar la base de datos**) para empezar limpio.
+4. Crea una base de datos nueva llamada `liftsafe_db`.
+5. Entra a ella, ve a **Importar**, elige el archivo `liftsafe_db.sql` de la raíz del proyecto y pulsa **Continuar**.
+6. Debes ver 16 tablas (entre ellas `notificacion` y `encuesta`) y 2 vistas.
+
+> Si ya tenías la base importada de antes y no quieres borrarla, importa además
+> `liftsafe-backend/migrations/add_notificacion_table.sql` y
+> `liftsafe-backend/migrations/add_encuesta_table.sql`. Sin esas tablas la campana
+> de notificaciones da error.
+
+### 2. Backend (FastAPI)
+
+```bash
+cd liftsafe-backend
+
+# Crear tu archivo de configuración a partir del ejemplo
+copy .env.example .env        # Windows (CMD/PowerShell)
+# cp .env.example .env        # Git Bash / Linux / Mac
+
+# Instalar dependencias (crea .venv automáticamente)
+uv sync
+
+# Poner una contraseña conocida a todos los usuarios de prueba (solo la primera vez).
+# El script imprime en pantalla la contraseña que quedó.
+uv run python update_all_passwords.py
+
+# Iniciar el servidor
+uv run uvicorn app.main:app --reload --port 8000
+```
+
+- El archivo `.env` es **obligatorio**: sin él el backend no arranca.
+- Con XAMPP recién instalado, deja `DB_USER=root` y `DB_PASSWORD=` (vacío), como viene en el ejemplo.
+- **No cambies `SECRET_KEY_MYSQL`**: debe ser la misma con la que se cifraron las contraseñas de `liftsafe_db.sql`.
+- Las variables `MAIL_*` solo se usan para "Olvidé mi contraseña"; sin ellas el resto de la app funciona.
+
+La API queda en http://localhost:8000 y la documentación en http://localhost:8000/docs
 
 ### 3. Frontend (React + Vite)
 
+En **otra** terminal (el backend debe seguir corriendo):
+
 ```bash
-# Entrar al directorio del frontend
 cd LiftSafe_FrontendV2
-
-# Instalar dependencias
 npm install
-
-# Iniciar servidor de desarrollo
 npm run dev
 ```
 
-La aplicación estará disponible en: http://localhost:5173
+La aplicación queda en http://localhost:5173
+
+### 4. Pruebas (opcional)
+
+```bash
+cd liftsafe-backend && uv run pytest          # backend + cobertura
+cd LiftSafe_FrontendV2 && npm test            # frontend + cobertura
+```
+
+### Problemas frecuentes
+
+| Síntoma | Causa | Solución |
+|---------|-------|----------|
+| `uv` no se reconoce como comando | No está instalado o no reabriste la terminal | Instálalo (paso 0) y abre una terminal nueva |
+| El backend se cierra con `SECRET_KEY ... Field required` | Falta el archivo `.env` | `copy .env.example .env` dentro de `liftsafe-backend` |
+| `Can't connect to MySQL server` | MySQL de XAMPP apagado | Inicia MySQL en el XAMPP Control Panel |
+| `Access denied for user` | Usuario o clave de MySQL distintos | Ajusta `DB_USER` / `DB_PASSWORD` en `.env` |
+| `Table 'liftsafe_db.notificacion' doesn't exist` (campana en error) | Base importada con un `.sql` viejo | Vuelve a importar `liftsafe_db.sql` o las migraciones del paso 1 |
+| "Credenciales incorrectas" al iniciar sesión | No se corrió el script de contraseñas | `uv run python update_all_passwords.py` |
+| El frontend carga pero nada funciona | El backend no está corriendo | Inicia el backend (paso 2) |
 
 ## Credenciales por Defecto
 
-### Base de Datos MySQL
+### Base de Datos MySQL (XAMPP)
 | Campo | Valor |
 |-------|-------|
 | Host | 127.0.0.1 |
 | Puerto | 3306 |
-| Usuario | `liftsafe_app` |
-| Contraseña | `123456` |
+| Usuario | `root` |
+| Contraseña | (vacía) |
 | Base de datos | `liftsafe_db` |
 
-### Usuarios del Sistema (pre-cargados)
+### Usuarios del Sistema (pre-cargados en `liftsafe_db.sql`)
 
-| Rol | Correo | Contraseña |
-|-----|--------|------------|
-| Administrador | admin@liftsafe.com | Admin123! |
-| Coordinador | coord@liftsafe.com | Coord123! |
-| Inspector | inspector@liftsafe.com | Insp123! |
-| Cliente | cliente@liftsafe.com | Cliente123! |
+Después de correr `update_all_passwords.py`, todos usan la contraseña que imprime el script.
 
-> ⚠️ **Nota:** Todas las contraseñas están encriptadas con AES en la base de datos.
+| Rol | Correo |
+|-----|--------|
+| Administrador | admin1@liftsafe.com |
+| Director Técnico | laura.gomez@elevatec.com |
+| Coordinador | carlos.ramirez@elevatec.com |
+| Inspector | andres.martinez@elevatec.com |
+| Cliente | andrea.beltran@edificioparque.com |
+| Asesor | jhojan123456@gmail.com |
+
+> ⚠️ **Nota:** Las contraseñas se guardan cifradas con AES en la base de datos. Esa contraseña común es solo para desarrollo.
 
 ## Módulos del Sistema (CRUD Completo)
 
@@ -216,18 +262,12 @@ La aplicación estará disponible en: http://localhost:5173
 | PUT | `/programacion/{id}/reasignar` | Reasignar inspector |
 | DELETE | `/programacion/{id}` | Eliminar programación |
 
-## Variables de Entorno (opcional)
+## Variables de Entorno
 
-Puedes crear un archivo `.env` en `liftsafe-backend/` para sobrescribir la configuración:
-
-```env
-DB_USER=liftsafe_app
-DB_PASSWORD=tu_password
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_NAME=liftsafe_db
-SECRET_KEY=tu-secret-key
-```
+El backend lee su configuración de `liftsafe-backend/.env` (obligatorio). Cópialo desde
+`liftsafe-backend/.env.example`, que trae comentada cada variable. El frontend no necesita
+`.env`: usa `http://localhost:8000` por defecto (se puede cambiar con `VITE_API_URL` en
+`LiftSafe_FrontendV2/.env`, ver `LiftSafe_FrontendV2/.env.example`).
 
 ## Notas de Seguridad
 

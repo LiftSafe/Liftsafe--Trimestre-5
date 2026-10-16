@@ -87,6 +87,7 @@ export default function Auditoria() {
             <Skeleton variant="rounded" height={200} />
           ) : (
             <>
+              <ListPagination count={totalCount} page={page} onPageChange={setPage} position="top" />
               <Table size="small">
                 <TableHead>
                   <TableRow>

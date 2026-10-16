@@ -233,6 +233,7 @@ export default function UsersPage() {
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><CircularProgress /></Box>
           ) : (
             <>
+              <ListPagination count={totalCount} page={page} onPageChange={setPage} position="top" />
               <TableContainer>
                 <Table>
                   <TableHead>
