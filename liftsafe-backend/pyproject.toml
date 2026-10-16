@@ -30,8 +30,24 @@ dev = [
     "pytest==9.1.1",
     "pytest-cov==7.1.0",
     "httpx==0.28.1",
+    "pytest-mock==3.15.1",
 ]
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.pytest]
+pythonpath = ["."]
+testpaths = ["tests"]
+# Cada "uv run pytest" mide la cobertura y falla si baja del umbral
+addopts = ["--cov", "--cov-report=term-missing"]
+
+[tool.coverage.run]
+source = ["app"]
+# Se mide la lógica de negocio. Los adaptadores de arranque (app/__init__.py)
+# no tienen lógica; el acceso a la BD se prueba con integración (semana 6).
+omit = ["app/__init__.py"]
+
+[tool.coverage.report]
+fail_under = 45  # línea base semana 1: 45.83% real, redondeada hacia abajo
