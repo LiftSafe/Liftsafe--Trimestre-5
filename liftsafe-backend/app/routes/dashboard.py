@@ -234,7 +234,7 @@ def get_informes(current_user = Depends(get_current_user), db: Session = Depends
             joinedload(Inspeccion.ascensor),
             joinedload(Inspeccion.inspector_rel),
         ).filter(
-            Inspeccion.estado.in_(["Aprobada", "Finalizada", "Completada"])
+            Inspeccion.estado.in_(["Aprobada", "Finalizada", "Completada", "Pendiente revisión"])
         ).order_by(Inspeccion.fecha_creacion.desc()).all()
 
         return [{

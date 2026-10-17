@@ -150,6 +150,22 @@ def revisar_informe(
 
     db.commit()
 
+    # Al aprobar el informe, la inspección (que estaba "Pendiente revisión")
+    # queda "Finalizada" y el cliente ya puede ver el checklist final.
+    if data.decision == "Aprobado":
+        insp = db.query(Inspeccion).filter(Inspeccion.id_inspeccion == informe.id_inspeccion).first()
+        if insp and insp.estado != "Finalizada":
+            insp.estado = "Finalizada"
+            asc = db.query(Ascensor).filter(Ascensor.id_ascensor == insp.id_ascensor).first()
+            if asc:
+                db.add(Notificacion(
+                    id_usuario_destino=asc.id_cliente,
+                    mensaje=f"La inspección del ascensor {asc.codigo_interno} fue revisada y quedó finalizada. Ya puedes ver el checklist final.",
+                    enlace="/dashboard/inspecciones",
+                    leida=False,
+                ))
+            db.commit()
+
     # FIX: el inspector que hizo la inspección no se enteraba de si su
     # informe había sido aprobado o rechazado.
     inspeccion_rel = db.query(Inspeccion).filter(

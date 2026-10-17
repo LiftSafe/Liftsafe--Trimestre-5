@@ -21,7 +21,7 @@ import ConfirmDialog from '../components/ConfirmDialog';
 import { canDo } from '../config/roles';
 import { usePaginatedSearch } from '../hooks/usePaginatedSearch';
 import ChecklistInspeccion from '../components/ChecklistInspeccion';
-import { ESTADO_PENDIENTE_FIRMA } from '../utils/statusHelpers';
+import { ESTADO_PENDIENTE_FIRMA, ESTADO_PENDIENTE_REVISION } from '../utils/statusHelpers';
 import { useAuth } from '../context/AuthContext';
 import { apiClient } from '../services/apiClient';
 import { fotografiaService } from '../services/fotografiaService';
@@ -52,6 +52,7 @@ const statusColor = {
   Cancelada: 'error',
   Borrador: 'default',
   'Pendiente firma cliente': 'warning',
+  'Pendiente revisión': 'secondary',
 };
 
 const PAD_HEIGHT = 200;
@@ -680,6 +681,8 @@ export default function Inspections() {
   };
 
   const idInspeccionActual = selected?.id_inspeccion || selected?.id;
+  // El cliente solo ve el checklist final (después de la revisión del coordinador)
+  const clienteEsperaRevision = userRol === 'Cliente' && !['Finalizada', 'Aprobada'].includes(selected?.estado);
 
   const recargarFotos = async () => {
     const fotosData = await fotografiaService.listarPorInspeccion(idInspeccionActual);
@@ -758,9 +761,9 @@ export default function Inspections() {
     const id = selected?.id_inspeccion || selected?.id;
     try {
       const respuesta = await firmaService.firmarCliente(id, { firma: firmaBase64 });
-      // Si estaba "Pendiente firma cliente", con esta firma queda finalizada
+      // Si estaba "Pendiente firma cliente", con esta firma pasa a revisión
       if (selected?.estado === ESTADO_PENDIENTE_FIRMA) {
-        setSelected((s) => (s ? { ...s, estado: 'Finalizada' } : s));
+        setSelected((s) => (s ? { ...s, estado: ESTADO_PENDIENTE_REVISION } : s));
         await cargarInspecciones();
       }
       const firmasData = await firmaService.verificarFirmas(id);
@@ -790,8 +793,8 @@ export default function Inspections() {
       open: true,
       title: 'Finalizar inspección',
       message: firmas?.firma_cliente
-        ? '¿Marcar esta inspección como finalizada? Ya no podrás editar el checklist después de esto.'
-        : '¿Terminar esta inspección? Quedará "Pendiente firma cliente" y se finalizará cuando el cliente firme. Ya no podrás editar el checklist.',
+        ? '¿Terminar esta inspección? Quedará "Pendiente revisión" hasta que el coordinador revise el informe. Ya no podrás editar el checklist.'
+        : '¿Terminar esta inspección? Quedará "Pendiente firma cliente"; cuando el cliente firme pasará a revisión del coordinador. Ya no podrás editar el checklist.',
       confirmText: 'Finalizar',
       confirmColor: 'primary',
       onConfirm: async () => {
@@ -807,7 +810,7 @@ export default function Inspections() {
           showMessage(
             nuevoEstado === ESTADO_PENDIENTE_FIRMA
               ? 'Inspección terminada. Queda pendiente la firma del cliente.'
-              : 'Inspección marcada como finalizada',
+              : 'Inspección terminada. Queda pendiente de revisión del coordinador.',
             'success',
           );
         } catch (err) {
@@ -1216,7 +1219,7 @@ export default function Inspections() {
 
               {/* Marcar inspección como finalizada (Inspector, o Coordinador/Admin) */}
               {(userRol === 'Inspector' || userRol === 'Coordinador' || userRol === 'Administrador') &&
-                !['Finalizada', 'Completada', 'Aprobada', 'Cancelada', ESTADO_PENDIENTE_FIRMA].includes(selected?.estado) && (
+                !['Finalizada', 'Completada', 'Aprobada', 'Cancelada', ESTADO_PENDIENTE_FIRMA, ESTADO_PENDIENTE_REVISION].includes(selected?.estado) && (
                 <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
                   <Button
                     variant="outlined"
@@ -1241,6 +1244,14 @@ export default function Inspections() {
                 Checklist NTC 5926-1
               </Typography>
 
+              {clienteEsperaRevision ? (
+                <Alert severity="info" sx={{ mb: 2 }}>
+                  {selected?.estado === ESTADO_PENDIENTE_FIRMA
+                    ? 'El inspector terminó la inspección. Firma arriba para enviarla a revisión; el checklist final estará disponible cuando el coordinador la revise.'
+                    : 'El checklist final estará disponible cuando el coordinador revise la inspección.'}
+                </Alert>
+              ) : (
+              <>
               {loadingChecklist && (
                 <Box sx={{ display: 'flex', justifyContent: 'center', my: 2 }}>
                   <CircularProgress size={24} />
@@ -1267,6 +1278,8 @@ export default function Inspections() {
                   onCalificar={calificarItem}
                   onQuitar={eliminarCalificacion}
                 />
+              )}
+              </>
               )}
 
               <Divider sx={{ mb: 2 }} />
