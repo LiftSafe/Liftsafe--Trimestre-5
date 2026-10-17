@@ -130,12 +130,18 @@ Cierra y vuelve a abrir la terminal después de instalarlo. No hace falta instal
 3. Si ya tenías una base `liftsafe_db` vieja, bórrala (pestaña **Operaciones → Eliminar la base de datos**) para empezar limpio.
 4. Crea una base de datos nueva llamada `liftsafe_db`.
 5. Entra a ella, ve a **Importar**, elige el archivo `liftsafe_db.sql` de la raíz del proyecto y pulsa **Continuar**.
-6. Debes ver 16 tablas (entre ellas `notificacion` y `encuesta`) y 2 vistas.
+6. Debes ver 17 tablas (entre ellas `notificacion`, `encuesta` y `sede`) y 2 vistas.
 
-> Si ya tenías la base importada de antes y no quieres borrarla, importa además
+> **¿Ya tenías la base importada de antes y no quieres borrarla?** Importa además
 > `liftsafe-backend/migrations/add_notificacion_table.sql` y
-> `liftsafe-backend/migrations/add_encuesta_table.sql`. Sin esas tablas la campana
-> de notificaciones da error.
+> `liftsafe-backend/migrations/add_encuesta_table.sql`, y después (en `liftsafe-backend`) corre:
+>
+> ```bash
+> uv run python run_migration.py
+> ```
+>
+> Ese comando agrega lo que falte (sedes de los clientes y fotos por ítem del checklist)
+> y se puede correr las veces que quieras: si algo ya existe, no lo toca.
 
 ### 2. Backend (FastAPI)
 
@@ -192,6 +198,7 @@ cd LiftSafe_FrontendV2 && npm test            # frontend + cobertura
 | `Can't connect to MySQL server` | MySQL de XAMPP apagado | Inicia MySQL en el XAMPP Control Panel |
 | `Access denied for user` | Usuario o clave de MySQL distintos | Ajusta `DB_USER` / `DB_PASSWORD` en `.env` |
 | `Table 'liftsafe_db.notificacion' doesn't exist` (campana en error) | Base importada con un `.sql` viejo | Vuelve a importar `liftsafe_db.sql` o las migraciones del paso 1 |
+| `Unknown column 'ascensor.id_sede'` o `'fotografia.id_inspeccion'` (Ascensores, Inspecciones o fotos en error) | Falta aplicar las migraciones nuevas | En `liftsafe-backend`: `uv run python run_migration.py` |
 | "Credenciales incorrectas" al iniciar sesión | No se corrió el script de contraseñas | `uv run python update_all_passwords.py` |
 | El frontend carga pero nada funciona | El backend no está corriendo | Inicia el backend (paso 2) |
 
