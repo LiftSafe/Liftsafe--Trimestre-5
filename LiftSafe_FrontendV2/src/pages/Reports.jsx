@@ -7,6 +7,7 @@ import {
   IconButton
 } from '@mui/material';
 import PictureAsPdfOutlinedIcon from '@mui/icons-material/PictureAsPdfOutlined';
+import ElevatorOutlinedIcon from '@mui/icons-material/ElevatorOutlined';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import DownloadOutlinedIcon from '@mui/icons-material/DownloadOutlined';
 import SendOutlinedIcon from '@mui/icons-material/SendOutlined';
@@ -27,6 +28,13 @@ import { informeService } from '../services/informeService';
 import { API_BASE_URL } from '../config/api';
 import { statusColor } from '../utils/statusHelpers';
 
+// Fecha legible (17/10/2026); si no se puede leer, se deja tal cual
+function formatearFecha(valor) {
+  if (!valor) return '—';
+  const fecha = new Date(valor);
+  return Number.isNaN(fecha.getTime()) ? valor : fecha.toLocaleDateString('es-CO');
+}
+
 export default function Reports() {
   const { user } = useAuth();
   const isClient = user?.role === 'Cliente';
@@ -36,10 +44,41 @@ export default function Reports() {
   const { data: docs = [], loading: loadingDocs, error: errorDocs, refetch } = useDashboardData(fetchInformes);
   const { data: inspecciones = [], loading: loadingInsp, error: errorInsp } = useDashboardData(fetchInspecciones);
 
+  // Filtro elegido al hacer clic en una tarjeta de arriba (null = todos)
+  const [filtro, setFiltro] = useState(null);
+
+  const esCertificado = (d) => d.status === 'Aprobada' || d.status === 'Finalizada';
+  const esPendiente = (i) => [
+    'Borrador', 'En Proceso', 'Programada', 'Pendiente firma cliente', 'Pendiente revisión',
+  ].includes(i.status);
+  const hoy = new Date();
+  const treintaDias = new Date(hoy.getTime() + (30 * 24 * 60 * 60 * 1000));
+  const esPorVencer = (i) => {
+    if (!i.nextDate) return false;
+    const nextDate = new Date(i.nextDate);
+    return nextDate <= treintaDias && nextDate >= hoy;
+  };
+
+  const listas = {
+    certificados: docs.filter(esCertificado),
+    pendientes: inspecciones.filter(esPendiente),
+    // En "por vencer" la fecha que importa es la próxima (la que vence)
+    por_vencer: inspecciones.filter(esPorVencer).map((i) => ({ ...i, date: i.nextDate })),
+  };
+  const filas = filtro ? listas[filtro] : docs;
+
   const { search, setSearch, page, setPage, paginated, totalCount } = usePaginatedSearch(
-    docs,
+    filas,
     ['building', 'elevator', 'inspector', 'status', 'date']
   );
+
+  // "Pendientes" y "Por vencer" listan inspecciones, no certificados
+  const esListaInspecciones = filtro === 'pendientes' || filtro === 'por_vencer';
+
+  const elegirFiltro = (clave) => {
+    setFiltro((actual) => (actual === clave ? null : clave));
+    setPage(0);
+  };
 
   const loading = loadingDocs || loadingInsp;
   const error = errorDocs || errorInsp;
@@ -61,18 +100,9 @@ export default function Reports() {
   // ---- Informe PDF / Envío (Esteban) ----
   const [procesandoInformeId, setProcesandoInformeId] = useState(null);
 
-  const certificados = docs.filter(d => d.status === 'Aprobada' || d.status === 'Finalizada').length;
-  const pendientes = inspecciones.filter(i =>
-    i.status === 'Borrador' || i.status === 'En Proceso' || i.status === 'Programada'
-  ).length;
-
-  const hoy = new Date();
-  const treintaDias = new Date(hoy.getTime() + (30 * 24 * 60 * 60 * 1000));
-  const porVencer = inspecciones.filter(i => {
-    if (!i.nextDate) return false;
-    const nextDate = new Date(i.nextDate);
-    return nextDate <= treintaDias && nextDate >= hoy;
-  }).length;
+  const certificados = listas.certificados.length;
+  const pendientes = listas.pendientes.length;
+  const porVencer = listas.por_vencer.length;
 
   const summary = {
     certificados: certificados || 0,
@@ -258,23 +288,53 @@ export default function Reports() {
           mb: 3
         }}>
           {[
-            { label: 'Certificados emitidos', value: summary.certificados },
-            { label: 'Reportes pendientes', value: summary.pendientes },
-            { label: 'Por vencer (30 días)', value: summary.por_vencer },
-          ].map((s) => (
-            <Box key={s.label} sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 2 }}>
-              <Typography variant="body2" color="text.secondary">{s.label}</Typography>
-              <Typography variant="h4" fontWeight={700} color="primary.main">{s.value}</Typography>
-            </Box>
-          ))}
+            { clave: 'certificados', label: 'Certificados emitidos', value: summary.certificados },
+            { clave: 'pendientes', label: 'Reportes pendientes', value: summary.pendientes },
+            { clave: 'por_vencer', label: 'Por vencer (30 días)', value: summary.por_vencer },
+          ].map((s) => {
+            const activo = filtro === s.clave;
+            return (
+              <Box
+                key={s.label}
+                component="button"
+                type="button"
+                onClick={() => elegirFiltro(s.clave)}
+                aria-pressed={activo}
+                title={activo ? 'Quitar filtro' : `Ver solo: ${s.label}`}
+                sx={{
+                  p: 2, borderRadius: 2, textAlign: 'left', cursor: 'pointer', font: 'inherit',
+                  bgcolor: activo ? 'primary.main' : 'grey.50',
+                  color: activo ? 'common.white' : 'inherit',
+                  border: '2px solid', borderColor: activo ? 'primary.main' : 'transparent',
+                  transition: 'all .15s ease',
+                  '&:hover': { borderColor: 'primary.main', transform: 'translateY(-1px)' },
+                }}
+              >
+                <Typography variant="body2" sx={{ color: activo ? 'rgba(255,255,255,0.85)' : 'text.secondary' }}>{s.label}</Typography>
+                <Typography variant="h4" fontWeight={700} sx={{ color: activo ? 'common.white' : 'primary.main' }}>{s.value}</Typography>
+                <Typography variant="caption" sx={{ color: activo ? 'rgba(255,255,255,0.85)' : 'primary.main', fontWeight: 600 }}>
+                  {activo ? 'Mostrando · clic para quitar' : 'Ver lista →'}
+                </Typography>
+              </Box>
+            );
+          })}
         </Box>
       )}
 
       <Card>
         <CardContent>
-          <Typography variant="h6" fontWeight={600} gutterBottom>
-            {isClient ? 'Mis certificados' : 'Documentos recientes'}
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap', mb: 1 }}>
+            <Typography variant="h6" fontWeight={600}>
+              {isClient ? 'Mis certificados' : ({
+                certificados: 'Certificados emitidos',
+                pendientes: 'Reportes pendientes',
+                por_vencer: 'Inspecciones por vencer (próximos 30 días)',
+              }[filtro] || 'Documentos recientes')}
+            </Typography>
+            {filtro && (
+              <Chip label="Ver todos" size="small" onDelete={() => elegirFiltro(filtro)} onClick={() => elegirFiltro(filtro)} />
+            )}
+          </Box>
           {loading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><CircularProgress /></Box>
           ) : (
@@ -296,12 +356,26 @@ export default function Reports() {
                       <TableRow key={doc.id} hover>
                         <TableCell>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <PictureAsPdfOutlinedIcon color="error" />
-                            Certificado
+                            {esListaInspecciones ? (
+                              <>
+                                <ElevatorOutlinedIcon color="primary" />
+                                <Box>
+                                  Inspección
+                                  {doc.elevator && (
+                                    <Typography variant="caption" color="text.secondary" component="div">{doc.elevator}</Typography>
+                                  )}
+                                </Box>
+                              </>
+                            ) : (
+                              <>
+                                <PictureAsPdfOutlinedIcon color="error" />
+                                Certificado
+                              </>
+                            )}
                           </Box>
                         </TableCell>
                         <TableCell>{doc.building}</TableCell>
-                        <TableCell>{doc.date}</TableCell>
+                        <TableCell>{formatearFecha(doc.date)}</TableCell>
                         <TableCell>
                           <Chip label={doc.status} color={statusColor[doc.status] || 'success'} size="small" />
                         </TableCell>
@@ -361,7 +435,7 @@ export default function Reports() {
                     ))}
                     {!paginated.length && (
                       <TableRow>
-                        <TableCell colSpan={5} align="center">No hay certificados disponibles</TableCell>
+                        <TableCell colSpan={5} align="center">{filtro ? "No hay elementos en esta lista" : "No hay certificados disponibles"}</TableCell>
                       </TableRow>
                     )}
                   </TableBody>
