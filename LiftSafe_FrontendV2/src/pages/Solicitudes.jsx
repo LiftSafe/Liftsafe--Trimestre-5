@@ -44,6 +44,9 @@ import { solicitudService } from '../services/solicitudService';
 import { ascensorService } from '../services/ascensorService';
 import { usuarioService } from '../services/usuarioService';
 import { programacionService } from '../services/programacionService';
+import { claveSucursal, sucursalesDeAscensores } from '../utils/sucursales';
+import { useLocation } from 'react-router-dom';
+import { leerEstados, filtrarPorEstado } from '../utils/filtroEstado';
 
 const TIPOS_SERVICIO = [
   'Inspección Periódica',
@@ -77,6 +80,10 @@ export default function Solicitudes() {
     fecha_deseada: '',
     observaciones: ''
   });
+  // Sucursal (sede) elegida en el formulario: si los ascensores del cliente
+  // están en 2 o más sucursales, primero se elige la sucursal y la lista de
+  // ascensores muestra solo los de esa sucursal.
+  const [sucursal, setSucursal] = useState('');
   const [formErrors, setFormErrors] = useState({});
   const [formError, setFormError] = useState('');
   const [submitLoading, setSubmitLoading] = useState(false);
@@ -101,8 +108,37 @@ export default function Solicitudes() {
   const esAdmin = userRol === 'Administrador';
   const esCoordinador = userRol === 'Coordinador';
 
+  // Sucursales que salen de los ascensores del cliente
+  const sucursales = sucursalesDeAscensores(ascensores);
+  const pideSucursal = sucursales.length >= 2;
+  // Nombre de la sucursal del ascensor de una solicitud (si tiene)
+  const sucursalDe = (solicitud) => ascensores.find((a) => a.id_ascensor === solicitud?.id_ascensor)?.sede || null;
+  const sucursalAsignacion = sucursalDe(assignDialog.solicitud);
+  // Ficha de la solicitud en el diálogo "Asignar inspector"
+  const solAsig = assignDialog.solicitud;
+  const ascAsig = solAsig?.ascensor;
+  const datosAsignacion = solAsig ? [
+    ['Cliente', solAsig.cliente?.nombre_completo || '—'],
+    ['Sucursal', sucursalAsignacion || 'Sin sucursal'],
+    ['Ascensor', ascAsig ? [ascAsig.codigo_interno, [ascAsig.marca, ascAsig.modelo].filter(Boolean).join(' ')].filter(Boolean).join(' · ') : '—'],
+    ['Dirección', [ascAsig?.direccion_completa, ascAsig?.ciudad].filter(Boolean).join(', ') || '—'],
+    ['Teléfono', solAsig.cliente?.telefono || '—'],
+    ['Correo', solAsig.cliente?.correo || '—'],
+    ['Tipo de servicio', solAsig.tipo_servicio || '—'],
+    ['Prioridad', solAsig.prioridad || '—'],
+    ['Fecha deseada', solAsig.fecha_deseada || 'Sin preferencia'],
+  ] : [];
+  const ascensoresVisibles = pideSucursal
+    ? ascensores.filter((a) => sucursal && claveSucursal(a) === sucursal)
+    : ascensores;
+
+  // Filtro por estado: lo ponen las tarjetas de arriba (o ?estado=... en la dirección)
+  const location = useLocation();
+  const [filtroEstados, setFiltroEstados] = useState(() => leerEstados(location.search));
+  const solicitudesVisibles = filtrarPorEstado(solicitudes, filtroEstados);
+
   const { search, setSearch, page, setPage, paginated, totalCount } = usePaginatedSearch(
-    solicitudes,
+    solicitudesVisibles,
     [(s) => s.ascensor?.codigo_interno, (s) => s.cliente?.nombre_completo, 'tipo_servicio', 'prioridad', 'estado']
   );
 
@@ -230,6 +266,8 @@ export default function Solicitudes() {
 
   const handleOpenDialog = (solicitud = null) => {
     if (solicitud) {
+      const asc = ascensores.find((a) => a.id_ascensor === solicitud.id_ascensor);
+      setSucursal(asc ? claveSucursal(asc) : '');
       setEditingId(solicitud.id_solicitud);
       setFormData({
         id_ascensor: solicitud.id_ascensor || '',
@@ -239,6 +277,7 @@ export default function Solicitudes() {
         observaciones: solicitud.observaciones || ''
       });
     } else {
+      setSucursal('');
       setEditingId(null);
       setFormData({
         id_ascensor: '',
@@ -265,8 +304,18 @@ export default function Solicitudes() {
     setFormData({ ...formData, [name]: value });
   };
 
+  const elegirSucursal = (valor) => {
+    setSucursal(valor);
+    // Si el ascensor elegido no es de esa sucursal, se limpia
+    const asc = ascensores.find((a) => a.id_ascensor === formData.id_ascensor);
+    if (asc && claveSucursal(asc) !== valor) {
+      setFormData({ ...formData, id_ascensor: '' });
+    }
+  };
+
   const validateForm = () => {
     const errors = {};
+    if (pideSucursal && !sucursal) errors.sucursal = 'Selecciona una sucursal';
     if (!formData.id_ascensor) errors.id_ascensor = 'Selecciona un ascensor';
     if (!formData.tipo_servicio) errors.tipo_servicio = 'Selecciona un tipo de servicio';
     if (!formData.prioridad) errors.prioridad = 'Selecciona una prioridad';
@@ -291,7 +340,11 @@ export default function Solicitudes() {
     try {
       const payload = {
         ...formData,
-        id_ascensor: Number(formData.id_ascensor)
+        id_ascensor: Number(formData.id_ascensor),
+        // La fecha deseada es opcional: vacía se manda como null (antes
+        // "" hacía fallar la solicitud con un error 422)
+        fecha_deseada: formData.fecha_deseada || null,
+        observaciones: formData.observaciones || null,
       };
 
       if (editingId) {
@@ -380,7 +433,12 @@ export default function Solicitudes() {
       {/* Tarjetas de estadísticas */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
         <Grid item xs={12} sm={6} md={3}>
-          <Paper sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Paper
+            onClick={() => { setFiltroEstados([]); setPage(0); }}
+            role="button"
+            title="Ver en la tabla"
+            sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2, cursor: 'pointer' }}
+          >
             <AssignmentIcon sx={{ color: '#1976d2', fontSize: 32 }} />
             <Box>
               <Typography variant="h4" fontWeight={700}>{total}</Typography>
@@ -389,7 +447,12 @@ export default function Solicitudes() {
           </Paper>
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <Paper sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Paper
+            onClick={() => { setFiltroEstados(['Pendiente']); setPage(0); }}
+            role="button"
+            title="Ver en la tabla"
+            sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2, cursor: 'pointer' }}
+          >
             <PendingIcon sx={{ color: '#ed6c02', fontSize: 32 }} />
             <Box>
               <Typography variant="h4" fontWeight={700}>{pendientes}</Typography>
@@ -398,7 +461,12 @@ export default function Solicitudes() {
           </Paper>
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <Paper sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Paper
+            onClick={() => { setFiltroEstados(['Programada']); setPage(0); }}
+            role="button"
+            title="Ver en la tabla"
+            sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2, cursor: 'pointer' }}
+          >
             <ScheduleIcon sx={{ color: '#2e7d32', fontSize: 32 }} />
             <Box>
               <Typography variant="h4" fontWeight={700}>{programadas}</Typography>
@@ -407,7 +475,12 @@ export default function Solicitudes() {
           </Paper>
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <Paper sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Paper
+            onClick={() => { setFiltroEstados(['Finalizada', 'Aprobada']); setPage(0); }}
+            role="button"
+            title="Ver en la tabla"
+            sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2, cursor: 'pointer' }}
+          >
             <CheckCircleIcon sx={{ color: '#9c27b0', fontSize: 32 }} />
             <Box>
               <Typography variant="h4" fontWeight={700}>{finalizadas}</Typography>
@@ -439,6 +512,15 @@ export default function Solicitudes() {
       {/* Tabla de solicitudes */}
       <Box sx={{ mb: 2 }}>
         <SearchBar value={search} onChange={setSearch} placeholder="Buscar por ascensor, cliente o estado..." />
+        {filtroEstados.length > 0 && (
+          <Chip
+            label={`Mostrando: ${filtroEstados.join(' / ')}`}
+            onDelete={() => setFiltroEstados([])}
+            color="primary"
+            variant="outlined"
+            sx={{ ml: 1.5, mt: 0.5 }}
+          />
+        )}
       </Box>
 
       <Card>
@@ -467,7 +549,14 @@ export default function Solicitudes() {
                 ) : (
                   paginated.map((s) => (
                     <TableRow key={s.id_solicitud} hover>
-                      <TableCell>{s.ascensor?.codigo_interno || 'N/A'}</TableCell>
+                      <TableCell>
+                        {s.ascensor?.codigo_interno || 'N/A'}
+                        {sucursalDe(s) && (
+                          <Typography variant="caption" color="text.secondary" component="div">
+                            {sucursalDe(s)}
+                          </Typography>
+                        )}
+                      </TableCell>
                       <TableCell>{s.cliente?.nombre_completo || 'N/A'}</TableCell>
                       <TableCell>{s.tipo_servicio}</TableCell>
                       <TableCell>
@@ -559,6 +648,25 @@ export default function Solicitudes() {
                 {formError}
               </Alert>
             )}
+            {pideSucursal && (
+              <TextField
+                select
+                label="Sucursal *"
+                name="sucursal"
+                value={sucursal}
+                onChange={(e) => elegirSucursal(e.target.value)}
+                error={!!formErrors.sucursal}
+                helperText={formErrors.sucursal || 'Elige la sucursal donde está el ascensor'}
+                fullWidth
+              >
+                {sucursales.map((s) => (
+                  <MenuItem key={s.clave} value={s.clave}>
+                    {s.nombre}
+                  </MenuItem>
+                ))}
+              </TextField>
+            )}
+
             <TextField
               select
               label="Ascensor *"
@@ -566,11 +674,12 @@ export default function Solicitudes() {
               value={formData.id_ascensor}
               onChange={handleChange}
               error={!!formErrors.id_ascensor}
-              helperText={formErrors.id_ascensor}
+              helperText={formErrors.id_ascensor || (pideSucursal && !sucursal ? 'Primero elige la sucursal' : '')}
+              disabled={pideSucursal && !sucursal}
               fullWidth
             >
               <MenuItem value="">Seleccionar ascensor...</MenuItem>
-              {ascensores.map((a) => (
+              {ascensoresVisibles.map((a) => (
                 <MenuItem key={a.id_ascensor} value={a.id_ascensor}>
                   {a.codigo_interno} - {a.marca} {a.modelo}
                 </MenuItem>
@@ -647,12 +756,32 @@ export default function Solicitudes() {
 
       {/* Dialog para asignar inspector (Coordinador/Admin) */}
       <Dialog open={assignDialog.open} onClose={handleCloseAssign} maxWidth="sm" fullWidth>
-        <DialogTitle>
-          Asignar inspector — {assignDialog.solicitud?.ascensor?.codigo_interno || 'Ascensor'}
-          {assignDialog.solicitud?.cliente?.nombre_completo ? ` (${assignDialog.solicitud.cliente.nombre_completo})` : ''}
-        </DialogTitle>
+        <DialogTitle sx={{ pb: 1 }}>Asignar inspector</DialogTitle>
         <DialogContent>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
+          {/* Datos de la solicitud, ordenados y con etiqueta */}
+          <Box sx={{ p: 2, borderRadius: 2, bgcolor: 'grey.50', border: '1px solid', borderColor: 'divider' }}>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, columnGap: 3, rowGap: 1.5 }}>
+              {datosAsignacion.map(([etiqueta, valor]) => (
+                <Box key={etiqueta} sx={{ minWidth: 0 }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 600 }}>
+                    {etiqueta}
+                  </Typography>
+                  <Typography variant="body2" fontWeight={500} sx={{ overflowWrap: 'anywhere' }}>{valor}</Typography>
+                </Box>
+              ))}
+            </Box>
+            {assignDialog.solicitud?.observaciones && (
+              <Box sx={{ mt: 1.5 }}>
+                <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 600 }}>
+                  Observaciones del cliente
+                </Typography>
+                <Typography variant="body2">{assignDialog.solicitud.observaciones}</Typography>
+              </Box>
+            )}
+          </Box>
+
+          <Typography variant="subtitle2" fontWeight={700} sx={{ mt: 2.5 }}>Programación</Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1.5 }}>
             {assignError && (
               <Alert severity="error" onClose={() => setAssignError('')}>
                 {assignError}

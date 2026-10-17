@@ -98,6 +98,12 @@ def listar_checklist_inspeccion(
             ascensor = db.query(Ascensor).filter(Ascensor.id_ascensor == inspeccion.id_ascensor).first()
             if not ascensor or ascensor.id_cliente != user_id:
                 raise HTTPException(status_code=403, detail="No tienes permiso para ver esta inspección")
+            # El cliente solo ve el checklist final, cuando el coordinador ya revisó
+            if inspeccion.estado not in ("Finalizada", "Aprobada"):
+                raise HTTPException(
+                    status_code=403,
+                    detail="El checklist final estará disponible cuando el coordinador revise la inspección",
+                )
         elif inspeccion.id_inspector != user_id:
             raise HTTPException(status_code=403, detail="No tienes permiso para ver esta inspección")
 

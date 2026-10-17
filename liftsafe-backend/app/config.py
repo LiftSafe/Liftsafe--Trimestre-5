@@ -28,6 +28,8 @@ class Settings(BaseSettings):
     # ============================================
     SECRET_KEY: str
     ALGORITHM: str = "HS256"
+    # Dirección pública del backend: se usa en los enlaces "Ver foto" del PDF
+    API_PUBLIC_URL: str = "http://localhost:8000"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 480  # 8 horas (antes 30 min, muy corto para desarrollo/pruebas)
 
     # ============================================

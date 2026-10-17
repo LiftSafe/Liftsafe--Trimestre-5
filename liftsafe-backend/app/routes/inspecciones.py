@@ -322,9 +322,15 @@ async def firmar_cliente(
     
     inspeccion.firma_cliente = data.firma
     inspeccion.fecha_firma_cliente = datetime.now()
+    pasa_a_revision = inspeccion.estado == PENDIENTE_FIRMA_CLIENTE
+    if pasa_a_revision:
+        inspeccion.estado = PENDIENTE_REVISION
     db.commit()
     db.refresh(inspeccion)
 
+    if pasa_a_revision:
+        notificar_pendiente_revision(db, inspeccion, ascensor)
+        return {"message": "Firma registrada. La inspección quedó pendiente de revisión del coordinador."}
     return {"message": "Firma del cliente registrada exitosamente"}
 
 # ============================================
@@ -359,6 +365,31 @@ def verificar_firmas(
         "ambas_firmas": bool(inspeccion.firma_inspector and inspeccion.firma_cliente)
     }
 
+# Flujo de cierre de una inspección:
+#   inspector termina  -> "Pendiente firma cliente"  (si el cliente no ha firmado)
+#   cliente firma      -> "Pendiente revisión"
+#   coordinador aprueba el informe -> "Finalizada"  (ver revisar_informe en informes.py)
+PENDIENTE_FIRMA_CLIENTE = "Pendiente firma cliente"
+PENDIENTE_REVISION = "Pendiente revisión"
+
+
+def notificar_pendiente_revision(db: Session, inspeccion: Inspeccion, ascensor):
+    """Avisa a Coordinador/Administrador que la inspección ya tiene las dos
+    firmas y está lista para generar y revisar el informe."""
+    codigo_ascensor = ascensor.codigo_interno if ascensor else inspeccion.id_ascensor
+    staff = db.query(Usuario).filter(
+        Usuario.id_rol.in_([ADMIN_ROL_ID, COORDINADOR_ROL_ID])
+    ).all()
+    for miembro in staff:
+        db.add(Notificacion(
+            id_usuario_destino=miembro.id_usuario,
+            mensaje=f"La inspección del ascensor {codigo_ascensor} tiene las dos firmas y está pendiente de revisión. Genera y revisa el informe.",
+            enlace="/dashboard/inspecciones",
+            leida=False,
+        ))
+    db.commit()
+
+
 # ============================================
 # 9. ACTUALIZAR ESTADO DE INSPECCIÓN
 # ============================================
@@ -378,21 +409,40 @@ async def actualizar_estado(
     if rol not in ['Administrador', 'Coordinador'] and inspeccion.id_inspector != user_id:
         raise HTTPException(status_code=403, detail="No tienes permiso para actualizar esta inspección")
     
-    estados_validos = ['Programada', 'En Progreso', 'Completada', 'Cancelada', 'Finalizada', 'Aprobada']
+    estados_validos = ['Programada', 'En Progreso', 'Completada', 'Cancelada', 'Finalizada', 'Aprobada', PENDIENTE_FIRMA_CLIENTE, PENDIENTE_REVISION]
     if estado not in estados_validos:
         raise HTTPException(status_code=400, detail=f"Estado inválido. Opciones: {estados_validos}")
 
-    # ✅ Detecta si esta llamada es la que realmente termina la inspección,
-    # para no crear una encuesta cada vez que alguien vuelva a llamar este
-    # endpoint con el mismo estado (por ejemplo, un doble clic).
-    pasa_a_finalizada = estado == "Finalizada" and inspeccion.estado != "Finalizada"
+    # Cuando el inspector termina pero el cliente todavía no ha firmado, la
+    # inspección NO queda "Finalizada": queda "Pendiente firma cliente" y
+    # pasa a "Finalizada" sola en el momento en que el cliente firma.
+    # Al terminar, la inspección nunca queda "Finalizada" directamente:
+    # sin firma del cliente -> "Pendiente firma cliente"; con las dos firmas
+    # -> "Pendiente revisión". "Finalizada" la pone la aprobación del
+    # informe por parte del coordinador.
+    if estado == "Finalizada":
+        estado = PENDIENTE_REVISION if inspeccion.firma_cliente else PENDIENTE_FIRMA_CLIENTE
+    termina_inspector = estado == PENDIENTE_FIRMA_CLIENTE and inspeccion.estado != PENDIENTE_FIRMA_CLIENTE
+    lista_para_revision = estado == PENDIENTE_REVISION and inspeccion.estado != PENDIENTE_REVISION
+
 
     inspeccion.estado = estado
-    if estado in ['Completada', 'Finalizada', 'Aprobada']:
+    if estado in ['Completada', 'Finalizada', 'Aprobada', PENDIENTE_FIRMA_CLIENTE, PENDIENTE_REVISION]:
         inspeccion.fecha_fin = datetime.now()
     
     db.commit()
     db.refresh(inspeccion)
+
+    if termina_inspector:
+        ascensor = db.query(Ascensor).filter(Ascensor.id_ascensor == inspeccion.id_ascensor).first()
+        if ascensor:
+            db.add(Notificacion(
+                id_usuario_destino=ascensor.id_cliente,
+                mensaje=f"El inspector terminó la inspección del ascensor {ascensor.codigo_interno}. Falta tu firma para finalizarla.",
+                enlace="/dashboard/inspecciones",
+                leida=False,
+            ))
+            db.commit()
 
     # ✅ FIX: cuando el Inspector finaliza la inspección, el cliente no se
     # enteraba de nada -> no había encuesta, ni notificación en la app, ni
@@ -401,48 +451,9 @@ async def actualizar_estado(
     # cliente dentro de la app (campanita) y se le manda un correo.
     # Requiere haber corrido migrations/add_encuesta_table.sql y
     # migrations/add_notificacion_table.sql.
-    if pasa_a_finalizada:
+    if lista_para_revision:
         ascensor = db.query(Ascensor).filter(Ascensor.id_ascensor == inspeccion.id_ascensor).first()
-        cliente = db.query(Usuario).filter(Usuario.id_usuario == ascensor.id_cliente).first() if ascensor else None
-
-        # FIX: la encuesta de satisfacción YA NO se crea aquí. Ahora se crea
-        # únicamente cuando el informe se envía al cliente (ver
-        # enviar_informe en informes.py), para que la encuesta solo le
-        # aparezca al cliente después de recibir el informe completo, no
-        # apenas se finaliza o firma la inspección.
-        if cliente:
-            if inspeccion.firma_cliente:
-                db.add(Notificacion(
-                    id_usuario_destino=cliente.id_usuario,
-                    mensaje=f"La inspección del ascensor {ascensor.codigo_interno} finalizó correctamente.",
-                    enlace="/dashboard/inspecciones",
-                    leida=False,
-                ))
-            else:
-                db.add(Notificacion(
-                    id_usuario_destino=cliente.id_usuario,
-                    mensaje=f"La inspección del ascensor {ascensor.codigo_interno} finalizó. Falta tu firma para completarla.",
-                    enlace="/dashboard/inspecciones",
-                    leida=False,
-                ))
-            db.commit()
-
-        # FIX: Coordinador y Administrador tampoco se enteraban de que una
-        # inspección ya había sido finalizada por el inspector -> no había
-        # forma de saber que ya se podía revisar/generar el informe sin
-        # entrar a mirar la lista manualmente.
-        staff = db.query(Usuario).filter(
-            Usuario.id_rol.in_([ADMIN_ROL_ID, COORDINADOR_ROL_ID])
-        ).all()
-        codigo_ascensor = ascensor.codigo_interno if ascensor else inspeccion.id_ascensor
-        for miembro in staff:
-            db.add(Notificacion(
-                id_usuario_destino=miembro.id_usuario,
-                mensaje=f"El inspector finalizó la inspección del ascensor {codigo_ascensor}. Ya se puede generar el informe.",
-                enlace="/dashboard/inspecciones",
-                leida=False,
-            ))
-        db.commit()
+        notificar_pendiente_revision(db, inspeccion, ascensor)
 
     return {
         "message": "Estado actualizado exitosamente",

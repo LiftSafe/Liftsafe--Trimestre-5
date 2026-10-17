@@ -4,7 +4,7 @@ import {
   TableContainer, TableHead, TableRow,
   Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem,
   Typography, Divider, IconButton, CircularProgress, Alert, Paper,
-  Radio, RadioGroup, FormControl, FormControlLabel, Checkbox,
+  FormControlLabel, Checkbox,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import CloseIcon from '@mui/icons-material/Close';
@@ -20,7 +20,10 @@ import MessageDialog, { MESSAGE_TITLES } from '../components/MessageDialog';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { canDo } from '../config/roles';
 import { usePaginatedSearch } from '../hooks/usePaginatedSearch';
-import { brand } from '../theme/colors';
+import ChecklistInspeccion from '../components/ChecklistInspeccion';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { leerEstados, filtrarPorEstado } from '../utils/filtroEstado';
+import { ESTADO_PENDIENTE_FIRMA, ESTADO_PENDIENTE_REVISION } from '../utils/statusHelpers';
 import { useAuth } from '../context/AuthContext';
 import { apiClient } from '../services/apiClient';
 import { fotografiaService } from '../services/fotografiaService';
@@ -50,6 +53,8 @@ const statusColor = {
   Aprobada: 'success',
   Cancelada: 'error',
   Borrador: 'default',
+  'Pendiente firma cliente': 'warning',
+  'Pendiente revisión': 'secondary',
 };
 
 const PAD_HEIGHT = 200;
@@ -350,8 +355,14 @@ export default function Inspections() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Filtro por estado que llega desde las tarjetas del inicio (?estado=...)
+  const location = useLocation();
+  const navigate = useNavigate();
+  const filtroEstados = leerEstados(location.search);
+  const inspeccionesVisibles = filtrarPorEstado(inspections, filtroEstados);
+
   const { search, setSearch, page, setPage, paginated, totalCount } = usePaginatedSearch(
-    inspections,
+    inspeccionesVisibles,
     ['codigo_ascensor', 'elevator', 'marca', 'tipo_servicio', 'type', 'nombre_inspector', 'inspector', 'estado', 'status']
   );
 
@@ -630,13 +641,11 @@ export default function Inspections() {
         });
       }
 
-      if (detalle.id_informe) {
-        try {
-          const fotosData = await fotografiaService.listarPorInforme(detalle.id_informe);
-          setFotos(Array.isArray(fotosData) ? fotosData : []);
-        } catch {
-          setFotos([]);
-        }
+      try {
+        const fotosData = await fotografiaService.listarPorInspeccion(id);
+        setFotos(Array.isArray(fotosData) ? fotosData : []);
+      } catch {
+        setFotos([]);
       }
 
       await Promise.all([
@@ -679,21 +688,38 @@ export default function Inspections() {
     }
   };
 
+  const idInspeccionActual = selected?.id_inspeccion || selected?.id;
+  // El cliente solo ve el checklist final (después de la revisión del coordinador)
+  const clienteEsperaRevision = userRol === 'Cliente' && !['Finalizada', 'Aprobada'].includes(selected?.estado);
+
+  const recargarFotos = async () => {
+    const fotosData = await fotografiaService.listarPorInspeccion(idInspeccionActual);
+    setFotos(Array.isArray(fotosData) ? fotosData : []);
+  };
+
+  // Foto de un ítem del checklist (botón "Foto" de cada casilla)
+  const subirFotoItem = async (item, file) => {
+    try {
+      await fotografiaService.subirAInspeccion(idInspeccionActual, file, {
+        idItem: item.id_item,
+        descripcion: item.descripcion?.slice(0, 300),
+      });
+      await recargarFotos();
+    } catch (err) {
+      showMessage(err.message || 'Error al subir la foto', 'error');
+    }
+  };
+
   const subirFoto = async () => {
     if (!selectedFile) {
       showMessage('Selecciona una foto primero', 'warning');
       return;
     }
-    if (!selected?.id_informe) {
-      showMessage('Esta inspección no tiene un informe asociado', 'warning');
-      return;
-    }
     try {
-      await fotografiaService.subir(selected.id_informe, selectedFile, fotoDescripcion);
+      await fotografiaService.subirAInspeccion(idInspeccionActual, selectedFile, { descripcion: fotoDescripcion });
       setSelectedFile(null);
       setFotoDescripcion('');
-      const fotosData = await fotografiaService.listarPorInforme(selected.id_informe);
-      setFotos(Array.isArray(fotosData) ? fotosData : []);
+      await recargarFotos();
       showMessage('Foto subida exitosamente', 'success');
     } catch (err) {
       console.error('Error subiendo foto:', err);
@@ -712,8 +738,7 @@ export default function Inspections() {
         closeConfirm();
         try {
           await fotografiaService.eliminar(idFoto);
-          const fotosData = await fotografiaService.listarPorInforme(selected.id_informe);
-          setFotos(Array.isArray(fotosData) ? fotosData : []);
+          await recargarFotos();
         } catch (err) {
           console.error('Error eliminando foto:', err);
           showMessage(err.message || 'Error al eliminar la foto', 'error');
@@ -743,7 +768,12 @@ export default function Inspections() {
   const firmarComoCliente = async (firmaBase64) => {
     const id = selected?.id_inspeccion || selected?.id;
     try {
-      await firmaService.firmarCliente(id, { firma: firmaBase64 });
+      const respuesta = await firmaService.firmarCliente(id, { firma: firmaBase64 });
+      // Si estaba "Pendiente firma cliente", con esta firma pasa a revisión
+      if (selected?.estado === ESTADO_PENDIENTE_FIRMA) {
+        setSelected((s) => (s ? { ...s, estado: ESTADO_PENDIENTE_REVISION } : s));
+        await cargarInspecciones();
+      }
       const firmasData = await firmaService.verificarFirmas(id);
       setFirmas({
         firma_inspector: firmasData.firma_inspector || false,
@@ -752,7 +782,7 @@ export default function Inspections() {
         fecha_firma_inspector: firmasData.fecha_firma_inspector || null,
         fecha_firma_cliente: firmasData.fecha_firma_cliente || null,
       });
-      showMessage('Firma del cliente registrada', 'success');
+      showMessage(respuesta?.message || 'Firma del cliente registrada', 'success');
     } catch (err) {
       showMessage('Error al registrar firma: ' + (err.message || ''), 'error');
     }
@@ -770,17 +800,27 @@ export default function Inspections() {
     setConfirmDialog({
       open: true,
       title: 'Finalizar inspección',
-      message: '¿Marcar esta inspección como finalizada? Ya no podrás editar el checklist después de esto.',
+      message: firmas?.firma_cliente
+        ? '¿Terminar esta inspección? Quedará "Pendiente revisión" hasta que el coordinador revise el informe. Ya no podrás editar el checklist.'
+        : '¿Terminar esta inspección? Quedará "Pendiente firma cliente"; cuando el cliente firme pasará a revisión del coordinador. Ya no podrás editar el checklist.',
       confirmText: 'Finalizar',
       confirmColor: 'primary',
       onConfirm: async () => {
         closeConfirm();
         setFinalizando(true);
         try {
-          await inspeccionService.actualizarEstado(id, 'Finalizada');
-          setSelected((s) => (s ? { ...s, estado: 'Finalizada' } : s));
+          // Si el cliente aún no ha firmado, el backend la deja en
+          // "Pendiente firma cliente" y se finaliza cuando el cliente firme.
+          const res = await inspeccionService.actualizarEstado(id, 'Finalizada');
+          const nuevoEstado = res?.nuevo_estado || 'Finalizada';
+          setSelected((s) => (s ? { ...s, estado: nuevoEstado } : s));
           await cargarInspecciones();
-          showMessage('Inspección marcada como finalizada', 'success');
+          showMessage(
+            nuevoEstado === ESTADO_PENDIENTE_FIRMA
+              ? 'Inspección terminada. Queda pendiente la firma del cliente.'
+              : 'Inspección terminada. Queda pendiente de revisión del coordinador.',
+            'success',
+          );
         } catch (err) {
           showMessage('Error al finalizar la inspección: ' + (err.message || ''), 'error');
         } finally {
@@ -923,6 +963,15 @@ export default function Inspections() {
 
       <Box sx={{ mb: 2 }}>
         <SearchBar value={search} onChange={setSearch} placeholder="Buscar por ascensor, inspector o estado..." />
+        {filtroEstados.length > 0 && (
+          <Chip
+            label={`Mostrando: ${filtroEstados.join(' / ')}`}
+            onDelete={() => navigate('/dashboard/inspecciones')}
+            color="primary"
+            variant="outlined"
+            sx={{ ml: 1.5, mt: 0.5 }}
+          />
+        )}
       </Box>
 
       <Card>
@@ -1187,7 +1236,7 @@ export default function Inspections() {
 
               {/* Marcar inspección como finalizada (Inspector, o Coordinador/Admin) */}
               {(userRol === 'Inspector' || userRol === 'Coordinador' || userRol === 'Administrador') &&
-                !['Finalizada', 'Completada', 'Aprobada', 'Cancelada'].includes(selected?.estado) && (
+                !['Finalizada', 'Completada', 'Aprobada', 'Cancelada', ESTADO_PENDIENTE_FIRMA, ESTADO_PENDIENTE_REVISION].includes(selected?.estado) && (
                 <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
                   <Button
                     variant="outlined"
@@ -1212,6 +1261,14 @@ export default function Inspections() {
                 Checklist NTC 5926-1
               </Typography>
 
+              {clienteEsperaRevision ? (
+                <Alert severity="info" sx={{ mb: 2 }}>
+                  {selected?.estado === ESTADO_PENDIENTE_FIRMA
+                    ? 'El inspector terminó la inspección. Firma arriba para enviarla a revisión; el checklist final estará disponible cuando el coordinador la revise.'
+                    : 'El checklist final estará disponible cuando el coordinador revise la inspección.'}
+                </Alert>
+              ) : (
+              <>
               {loadingChecklist && (
                 <Box sx={{ display: 'flex', justifyContent: 'center', my: 2 }}>
                   <CircularProgress size={24} />
@@ -1225,39 +1282,22 @@ export default function Inspections() {
                 </Typography>
               )}
 
-              {!loadingChecklist && categorias.map((cat) => (
-                <Box key={cat.id_categoria} sx={{ mb: 3 }}>
-                  <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1, color: brand.blueDark }}>
-                    {cat.nombre_categoria}
-                  </Typography>
-                  {(cat.items || []).map((item) => {
-                    const actual = detalles[item.id_item]?.resultado || '';
-                    return (
-                      <Box key={item.id_item} sx={{ mb: 1.5, pl: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1 }}>
-                        <Box sx={{ flex: 1, minWidth: 220 }}>
-                          <Typography variant="body2" sx={{ mb: 0.5 }}>{item.descripcion}</Typography>
-                          <FormControl>
-                            <RadioGroup
-                              row
-                              value={actual}
-                              onChange={(e) => calificarItem(item, e.target.value)}
-                            >
-                              <FormControlLabel value="Cumple" control={<Radio size="small" />} label="Cumple" disabled={savingItem === item.id_item} />
-                              <FormControlLabel value="No Cumple" control={<Radio size="small" />} label="No Cumple" disabled={savingItem === item.id_item} />
-                              <FormControlLabel value="No Aplica" control={<Radio size="small" />} label="No Aplica" disabled={savingItem === item.id_item} />
-                            </RadioGroup>
-                          </FormControl>
-                        </Box>
-                        {actual && (
-                          <IconButton size="small" onClick={() => eliminarCalificacion(item)} disabled={savingItem === item.id_item} title="Quitar calificación">
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        )}
-                      </Box>
-                    );
-                  })}
-                </Box>
-              ))}
+              {!loadingChecklist && categorias.length > 0 && (
+                <ChecklistInspeccion
+                  categorias={categorias}
+                  detalles={detalles}
+                  savingItem={savingItem}
+                  fotos={fotos}
+                  puedeSubirFotos={userRol === 'Inspector'}
+                  onSubirFoto={subirFotoItem}
+                  onEliminarFoto={(foto) => eliminarFoto(foto.id_foto)}
+                  urlFoto={(foto) => `${API_BASE_URL}/${foto.ruta_archivo.replace(/\\/g, '/')}`}
+                  onCalificar={calificarItem}
+                  onQuitar={eliminarCalificacion}
+                />
+              )}
+              </>
+              )}
 
               <Divider sx={{ mb: 2 }} />
 

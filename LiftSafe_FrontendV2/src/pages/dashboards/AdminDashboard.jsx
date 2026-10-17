@@ -205,6 +205,7 @@ export default function AdminDashboard() {
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(4, 1fr)' }, gap: 2, mb: 3 }}>
         <StatCard 
           title="Usuarios activos" 
+          to="/dashboard/usuarios"
           value={String(stats?.usuarios_activos || 0)} 
           subtitle="Registrados" 
           icon={<PeopleOutlinedIcon sx={{ fontSize: 28 }} />} 
@@ -214,6 +215,7 @@ export default function AdminDashboard() {
         />
         <StatCard 
           title="Ascensores" 
+          to="/dashboard/ascensores"
           value={String(stats?.ascensores_registrados || 0)} 
           subtitle="En sistema" 
           icon={<ElevatorOutlinedIcon sx={{ fontSize: 28 }} />} 
@@ -223,6 +225,7 @@ export default function AdminDashboard() {
         />
         <StatCard 
           title="Inspecciones mes" 
+          to="/dashboard/inspecciones"
           value={String(stats?.inspecciones_mes || 0)} 
           subtitle="Este mes" 
           icon={<AssignmentOutlinedIcon sx={{ fontSize: 28 }} />} 
@@ -232,6 +235,7 @@ export default function AdminDashboard() {
         />
         <StatCard 
           title="Informes" 
+          to="/dashboard/reportes?filtro=certificados"
           value={String(stats?.informes_emitidos || 0)} 
           subtitle="Emitidos" 
           icon={<DescriptionOutlinedIcon sx={{ fontSize: 28 }} />} 

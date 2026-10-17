@@ -410,7 +410,7 @@ class ObservacionResponse(ObservacionBase):
 # ESQUEMAS DE FOTOGRAFÍAS (VALENTINA)
 # ==========================================
 class FotografiaBase(BaseModel):
-    id_informe: int
+    id_informe: int | None = None
     id_item: int | None = None
     descripcion: str | None = None
     tipo_evidencia: str | None = None
@@ -420,6 +420,7 @@ class FotografiaCreate(FotografiaBase):
 
 class FotografiaResponse(FotografiaBase):
     id_foto: int
+    id_inspeccion: int | None = None
     nombre_archivo: str
     ruta_archivo: str
     tamano_kb: int | None = None
@@ -470,6 +471,7 @@ class AscensorCreate(BaseModel):
     ciudad: str
     estado: str
     fecha_instalacion: Optional[date] = None
+    id_sede: Optional[int] = None
 
 class AscensorUpdate(BaseModel):
     id_cliente: Optional[int] = None
@@ -487,6 +489,7 @@ class AscensorUpdate(BaseModel):
     ciudad: Optional[str] = None
     estado: Optional[str] = None
     fecha_instalacion: Optional[date] = None
+    id_sede: Optional[int] = None
 
 class InspeccionUpdate(BaseModel):
     estado: Optional[str] = None
@@ -502,3 +505,16 @@ class InformeRevisionRequest(BaseModel):
     decision: Literal["Aprobado", "Rechazado"]
     concepto_tecnico: Optional[str] = None
     observaciones_revision: Optional[str] = None
+
+
+# ============ SEDES DEL CLIENTE ============
+
+class SedeCreate(BaseModel):
+    nombre: str
+    direccion: Optional[str] = None
+    ciudad: Optional[str] = None
+
+class SedeUpdate(BaseModel):
+    nombre: Optional[str] = None
+    direccion: Optional[str] = None
+    ciudad: Optional[str] = None

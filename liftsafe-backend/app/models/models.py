@@ -40,6 +40,7 @@ class Usuario(Base):
     # Relaciones
     rol = relationship("Rol", back_populates="usuarios")
     ascensores = relationship("Ascensor", back_populates="cliente", foreign_keys="Ascensor.id_cliente")
+    sedes = relationship("Sede", back_populates="cliente", foreign_keys="Sede.id_cliente")
     inspecciones = relationship("Inspeccion", back_populates="inspector_rel", foreign_keys="Inspeccion.id_inspector")
     asignaciones = relationship("UsuarioAscensor", back_populates="usuario")
     informes_revisados = relationship("Informe", back_populates="revisor", foreign_keys="Informe.id_revisor")
@@ -70,14 +71,35 @@ class Ascensor(Base):
     ciudad = Column(String(100), nullable=False)
     estado = Column(String(255), nullable=False)
     fecha_instalacion = Column(Date, nullable=True)
+    id_sede = Column(Integer, ForeignKey("sede.id_sede"), nullable=True,
+                     comment="Sede del cliente; obligatoria si el cliente tiene 2 o más sedes")
     fecha_registro = Column(DateTime, nullable=False, default=datetime.utcnow)
     ultima_modificacion = Column(DateTime, nullable=False, default=datetime.utcnow, 
                                   onupdate=datetime.utcnow)
     
     # Relaciones
     cliente = relationship("Usuario", back_populates="ascensores", foreign_keys=[id_cliente])
+    sede = relationship("Sede", back_populates="ascensores")
     inspecciones = relationship("Inspeccion", back_populates="ascensor")
     asignaciones = relationship("UsuarioAscensor", back_populates="ascensor")
+
+# ============ MODELO SEDE ============
+
+class Sede(Base):
+    """Sede (sucursal) de un cliente. Un cliente puede tener varias; si tiene
+    2 o más, al registrar un ascensor hay que indicar en cuál está."""
+    __tablename__ = "sede"
+
+    id_sede = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    id_cliente = Column(Integer, ForeignKey("usuario.id_usuario"), nullable=False,
+                        comment="Usuario con rol Cliente dueño de la sede")
+    nombre = Column(String(120), nullable=False, comment="Ej: Sede Norte, Torre B")
+    direccion = Column(String(250), nullable=True)
+    ciudad = Column(String(100), nullable=True)
+    fecha_registro = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+    cliente = relationship("Usuario", back_populates="sedes", foreign_keys=[id_cliente])
+    ascensores = relationship("Ascensor", back_populates="sede")
 
 # ============ MODELO SOLICITUD ============
 
@@ -254,8 +276,10 @@ class Fotografia(Base):
     __tablename__ = "fotografia"
     
     id_foto = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    id_informe = Column(Integer, ForeignKey("informe.id_informe"), nullable=False, 
-                       comment="Informe al que pertenece la fotografía")
+    id_informe = Column(Integer, ForeignKey("informe.id_informe"), nullable=True, 
+                       comment="Informe al que pertenece la fotografía (se asigna al generar el informe)")
+    id_inspeccion = Column(Integer, ForeignKey("inspeccion.id_inspeccion"), nullable=True,
+                           comment="Inspección donde se tomó la foto (permite fotos antes del informe)")
     id_item = Column(Integer, ForeignKey("checklist_item.id_item"), nullable=True, 
                     comment="Item del checklist asociado (opcional)")
     nombre_archivo = Column(String(255), nullable=False)

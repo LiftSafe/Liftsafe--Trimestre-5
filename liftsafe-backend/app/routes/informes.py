@@ -3,7 +3,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from typing import List
 from app.database import get_db
-from app.models.models import Informe, Inspeccion, Usuario, Ascensor, Notificacion, Encuesta, Solicitud
+from app.models.models import Informe, Inspeccion, Usuario, Ascensor, Notificacion, Encuesta, Solicitud, Fotografia
 from app.schemas.schemas import MessageResponse, InformeRevisionRequest
 from app.controllers.informe_controller import generar_pdf_informe
 from app.controllers.email_controller import send_encuesta_email
@@ -67,6 +67,14 @@ def generar_informe(
         )
         db.add(nuevo_informe)
     
+    db.commit()
+
+    # Las fotos que el inspector tomó durante la inspección (antes de que
+    # existiera el informe) quedan asociadas al informe recién generado.
+    informe_actual = db.query(Informe).filter(Informe.id_inspeccion == id_inspeccion).first()
+    db.query(Fotografia).filter(
+        Fotografia.id_inspeccion == id_inspeccion, Fotografia.id_informe.is_(None)
+    ).update({Fotografia.id_informe: informe_actual.id_informe}, synchronize_session=False)
     db.commit()
 
     # FIX: nadie se enteraba de que un informe ya estaba listo para
@@ -141,6 +149,22 @@ def revisar_informe(
         informe.fecha_aprobacion = datetime.now()
 
     db.commit()
+
+    # Al aprobar el informe, la inspección (que estaba "Pendiente revisión")
+    # queda "Finalizada" y el cliente ya puede ver el checklist final.
+    if data.decision == "Aprobado":
+        insp = db.query(Inspeccion).filter(Inspeccion.id_inspeccion == informe.id_inspeccion).first()
+        if insp and insp.estado != "Finalizada":
+            insp.estado = "Finalizada"
+            asc = db.query(Ascensor).filter(Ascensor.id_ascensor == insp.id_ascensor).first()
+            if asc:
+                db.add(Notificacion(
+                    id_usuario_destino=asc.id_cliente,
+                    mensaje=f"La inspección del ascensor {asc.codigo_interno} fue revisada y quedó finalizada. Ya puedes ver el checklist final.",
+                    enlace="/dashboard/inspecciones",
+                    leida=False,
+                ))
+            db.commit()
 
     # FIX: el inspector que hizo la inspección no se enteraba de si su
     # informe había sido aprobado o rechazado.

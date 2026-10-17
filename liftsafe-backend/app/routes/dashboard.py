@@ -191,7 +191,7 @@ def get_inspecciones(current_user = Depends(get_current_user), db: Session = Dep
 def get_ascensores(current_user = Depends(get_current_user), db: Session = Depends(get_db)):
     """Obtiene lista de ascensores para el dashboard"""
     try:
-        ascensores = db.query(Ascensor).options(joinedload(Ascensor.cliente)).order_by(Ascensor.id_ascensor.desc()).all()
+        ascensores = db.query(Ascensor).options(joinedload(Ascensor.cliente), joinedload(Ascensor.sede)).order_by(Ascensor.id_ascensor.desc()).all()
         return [{
             "id": a.id_ascensor,
             "codigo": a.codigo_interno,
@@ -207,6 +207,17 @@ def get_ascensores(current_user = Depends(get_current_user), db: Session = Depen
             "city": a.ciudad,
             "status": a.estado,
             "client": a.cliente.nombre_completo if a.cliente else None,
+            # Datos que necesita el formulario de editar y la tabla de Elevators.jsx
+            "id_cliente": a.id_cliente,
+            "codigo_interno": a.codigo_interno,
+            "numero_serie": a.numero_serie,
+            "type": a.tipo_ascensor,
+            "capacity": a.capacidad_kg,
+            "capacity_personas": a.capacidad_personas,
+            "floors": a.numero_pisos,
+            "velocidad_ms": a.velocidad_ms,
+            "id_sede": a.id_sede,
+            "sede": a.sede.nombre if a.sede else None,
         } for a in ascensores]
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al obtener ascensores: {str(e)}")
@@ -223,7 +234,7 @@ def get_informes(current_user = Depends(get_current_user), db: Session = Depends
             joinedload(Inspeccion.ascensor),
             joinedload(Inspeccion.inspector_rel),
         ).filter(
-            Inspeccion.estado.in_(["Aprobada", "Finalizada", "Completada"])
+            Inspeccion.estado.in_(["Aprobada", "Finalizada", "Completada", "Pendiente revisión"])
         ).order_by(Inspeccion.fecha_creacion.desc()).all()
 
         return [{

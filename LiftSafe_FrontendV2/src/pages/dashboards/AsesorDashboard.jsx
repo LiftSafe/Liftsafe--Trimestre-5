@@ -55,8 +55,8 @@ export default function AsesorDashboard() {
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(4, 1fr)' }, gap: 2, mb: 3 }}>
         <StatCard title="Clientes" value={String(clientesUnicos.length)} subtitle="Asignados" icon={<PeopleOutlinedIcon />} accent="#0066CC" />
         <StatCard title="Ascensores" value={String(ascensores.length)} subtitle="En cartera" icon={<ElevatorOutlinedIcon />} accent="#7C5CBF" />
-        <StatCard title="Inspecciones" value={String(inspecciones.length)} subtitle="Total" icon={<AssignmentOutlinedIcon />} accent="#C97B1A" />
-        <StatCard title="Pendientes" value={String(pending.length)} subtitle="Por ejecutar" icon={<DescriptionOutlinedIcon />} accent="#C0392B" />
+        <StatCard to="/dashboard/reportes" title="Inspecciones" value={String(inspecciones.length)} subtitle="Total" icon={<AssignmentOutlinedIcon />} accent="#C97B1A" />
+        <StatCard to="/dashboard/reportes?filtro=pendientes" title="Pendientes" value={String(pending.length)} subtitle="Por ejecutar" icon={<DescriptionOutlinedIcon />} accent="#C0392B" />
       </Box>
 
       {loading ? (

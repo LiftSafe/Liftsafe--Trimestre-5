@@ -12,6 +12,7 @@ from app.routes import (
     vistas,
     usuarios,
     ascensores,
+    clientes,
     inspecciones,
     dashboard,
     fotografias,
@@ -64,6 +65,7 @@ app.include_router(auth.router)              # Equipo
 app.include_router(vistas.router)            # Equipo
 app.include_router(usuarios.router)          # Equipo
 app.include_router(ascensores.router)        # Equipo
+app.include_router(clientes.router)          # Luz - sedes de cada cliente
 app.include_router(inspecciones.router)      # Valentina
 app.include_router(dashboard.router)         # Equipo
 app.include_router(fotografias.router)       # Valentina
