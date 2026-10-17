@@ -21,6 +21,7 @@ import ConfirmDialog from '../components/ConfirmDialog';
 import { canDo } from '../config/roles';
 import { usePaginatedSearch } from '../hooks/usePaginatedSearch';
 import ChecklistInspeccion from '../components/ChecklistInspeccion';
+import { ESTADO_PENDIENTE_FIRMA } from '../utils/statusHelpers';
 import { useAuth } from '../context/AuthContext';
 import { apiClient } from '../services/apiClient';
 import { fotografiaService } from '../services/fotografiaService';
@@ -755,7 +756,12 @@ export default function Inspections() {
   const firmarComoCliente = async (firmaBase64) => {
     const id = selected?.id_inspeccion || selected?.id;
     try {
-      await firmaService.firmarCliente(id, { firma: firmaBase64 });
+      const respuesta = await firmaService.firmarCliente(id, { firma: firmaBase64 });
+      // Si estaba "Pendiente firma cliente", con esta firma queda finalizada
+      if (selected?.estado === ESTADO_PENDIENTE_FIRMA) {
+        setSelected((s) => (s ? { ...s, estado: 'Finalizada' } : s));
+        await cargarInspecciones();
+      }
       const firmasData = await firmaService.verificarFirmas(id);
       setFirmas({
         firma_inspector: firmasData.firma_inspector || false,
@@ -764,7 +770,7 @@ export default function Inspections() {
         fecha_firma_inspector: firmasData.fecha_firma_inspector || null,
         fecha_firma_cliente: firmasData.fecha_firma_cliente || null,
       });
-      showMessage('Firma del cliente registrada', 'success');
+      showMessage(respuesta?.message || 'Firma del cliente registrada', 'success');
     } catch (err) {
       showMessage('Error al registrar firma: ' + (err.message || ''), 'error');
     }
@@ -782,17 +788,27 @@ export default function Inspections() {
     setConfirmDialog({
       open: true,
       title: 'Finalizar inspección',
-      message: '¿Marcar esta inspección como finalizada? Ya no podrás editar el checklist después de esto.',
+      message: firmas?.firma_cliente
+        ? '¿Marcar esta inspección como finalizada? Ya no podrás editar el checklist después de esto.'
+        : '¿Terminar esta inspección? Quedará "Pendiente firma cliente" y se finalizará cuando el cliente firme. Ya no podrás editar el checklist.',
       confirmText: 'Finalizar',
       confirmColor: 'primary',
       onConfirm: async () => {
         closeConfirm();
         setFinalizando(true);
         try {
-          await inspeccionService.actualizarEstado(id, 'Finalizada');
-          setSelected((s) => (s ? { ...s, estado: 'Finalizada' } : s));
+          // Si el cliente aún no ha firmado, el backend la deja en
+          // "Pendiente firma cliente" y se finaliza cuando el cliente firme.
+          const res = await inspeccionService.actualizarEstado(id, 'Finalizada');
+          const nuevoEstado = res?.nuevo_estado || 'Finalizada';
+          setSelected((s) => (s ? { ...s, estado: nuevoEstado } : s));
           await cargarInspecciones();
-          showMessage('Inspección marcada como finalizada', 'success');
+          showMessage(
+            nuevoEstado === ESTADO_PENDIENTE_FIRMA
+              ? 'Inspección terminada. Queda pendiente la firma del cliente.'
+              : 'Inspección marcada como finalizada',
+            'success',
+          );
         } catch (err) {
           showMessage('Error al finalizar la inspección: ' + (err.message || ''), 'error');
         } finally {
@@ -1199,7 +1215,7 @@ export default function Inspections() {
 
               {/* Marcar inspección como finalizada (Inspector, o Coordinador/Admin) */}
               {(userRol === 'Inspector' || userRol === 'Coordinador' || userRol === 'Administrador') &&
-                !['Finalizada', 'Completada', 'Aprobada', 'Cancelada'].includes(selected?.estado) && (
+                !['Finalizada', 'Completada', 'Aprobada', 'Cancelada', ESTADO_PENDIENTE_FIRMA].includes(selected?.estado) && (
                 <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
                   <Button
                     variant="outlined"

@@ -1,3 +1,6 @@
+// Estado de la inspección cuando el inspector ya terminó y falta la firma del cliente
+export const ESTADO_PENDIENTE_FIRMA = 'Pendiente firma cliente';
+
 // ✅ Colores de estado centralizados (sin datos de demo)
 export const statusColor = {
   // Inspecciones
@@ -8,6 +11,7 @@ export const statusColor = {
   Programada: 'info',
   Borrador: 'default',
   Finalizada: 'success',
+  'Pendiente firma cliente': 'warning',
   
   // Ascensores
   Operativo: 'success',
@@ -39,6 +43,7 @@ export const statusLabels = {
   Programada: 'Programada',
   Borrador: 'Borrador',
   Finalizada: 'Finalizada',
+  'Pendiente firma cliente': 'Pendiente firma cliente',
   Operativo: 'Operativo',
   Activo: 'Activo',
   Inactivo: 'Inactivo',
