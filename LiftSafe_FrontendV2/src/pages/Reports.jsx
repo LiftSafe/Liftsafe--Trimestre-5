@@ -26,6 +26,7 @@ import { usePaginatedSearch } from '../hooks/usePaginatedSearch';
 import { fetchInformes, fetchInspecciones } from '../services/dashboardService';
 import { informeService } from '../services/informeService';
 import { API_BASE_URL } from '../config/api';
+import { statusColor } from '../utils/statusHelpers';
 
 export default function Reports() {
   const { user } = useAuth();
@@ -103,9 +104,9 @@ export default function Reports() {
   const handleEnviarInforme = async (doc) => {
     setProcesandoInformeId(doc.id);
     try {
-      const inf = await informeService.obtenerPorInspeccion(doc.id);
+      const inf = await obtenerInformeParaRevisar(doc);
       if (!inf?.id_informe) {
-        showMessage('Esta inspección todavía no tiene un informe generado.', 'warning');
+        showMessage('No se pudo generar el informe de esta inspección.', 'warning');
         return;
       }
       if (inf.estado !== 'Aprobado') {
@@ -122,13 +123,27 @@ export default function Reports() {
     }
   };
 
+  // Trae el informe de la inspección; si todavía no se ha generado (caso
+  // normal de una inspección "Pendiente revisión"), lo genera primero para
+  // que el coordinador pueda revisarlo sin pasos extra.
+  const obtenerInformeParaRevisar = async (doc) => {
+    try {
+      const inf = await informeService.obtenerPorInspeccion(doc.id);
+      if (inf?.id_informe) return inf;
+    } catch (err) {
+      if (err.status !== 404) throw err;
+    }
+    await informeService.generar(doc.id);
+    return informeService.obtenerPorInspeccion(doc.id);
+  };
+
   // ---- RF-023: Aprobar / Rechazar informe (Coordinador / Director Técnico) ----
   const handleAprobarInforme = async (doc) => {
     setProcesandoInformeId(doc.id);
     try {
-      const inf = await informeService.obtenerPorInspeccion(doc.id);
+      const inf = await obtenerInformeParaRevisar(doc);
       if (!inf?.id_informe) {
-        showMessage('Esta inspección todavía no tiene un informe generado.', 'warning');
+        showMessage('No se pudo generar el informe de esta inspección.', 'warning');
         return;
       }
       if (inf.estado !== 'Generado') {
@@ -289,7 +304,7 @@ export default function Reports() {
                         <TableCell>{doc.building}</TableCell>
                         <TableCell>{doc.date}</TableCell>
                         <TableCell>
-                          <Chip label={doc.status} color="success" size="small" />
+                          <Chip label={doc.status} color={statusColor[doc.status] || 'success'} size="small" />
                         </TableCell>
 
                         <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
