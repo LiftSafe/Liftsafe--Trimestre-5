@@ -4,15 +4,18 @@ import {
 } from '@mui/material';
 import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
+import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
+import CancelRoundedIcon from '@mui/icons-material/CancelRounded';
+import RemoveCircleRoundedIcon from '@mui/icons-material/RemoveCircleRounded';
 import PhotoCameraOutlinedIcon from '@mui/icons-material/PhotoCameraOutlined';
 import { brand } from '../theme/colors';
 import { resumenChecklist } from '../utils/checklist';
 
 // Opciones de calificación: el valor es el que guarda el backend.
 const OPCIONES = [
-  { valor: 'Cumple', texto: 'Cumple', color: '#1B8A4B', fondo: 'rgba(27, 138, 75, 0.14)' },
-  { valor: 'No Cumple', texto: 'No cumple', color: '#C62828', fondo: 'rgba(198, 40, 40, 0.12)' },
-  { valor: 'No Aplica', texto: 'N/A', color: brand.silverDark, fondo: brand.grayLight },
+  { valor: 'Cumple', texto: 'Cumple', color: '#1E8E5A', hover: 'rgba(30, 142, 90, 0.08)', Icono: CheckCircleRoundedIcon },
+  { valor: 'No Cumple', texto: 'No cumple', color: '#D14343', hover: 'rgba(209, 67, 67, 0.08)', Icono: CancelRoundedIcon },
+  { valor: 'No Aplica', texto: 'N/A', color: '#6B7A8C', hover: 'rgba(107, 122, 140, 0.10)', Icono: RemoveCircleRoundedIcon },
 ];
 
 const FILTROS = [
@@ -58,10 +61,14 @@ function FotosItem({ item, fotos, puedeSubir, onSubir, onEliminar, urlFoto }) {
             <Button
               component="span"
               size="small"
-              variant="outlined"
+              variant="text"
               disabled={subiendo}
               startIcon={subiendo ? <CircularProgress size={14} /> : <PhotoCameraOutlinedIcon />}
-              sx={{ borderRadius: 5, textTransform: 'none', fontWeight: 600, px: 1.5, py: 0.25 }}
+              sx={{
+                borderRadius: 2.5, textTransform: 'none', fontWeight: 600, fontSize: '0.8rem', px: 1.5, py: 0.4,
+                color: brand.blueDark, bgcolor: brand.accentSoft, border: 0,
+                '&:hover': { bgcolor: 'rgba(0, 102, 204, 0.16)', border: 0 },
+              }}
             >
               Foto ({fotos.length})
             </Button>
@@ -75,7 +82,7 @@ function FotosItem({ item, fotos, puedeSubir, onSubir, onEliminar, urlFoto }) {
               component="img"
               src={urlFoto(foto)}
               alt={`Foto del ítem: ${item.descripcion}`}
-              sx={{ width: 44, height: 44, objectFit: 'cover', borderRadius: 1.5, border: '1px solid', borderColor: brand.grayLight, display: 'block' }}
+              sx={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 2, border: '2px solid', borderColor: brand.white, boxShadow: '0 1px 4px rgba(11, 25, 41, 0.18)', display: 'block', bgcolor: brand.grayLight }}
             />
           </a>
           {puedeSubir && (
@@ -189,23 +196,31 @@ export default function ChecklistInspeccion({
                     aria-label={`Calificación del ítem ${n}`}
                     onChange={(_e, valor) => (valor ? onCalificar(item, valor) : onQuitar(item))}
                     sx={{
-                      borderRadius: 5, overflow: 'hidden', bgcolor: brand.white,
-                      '& .MuiToggleButton-root': {
-                        textTransform: 'none', fontWeight: 600, py: 0.9, border: '1px solid', borderColor: brand.grayLight, color: brand.silverDark,
+                      // Barra suave con tres botones redondeados separados
+                      p: 0.5, gap: 0.5, borderRadius: 3, bgcolor: brand.surface,
+                      border: '1px solid', borderColor: brand.grayLight,
+                      '& .MuiToggleButtonGroup-grouped': {
+                        border: 0, m: 0, borderRadius: '10px !important',
                       },
-                      '& .MuiToggleButtonGroup-firstButton': { borderTopLeftRadius: 20, borderBottomLeftRadius: 20 },
-                      '& .MuiToggleButtonGroup-lastButton': { borderTopRightRadius: 20, borderBottomRightRadius: 20 },
+                      '& .MuiToggleButton-root': {
+                        textTransform: 'none', fontWeight: 600, fontSize: '0.85rem', py: 0.75,
+                        color: brand.silverDark, gap: 0.75, transition: 'all .15s ease',
+                      },
                     }}
                   >
-                    {OPCIONES.map((o) => (
+                    {OPCIONES.map(({ valor, texto, color, hover, Icono }) => (
                       <ToggleButton
-                        key={o.valor}
-                        value={o.valor}
+                        key={valor}
+                        value={valor}
                         sx={{
-                          '&.Mui-selected, &.Mui-selected:hover': { bgcolor: o.fondo, color: o.color, borderColor: o.color },
+                          '&:hover': { bgcolor: hover, color },
+                          '&.Mui-selected, &.Mui-selected:hover': {
+                            bgcolor: color, color: brand.white, boxShadow: `0 2px 6px ${hover.replace(/0\.\d+\)$/, '0.35)')}`,
+                          },
                         }}
                       >
-                        {o.texto}
+                        {resultado === valor && <Icono sx={{ fontSize: 18 }} />}
+                        {texto}
                       </ToggleButton>
                     ))}
                   </ToggleButtonGroup>

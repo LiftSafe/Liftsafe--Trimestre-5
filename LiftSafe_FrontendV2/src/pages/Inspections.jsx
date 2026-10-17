@@ -51,6 +51,7 @@ const statusColor = {
   Aprobada: 'success',
   Cancelada: 'error',
   Borrador: 'default',
+  'Pendiente firma cliente': 'warning',
 };
 
 const PAD_HEIGHT = 200;
