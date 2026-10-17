@@ -4,7 +4,7 @@ import {
   TableContainer, TableHead, TableRow,
   Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem,
   Typography, Divider, IconButton, CircularProgress, Alert, Paper,
-  Radio, RadioGroup, FormControl, FormControlLabel, Checkbox,
+  FormControlLabel, Checkbox,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import CloseIcon from '@mui/icons-material/Close';
@@ -20,7 +20,7 @@ import MessageDialog, { MESSAGE_TITLES } from '../components/MessageDialog';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { canDo } from '../config/roles';
 import { usePaginatedSearch } from '../hooks/usePaginatedSearch';
-import { brand } from '../theme/colors';
+import ChecklistInspeccion from '../components/ChecklistInspeccion';
 import { useAuth } from '../context/AuthContext';
 import { apiClient } from '../services/apiClient';
 import { fotografiaService } from '../services/fotografiaService';
@@ -1225,39 +1225,15 @@ export default function Inspections() {
                 </Typography>
               )}
 
-              {!loadingChecklist && categorias.map((cat) => (
-                <Box key={cat.id_categoria} sx={{ mb: 3 }}>
-                  <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1, color: brand.blueDark }}>
-                    {cat.nombre_categoria}
-                  </Typography>
-                  {(cat.items || []).map((item) => {
-                    const actual = detalles[item.id_item]?.resultado || '';
-                    return (
-                      <Box key={item.id_item} sx={{ mb: 1.5, pl: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1 }}>
-                        <Box sx={{ flex: 1, minWidth: 220 }}>
-                          <Typography variant="body2" sx={{ mb: 0.5 }}>{item.descripcion}</Typography>
-                          <FormControl>
-                            <RadioGroup
-                              row
-                              value={actual}
-                              onChange={(e) => calificarItem(item, e.target.value)}
-                            >
-                              <FormControlLabel value="Cumple" control={<Radio size="small" />} label="Cumple" disabled={savingItem === item.id_item} />
-                              <FormControlLabel value="No Cumple" control={<Radio size="small" />} label="No Cumple" disabled={savingItem === item.id_item} />
-                              <FormControlLabel value="No Aplica" control={<Radio size="small" />} label="No Aplica" disabled={savingItem === item.id_item} />
-                            </RadioGroup>
-                          </FormControl>
-                        </Box>
-                        {actual && (
-                          <IconButton size="small" onClick={() => eliminarCalificacion(item)} disabled={savingItem === item.id_item} title="Quitar calificación">
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        )}
-                      </Box>
-                    );
-                  })}
-                </Box>
-              ))}
+              {!loadingChecklist && categorias.length > 0 && (
+                <ChecklistInspeccion
+                  categorias={categorias}
+                  detalles={detalles}
+                  savingItem={savingItem}
+                  onCalificar={calificarItem}
+                  onQuitar={eliminarCalificacion}
+                />
+              )}
 
               <Divider sx={{ mb: 2 }} />
 
