@@ -9,6 +9,7 @@ import hashlib
 import io
 import os
 from datetime import datetime
+from urllib.parse import quote
 
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER
@@ -44,6 +45,7 @@ EST = {
     "celda_b": ParagraphStyle("celda_b", fontName="Helvetica-Bold", fontSize=8, leading=10, textColor=AZUL_OSCURO),
     "th": ParagraphStyle("th", fontName="Helvetica-Bold", fontSize=8, leading=10, textColor=colors.white),
     "texto": ParagraphStyle("texto", fontName="Helvetica", fontSize=9, leading=12),
+    "enlace": ParagraphStyle("enlace", fontName="Helvetica", fontSize=6.5, leading=8, alignment=TA_CENTER),
     "centro": ParagraphStyle("centro", fontName="Helvetica", fontSize=8, leading=10, alignment=TA_CENTER),
     "numero": ParagraphStyle("numero", fontName="Helvetica-Bold", fontSize=16, leading=20, alignment=TA_CENTER),
     "chip": ParagraphStyle("chip", fontName="Helvetica-Bold", fontSize=7.5, leading=9, alignment=TA_CENTER),
@@ -169,23 +171,42 @@ def _dibujar_marco(numero_informe, fecha_emision):
 
 
 # ── Documento ────────────────────────────────────────────────────────────────
-def _fotos_item(rutas, lado=17 * mm, maximo=2):
-    """Miniaturas de las fotos de un ítem del checklist (una debajo de otra).
+def url_foto(ruta, base_url):
+    """URL pública de una foto guardada en uploads/ (la sirve FastAPI como
+    archivo estático, así el navegador la abre en una pestaña sin descargarla)."""
+    relativa = str(ruta).replace("\\", "/").lstrip("./")
+    return f"{base_url.rstrip('/')}/{quote(relativa)}"
+
+
+def _fotos_item(rutas, lado=17 * mm, maximo=2, base_url=None):
+    """Miniaturas de las fotos de un ítem del checklist (una debajo de otra),
+    cada una con un enlace "Ver foto" que la abre en el navegador.
     Si hay más de `maximo`, se indica cuántas más hay. Ignora archivos que
     ya no existan o no se puedan leer."""
     celdas = []
     validas = [r for r in rutas if r and os.path.exists(r)]
-    for ruta in validas[:maximo]:
+    for i, ruta in enumerate(validas[:maximo], start=1):
         try:
             ancho_px, alto_px = ImageReader(ruta).getSize()
             escala = min(lado / ancho_px, lado / alto_px)
             celdas.append([Image(ruta, width=ancho_px * escala, height=alto_px * escala)])
         except Exception:
             continue
+        if base_url:
+            texto = "Ver foto" if len(validas) == 1 else f"Ver foto {i}"
+            celdas.append([Paragraph(
+                f'<link href="{url_foto(ruta, base_url)}" color="#0066CC"><u>{texto}</u></link>', EST["enlace"])])
     if not celdas:
         return Paragraph("—", EST["centro"])
     if len(validas) > maximo:
-        celdas.append([Paragraph(f"+{len(validas) - maximo} más", EST["centro"])])
+        extra = len(validas) - maximo
+        if base_url:
+            enlaces = " ".join(
+                f'<link href="{url_foto(r, base_url)}" color="#0066CC"><u>{maximo + j}</u></link>'
+                for j, r in enumerate(validas[maximo:], start=1))
+            celdas.append([Paragraph(f"+{extra} más: {enlaces}", EST["enlace"])])
+        else:
+            celdas.append([Paragraph(f"+{extra} más", EST["centro"])])
     t = Table(celdas, colWidths=[lado + 2 * mm])
     t.setStyle(TableStyle([("ALIGN", (0, 0), (-1, -1), "CENTER"), ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
                            ("TOPPADDING", (0, 0), (-1, -1), 1), ("BOTTOMPADDING", (0, 0), (-1, -1), 1),
@@ -193,7 +214,7 @@ def _fotos_item(rutas, lado=17 * mm, maximo=2):
     return t
 
 
-def construir_pdf(pdf_path, inspeccion, detalles, informe=None, fotos_por_item=None):
+def construir_pdf(pdf_path, inspeccion, detalles, informe=None, fotos_por_item=None, base_url_fotos=None):
     """Dibuja el PDF. Recibe objetos ya cargados (modelos o equivalentes).
     `fotos_por_item`: {id_item: [rutas de imagen]} para mostrar la evidencia
     fotográfica al lado de cada ítem del checklist."""
@@ -306,7 +327,8 @@ def construir_pdf(pdf_path, inspeccion, detalles, informe=None, fotos_por_item=N
             Paragraph(_txt(getattr(d.item, "nivel_criticidad", None)), EST["centro"]),
             Paragraph(f'<font color="{color.hexval()}">{texto}</font>', EST["chip"]),
             Paragraph(obs if obs else "—", EST["celda"]),
-            _fotos_item(fotos_por_item.get(getattr(d, "id_item", None) or getattr(d.item, "id_item", None), [])),
+            _fotos_item(fotos_por_item.get(getattr(d, "id_item", None) or getattr(d.item, "id_item", None), []),
+                        base_url=base_url_fotos),
         ])
         n = len(filas) - 1
         estilos.append(("BACKGROUND", (3, n), (3, n), fondo))
@@ -377,7 +399,10 @@ def generar_pdf_informe(db: Session, id_inspeccion: int):
     for foto in db.query(Fotografia).filter(condicion, Fotografia.id_item.isnot(None)).order_by(Fotografia.id_foto):
         fotos_por_item.setdefault(foto.id_item, []).append(foto.ruta_archivo)
 
-    construir_pdf(pdf_path, inspeccion, detalles, informe, fotos_por_item)
+    from app.config import settings
+
+    construir_pdf(pdf_path, inspeccion, detalles, informe, fotos_por_item,
+                  base_url_fotos=getattr(settings, "API_PUBLIC_URL", None) or "http://localhost:8000")
 
     with open(pdf_path, "rb") as f:
         hash_documento = hashlib.sha256(f.read()).hexdigest()

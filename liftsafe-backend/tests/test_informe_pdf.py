@@ -104,3 +104,20 @@ def test_miniaturas_del_item_ignoran_archivos_que_no_existen_y_cuentan_las_extra
     tabla = _fotos_item(fotos + [str(tmp_path / "no_existe.png")], maximo=2)
     assert isinstance(tabla, Table)
     assert len(tabla._cellvalues) == 3  # 2 fotos + "+2 más"
+
+
+def test_url_foto_arma_el_enlace_publico_con_barras_normales():
+    from app.controllers.informe_controller import url_foto
+    assert url_foto("uploads/fotos\\20261017_a b.jpg", "http://localhost:8000/") == \
+        "http://localhost:8000/uploads/fotos/20261017_a%20b.jpg"
+
+
+def test_el_pdf_trae_enlace_para_abrir_cada_foto(tmp_path):
+    ruta = tmp_path / "enlaces.pdf"
+    detalle = _detalle("CAB-01", "Cumple")
+    detalle.id_item = 3
+    foto = _foto_png(tmp_path / "cab.png")
+    construir_pdf(str(ruta), _inspeccion(), [detalle], None, {3: [foto]}, base_url_fotos="http://api.test")
+    contenido = ruta.read_bytes()
+    assert b"/URI" in contenido
+    assert b"http://api.test/" in contenido
