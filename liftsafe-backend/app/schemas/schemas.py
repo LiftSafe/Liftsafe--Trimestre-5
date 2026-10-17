@@ -470,6 +470,7 @@ class AscensorCreate(BaseModel):
     ciudad: str
     estado: str
     fecha_instalacion: Optional[date] = None
+    id_sede: Optional[int] = None
 
 class AscensorUpdate(BaseModel):
     id_cliente: Optional[int] = None
@@ -487,6 +488,7 @@ class AscensorUpdate(BaseModel):
     ciudad: Optional[str] = None
     estado: Optional[str] = None
     fecha_instalacion: Optional[date] = None
+    id_sede: Optional[int] = None
 
 class InspeccionUpdate(BaseModel):
     estado: Optional[str] = None
@@ -502,3 +504,16 @@ class InformeRevisionRequest(BaseModel):
     decision: Literal["Aprobado", "Rechazado"]
     concepto_tecnico: Optional[str] = None
     observaciones_revision: Optional[str] = None
+
+
+# ============ SEDES DEL CLIENTE ============
+
+class SedeCreate(BaseModel):
+    nombre: str
+    direccion: Optional[str] = None
+    ciudad: Optional[str] = None
+
+class SedeUpdate(BaseModel):
+    nombre: Optional[str] = None
+    direccion: Optional[str] = None
+    ciudad: Optional[str] = None

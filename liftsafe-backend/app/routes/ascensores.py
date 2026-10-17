@@ -5,6 +5,7 @@ from sqlalchemy import func
 from app.database import get_db
 from app.models.models import Ascensor, Usuario, Inspeccion
 from app.schemas.schemas import AscensorCreate, AscensorUpdate, MessageResponse
+from app.controllers.sede_controller import sede_para_ascensor
 from jose import jwt, JWTError
 from app.config import settings
 
@@ -59,7 +60,9 @@ def listado_ascensores(
             "capacidad_kg": a.capacidad_kg,
             "ciudad": a.ciudad,
             "estado": a.estado,
-            "cliente": cliente
+            "cliente": cliente,
+            "id_sede": a.id_sede,
+            "sede": a.sede.nombre if a.sede else None,
         }
         for a, cliente in ascensores
     ]
@@ -192,8 +195,12 @@ def crear_ascensor(
     existente = db.query(Ascensor).filter(Ascensor.codigo_interno == data.codigo_interno).first()
     if existente:
         raise HTTPException(status_code=400, detail="El código interno ya está registrado")
+
+    # Sede: obligatoria solo si el cliente tiene 2 o más sedes
+    id_sede = sede_para_ascensor(db, data.id_cliente, data.id_sede)
     
     nuevo = Ascensor(
+        id_sede=id_sede,
         id_cliente=data.id_cliente,
         codigo_interno=data.codigo_interno,
         marca=data.marca,
@@ -278,6 +285,10 @@ def editar_ascensor(
         ascensor.estado = data.estado
     if data.fecha_instalacion is not None:
         ascensor.fecha_instalacion = data.fecha_instalacion
+
+    # Sede: se valida si se manda una, o si cambió el cliente
+    if data.id_sede is not None or data.id_cliente is not None:
+        ascensor.id_sede = sede_para_ascensor(db, ascensor.id_cliente, data.id_sede)
     
     db.commit()
     db.refresh(ascensor)

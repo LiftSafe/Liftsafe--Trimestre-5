@@ -42,6 +42,13 @@ describe('servicios que delegan en apiClient', () => {
     ['notificacionService.marcarTodasLeidas', () => notificacionService.marcarTodasLeidas(), '/notificaciones/leer-todas', 'PUT'],
     ['notificacionService.marcarLeida', () => notificacionService.marcarLeida(9), '/notificaciones/9/leer', 'PUT'],
     ['ascensorService.listar', () => ascensorService.listar(), '/ascensores/listado', 'GET'],
+    ['ascensorService.crear', () => ascensorService.crear({}), '/ascensores/', 'POST'],
+    ['ascensorService.modificar', () => ascensorService.modificar(3, {}), '/ascensores/3', 'PUT'],
+    ['ascensorService.eliminar', () => ascensorService.eliminar(3), '/ascensores/3', 'DELETE'],
+    ['clienteService.listarSedes', () => clienteService.listarSedes(8), '/clientes/8/sedes', 'GET'],
+    ['clienteService.crearSede', () => clienteService.crearSede(8, {}), '/clientes/8/sedes', 'POST'],
+    ['clienteService.modificarSede', () => clienteService.modificarSede(4, {}), '/clientes/sedes/4', 'PUT'],
+    ['clienteService.eliminarSede', () => clienteService.eliminarSede(4), '/clientes/sedes/4', 'DELETE'],
   ])('%s should call the right endpoint', async (_nombre, ejecutar, ruta, metodo) => {
     await ejecutar()
     expect(llamada()).toMatchObject({ ruta, metodo })

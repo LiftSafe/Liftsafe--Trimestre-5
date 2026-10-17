@@ -69,6 +69,7 @@ const FORM_VACIO = {
   direccion_completa: '',
   ciudad: '',
   estado: 'Activo',
+  id_sede: '',
 };
 
 export default function Elevators() {
@@ -96,12 +97,43 @@ export default function Elevators() {
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
   const [clientes, setClientes] = useState([]);
+  // Sedes del cliente elegido: el campo "Sede" solo aparece si tiene 2 o más
+  const [sedesCargadas, setSedesCargadas] = useState({ idCliente: null, lista: [] });
+  const sedes = formOpen && form.id_cliente && sedesCargadas.idCliente === form.id_cliente
+    ? sedesCargadas.lista
+    : [];
+  const pideSede = sedes.length >= 2;
 
   useEffect(() => {
     if (formOpen) {
       clienteService.listar().then(setClientes).catch(() => setClientes([]));
     }
   }, [formOpen]);
+
+  useEffect(() => {
+    if (!formOpen || !form.id_cliente) return undefined;
+    const idCliente = form.id_cliente;
+    let activo = true;
+    clienteService.listarSedes(idCliente)
+      .then((lista) => { if (activo) setSedesCargadas({ idCliente, lista: lista || [] }); })
+      .catch(() => { if (activo) setSedesCargadas({ idCliente, lista: [] }); });
+    return () => { activo = false; };
+  }, [formOpen, form.id_cliente]);
+
+  const elegirCliente = (idCliente) => {
+    setForm({ ...form, id_cliente: idCliente, id_sede: '' });
+  };
+
+  // Al elegir la sede se completan dirección y ciudad si estaban vacías
+  const elegirSede = (idSede) => {
+    const sede = sedes.find((s) => s.id_sede === idSede);
+    setForm({
+      ...form,
+      id_sede: idSede,
+      direccion_completa: form.direccion_completa || sede?.direccion || '',
+      ciudad: form.ciudad || sede?.ciudad || '',
+    });
+  };
 
   const handleDeleteClick = (row) => {
     setDeleteDialog({ open: true, row });
@@ -145,6 +177,7 @@ export default function Elevators() {
       direccion_completa: row.building || '',
       ciudad: row.city || '',
       estado: row.status || 'Activo',
+      id_sede: row.id_sede || '',
     });
     setFormError('');
     setFormOpen(true);
@@ -152,6 +185,10 @@ export default function Elevators() {
 
   // ✅ FUNCIÓN GUARDAR CORREGIDA - SIN variables no usadas
   const guardar = async () => {
+    if (pideSede && !form.id_sede) {
+      setFormError('Este cliente tiene varias sedes: selecciona en qué sede está el ascensor');
+      return;
+    }
     setSaving(true);
     setFormError('');
     try {
@@ -170,6 +207,7 @@ export default function Elevators() {
           ciudad: form.ciudad,
           estado: form.estado,
           fecha_instalacion: form.fecha_instalacion || undefined,
+          id_sede: form.id_sede ? Number(form.id_sede) : undefined,
         };
         await ascensorService.modificar(editingId, payload);
       } else {
@@ -180,6 +218,7 @@ export default function Elevators() {
           capacidad_personas: form.capacidad_personas ? Number(form.capacidad_personas) : undefined,
           numero_pisos: Number(form.numero_pisos),
           velocidad_ms: form.velocidad_ms ? Number(form.velocidad_ms) : undefined,
+          id_sede: form.id_sede ? Number(form.id_sede) : undefined,
         };
         await ascensorService.crear(payload);
       }
@@ -233,7 +272,14 @@ export default function Elevators() {
                   <TableBody>
                     {paginated.map((row) => (
                       <TableRow key={row.id} hover sx={{ cursor: 'pointer' }}>
-                        <TableCell>{row.building}</TableCell>
+                        <TableCell>
+                          {row.building}
+                          {row.sede && (
+                            <Typography variant="caption" color="text.secondary" component="div" sx={{ mt: 0.25 }}>
+                              Sede: {row.sede}
+                            </Typography>
+                          )}
+                        </TableCell>
                         <TableCell>{row.brand} {row.model}</TableCell>
                         <TableCell>{row.location || row.city}</TableCell>
                         <TableCell>{row.floors}</TableCell>
@@ -309,10 +355,27 @@ export default function Elevators() {
               <TextField
                 select label="Cliente" fullWidth required sx={{ gridColumn: '1 / -1' }}
                 value={form.id_cliente}
-                onChange={(e) => setForm({ ...form, id_cliente: e.target.value })}
+                onChange={(e) => elegirCliente(e.target.value)}
               >
                 {clientes.map((c) => (
-                  <MenuItem key={c.id_usuario} value={c.id_usuario}>{c.nombre_completo}</MenuItem>
+                  <MenuItem key={c.id_usuario} value={c.id_usuario}>
+                    {c.nombre_completo}
+                    {c.total_sedes >= 2 ? ` (${c.total_sedes} sedes)` : ''}
+                  </MenuItem>
+                ))}
+              </TextField>
+            )}
+            {pideSede && (
+              <TextField
+                select label="Sede" fullWidth required sx={{ gridColumn: '1 / -1' }}
+                value={form.id_sede}
+                onChange={(e) => elegirSede(e.target.value)}
+                helperText="Este cliente tiene varias sedes: elige en cuál está el ascensor"
+              >
+                {sedes.map((s) => (
+                  <MenuItem key={s.id_sede} value={s.id_sede}>
+                    {s.nombre}{s.ciudad ? ` · ${s.ciudad}` : ''}
+                  </MenuItem>
                 ))}
               </TextField>
             )}

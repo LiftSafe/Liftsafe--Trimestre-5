@@ -2,6 +2,8 @@
 // backend y todos los demás services usan 8000 -> si VITE_API_URL no estaba
 // definida, ascensorService.listar() siempre fallaba con error de conexión
 // (afectaba a Buildings.jsx y al selector de Edificio/Ascensor en Inspecciones).
+import { apiPost, apiPut, apiDelete } from './apiClient';
+
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 // ✅ sessionStorage (no localStorage): así cada pestaña del navegador
@@ -30,4 +32,8 @@ const apiGet = (endpoint) => {
 
 export const ascensorService = {
     listar: () => apiGet('/ascensores/listado'),
+    // Antes faltaban: Elevators.jsx las llamaba y "Registrar ascensor" fallaba.
+    crear: (data) => apiPost('/ascensores/', data),
+    modificar: (id, data) => apiPut(`/ascensores/${id}`, data),
+    eliminar: (id) => apiDelete(`/ascensores/${id}`),
 };

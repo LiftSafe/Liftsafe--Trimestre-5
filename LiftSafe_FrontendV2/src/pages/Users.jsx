@@ -4,6 +4,7 @@
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
+import StoreOutlinedIcon from '@mui/icons-material/StoreOutlined';
 import IconButton from '@mui/material/IconButton';
 import { useState } from 'react';
 import {
@@ -16,6 +17,7 @@ import PageHeader from '../components/PageHeader';
 import SearchBar from '../components/SearchBar';
 import ListPagination from '../components/ListPagination';
 import PasswordRequirements from '../components/PasswordRequirements';
+import SedesClienteDialog from '../components/SedesClienteDialog';
 import { statusColor } from '../utils/statusHelpers';
 import { usePaginatedSearch } from '../hooks/usePaginatedSearch';
 import { useDashboardData } from '../hooks/useDashboardData';
@@ -100,6 +102,9 @@ export default function UsersPage() {
   // ✅ Estados para eliminación
   const [deleteDialog, setDeleteDialog] = useState({ open: false, user: null });
   const [deleting, setDeleting] = useState(false);
+
+  // Sedes (sucursales) del cliente
+  const [sedesCliente, setSedesCliente] = useState(null);
 
   // ✅ Estados para snackbar (notificaciones)
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
@@ -265,6 +270,16 @@ export default function UsersPage() {
                           <Chip label={u.status} color={statusColor[u.status] || 'default'} size="small" />
                         </TableCell>
                         <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
+                          {u.role === 'Cliente' && (
+                            <IconButton
+                              size="small"
+                              color="secondary"
+                              onClick={() => setSedesCliente(u)}
+                              title="Sedes del cliente"
+                            >
+                              <StoreOutlinedIcon fontSize="small" />
+                            </IconButton>
+                          )}
                           <IconButton 
                             size="small" 
                             color="primary"
@@ -389,6 +404,16 @@ export default function UsersPage() {
         confirmColor="error"
         loading={deleting}
       />
+
+      {/* SEDES DEL CLIENTE */}
+      {sedesCliente && (
+        <SedesClienteDialog
+          key={sedesCliente.id}
+          open
+          cliente={sedesCliente}
+          onClose={() => setSedesCliente(null)}
+        />
+      )}
 
       {/* ✅ SNACKBAR GLOBAL */}
       <Snackbar
