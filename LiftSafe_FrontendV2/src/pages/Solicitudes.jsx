@@ -601,7 +601,7 @@ export default function Solicitudes() {
               >
                 {sucursales.map((s) => (
                   <MenuItem key={s.clave} value={s.clave}>
-                    {s.nombre} ({s.total} {s.total === 1 ? 'ascensor' : 'ascensores'})
+                    {s.nombre}
                   </MenuItem>
                 ))}
               </TextField>
