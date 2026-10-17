@@ -45,6 +45,8 @@ import { ascensorService } from '../services/ascensorService';
 import { usuarioService } from '../services/usuarioService';
 import { programacionService } from '../services/programacionService';
 import { claveSucursal, sucursalesDeAscensores } from '../utils/sucursales';
+import { useLocation } from 'react-router-dom';
+import { leerEstados, filtrarPorEstado } from '../utils/filtroEstado';
 
 const TIPOS_SERVICIO = [
   'Inspección Periódica',
@@ -130,8 +132,13 @@ export default function Solicitudes() {
     ? ascensores.filter((a) => sucursal && claveSucursal(a) === sucursal)
     : ascensores;
 
+  // Filtro por estado: lo ponen las tarjetas de arriba (o ?estado=... en la dirección)
+  const location = useLocation();
+  const [filtroEstados, setFiltroEstados] = useState(() => leerEstados(location.search));
+  const solicitudesVisibles = filtrarPorEstado(solicitudes, filtroEstados);
+
   const { search, setSearch, page, setPage, paginated, totalCount } = usePaginatedSearch(
-    solicitudes,
+    solicitudesVisibles,
     [(s) => s.ascensor?.codigo_interno, (s) => s.cliente?.nombre_completo, 'tipo_servicio', 'prioridad', 'estado']
   );
 
@@ -426,7 +433,12 @@ export default function Solicitudes() {
       {/* Tarjetas de estadísticas */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
         <Grid item xs={12} sm={6} md={3}>
-          <Paper sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Paper
+            onClick={() => { setFiltroEstados([]); setPage(0); }}
+            role="button"
+            title="Ver en la tabla"
+            sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2, cursor: 'pointer' }}
+          >
             <AssignmentIcon sx={{ color: '#1976d2', fontSize: 32 }} />
             <Box>
               <Typography variant="h4" fontWeight={700}>{total}</Typography>
@@ -435,7 +447,12 @@ export default function Solicitudes() {
           </Paper>
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <Paper sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Paper
+            onClick={() => { setFiltroEstados(['Pendiente']); setPage(0); }}
+            role="button"
+            title="Ver en la tabla"
+            sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2, cursor: 'pointer' }}
+          >
             <PendingIcon sx={{ color: '#ed6c02', fontSize: 32 }} />
             <Box>
               <Typography variant="h4" fontWeight={700}>{pendientes}</Typography>
@@ -444,7 +461,12 @@ export default function Solicitudes() {
           </Paper>
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <Paper sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Paper
+            onClick={() => { setFiltroEstados(['Programada']); setPage(0); }}
+            role="button"
+            title="Ver en la tabla"
+            sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2, cursor: 'pointer' }}
+          >
             <ScheduleIcon sx={{ color: '#2e7d32', fontSize: 32 }} />
             <Box>
               <Typography variant="h4" fontWeight={700}>{programadas}</Typography>
@@ -453,7 +475,12 @@ export default function Solicitudes() {
           </Paper>
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <Paper sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Paper
+            onClick={() => { setFiltroEstados(['Finalizada', 'Aprobada']); setPage(0); }}
+            role="button"
+            title="Ver en la tabla"
+            sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2, cursor: 'pointer' }}
+          >
             <CheckCircleIcon sx={{ color: '#9c27b0', fontSize: 32 }} />
             <Box>
               <Typography variant="h4" fontWeight={700}>{finalizadas}</Typography>
@@ -485,6 +512,15 @@ export default function Solicitudes() {
       {/* Tabla de solicitudes */}
       <Box sx={{ mb: 2 }}>
         <SearchBar value={search} onChange={setSearch} placeholder="Buscar por ascensor, cliente o estado..." />
+        {filtroEstados.length > 0 && (
+          <Chip
+            label={`Mostrando: ${filtroEstados.join(' / ')}`}
+            onDelete={() => setFiltroEstados([])}
+            color="primary"
+            variant="outlined"
+            sx={{ ml: 1.5, mt: 0.5 }}
+          />
+        )}
       </Box>
 
       <Card>

@@ -7,6 +7,7 @@ import AssignmentOutlinedIcon from '@mui/icons-material/AssignmentOutlined';
 import ScheduleOutlinedIcon from '@mui/icons-material/ScheduleOutlined';
 import RateReviewOutlinedIcon from '@mui/icons-material/RateReviewOutlined';
 import { Link } from 'react-router-dom';
+import { rutaConEstados } from '../../utils/filtroEstado';
 import StatCard from '../../components/StatCard';
 import WelcomeBanner from '../../components/WelcomeBanner';
 import ChartCard from '../../components/dashboard/ChartCard';
@@ -192,6 +193,7 @@ export default function CoordinadorDashboard() {
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 2, mb: 3 }}>
         <StatCard
           title="Inspecciones activas"
+          to="/dashboard/inspecciones"
           value={String(inspecciones.length)}
           subtitle="En seguimiento"
           icon={<AssignmentOutlinedIcon />}
@@ -199,6 +201,7 @@ export default function CoordinadorDashboard() {
         />
         <StatCard
           title="Pendientes"
+          to={rutaConEstados('/dashboard/inspecciones', ['Programada', 'Borrador', 'En Proceso', 'En Progreso'])}
           value={String(pending.length)}
           subtitle="Por programar o ejecutar"
           icon={<ScheduleOutlinedIcon />}
@@ -206,6 +209,7 @@ export default function CoordinadorDashboard() {
         />
         <StatCard
           title="En revisión"
+          to="/dashboard/reportes?filtro=pendientes"
           value={String(toReview.length)}
           subtitle="Informes y observaciones"
           icon={<RateReviewOutlinedIcon />}

@@ -3,6 +3,7 @@ import AssignmentOutlinedIcon from '@mui/icons-material/AssignmentOutlined';
 import CheckCircleOutlinedIcon from '@mui/icons-material/CheckCircleOutlined';
 import ScheduleOutlinedIcon from '@mui/icons-material/ScheduleOutlined';
 import WarningAmberOutlinedIcon from '@mui/icons-material/WarningAmberOutlined';
+import { rutaConEstados } from '../../utils/filtroEstado';
 import StatCard from "../../components/StatCard";
 import WelcomeBanner from "../../components/WelcomeBanner";
 import ChartCard from "../../components/dashboard/ChartCard";
@@ -46,10 +47,10 @@ export default function InspectorDashboard() {
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(4, 1fr)' }, gap: 2, mb: 3 }}>
-        <StatCard title="Programadas" value={String(programmed.length)} subtitle="Por ejecutar" icon={<ScheduleOutlinedIcon />} accent="#0066CC" />
-        <StatCard title="En proceso" value={String(inProgress.length)} subtitle="Activas" icon={<WarningAmberOutlinedIcon />} accent="#C97B1A" />
-        <StatCard title="Completadas" value={String(completed.length)} subtitle="Este mes" icon={<CheckCircleOutlinedIcon />} accent="#0E7C4A" />
-        <StatCard title="Total" value={String(inspecciones.length)} subtitle="Asignadas" icon={<AssignmentOutlinedIcon />} accent="#7C5CBF" />
+        <StatCard to={rutaConEstados('/dashboard/inspecciones', ['Programada'])} title="Programadas" value={String(programmed.length)} subtitle="Por ejecutar" icon={<ScheduleOutlinedIcon />} accent="#0066CC" />
+        <StatCard to={rutaConEstados('/dashboard/inspecciones', ['En Proceso', 'En Progreso', 'Borrador'])} title="En proceso" value={String(inProgress.length)} subtitle="Activas" icon={<WarningAmberOutlinedIcon />} accent="#C97B1A" />
+        <StatCard to={rutaConEstados('/dashboard/inspecciones', ['Finalizada', 'Aprobada'])} title="Completadas" value={String(completed.length)} subtitle="Este mes" icon={<CheckCircleOutlinedIcon />} accent="#0E7C4A" />
+        <StatCard to="/dashboard/inspecciones" title="Total" value={String(inspecciones.length)} subtitle="Asignadas" icon={<AssignmentOutlinedIcon />} accent="#7C5CBF" />
       </Box>
 
       {loading ? (

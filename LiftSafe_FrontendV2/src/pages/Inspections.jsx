@@ -21,6 +21,8 @@ import ConfirmDialog from '../components/ConfirmDialog';
 import { canDo } from '../config/roles';
 import { usePaginatedSearch } from '../hooks/usePaginatedSearch';
 import ChecklistInspeccion from '../components/ChecklistInspeccion';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { leerEstados, filtrarPorEstado } from '../utils/filtroEstado';
 import { ESTADO_PENDIENTE_FIRMA, ESTADO_PENDIENTE_REVISION } from '../utils/statusHelpers';
 import { useAuth } from '../context/AuthContext';
 import { apiClient } from '../services/apiClient';
@@ -353,8 +355,14 @@ export default function Inspections() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Filtro por estado que llega desde las tarjetas del inicio (?estado=...)
+  const location = useLocation();
+  const navigate = useNavigate();
+  const filtroEstados = leerEstados(location.search);
+  const inspeccionesVisibles = filtrarPorEstado(inspections, filtroEstados);
+
   const { search, setSearch, page, setPage, paginated, totalCount } = usePaginatedSearch(
-    inspections,
+    inspeccionesVisibles,
     ['codigo_ascensor', 'elevator', 'marca', 'tipo_servicio', 'type', 'nombre_inspector', 'inspector', 'estado', 'status']
   );
 
@@ -955,6 +963,15 @@ export default function Inspections() {
 
       <Box sx={{ mb: 2 }}>
         <SearchBar value={search} onChange={setSearch} placeholder="Buscar por ascensor, inspector o estado..." />
+        {filtroEstados.length > 0 && (
+          <Chip
+            label={`Mostrando: ${filtroEstados.join(' / ')}`}
+            onDelete={() => navigate('/dashboard/inspecciones')}
+            color="primary"
+            variant="outlined"
+            sx={{ ml: 1.5, mt: 0.5 }}
+          />
+        )}
       </Box>
 
       <Card>

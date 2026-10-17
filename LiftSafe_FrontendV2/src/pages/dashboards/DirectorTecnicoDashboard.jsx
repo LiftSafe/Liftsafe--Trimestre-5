@@ -73,10 +73,10 @@ export default function DirectorTecnicoDashboard() {
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(4, 1fr)' }, gap: 2, mb: 3 }}>
-        <StatCard title="Total inspecciones" value={String(inspecciones.length)} subtitle="En sistema" icon={<AssignmentOutlinedIcon />} accent="#0066CC" />
-        <StatCard title="Por aprobar" value={String(pendingApproval.length)} subtitle="Pendientes revisión" icon={<RateReviewOutlinedIcon />} accent="#C97B1A" />
-        <StatCard title="Con observaciones" value={String(withObservations.length)} subtitle="Requieren seguimiento" icon={<WarningAmberOutlinedIcon />} accent="#C0392B" />
-        <StatCard title="Aprobadas" value={String(informes.filter(i => i.status === 'Aprobado').length)} subtitle="Este mes" icon={<CheckCircleOutlinedIcon />} accent="#0E7C4A" />
+        <StatCard to="/dashboard/inspecciones" title="Total inspecciones" value={String(inspecciones.length)} subtitle="En sistema" icon={<AssignmentOutlinedIcon />} accent="#0066CC" />
+        <StatCard to="/dashboard/reportes?filtro=pendientes" title="Por aprobar" value={String(pendingApproval.length)} subtitle="Pendientes revisión" icon={<RateReviewOutlinedIcon />} accent="#C97B1A" />
+        <StatCard to="/dashboard/reportes" title="Con observaciones" value={String(withObservations.length)} subtitle="Requieren seguimiento" icon={<WarningAmberOutlinedIcon />} accent="#C0392B" />
+        <StatCard to="/dashboard/reportes?filtro=certificados" title="Aprobadas" value={String(informes.filter(i => i.status === 'Aprobado').length)} subtitle="Este mes" icon={<CheckCircleOutlinedIcon />} accent="#0E7C4A" />
       </Box>
 
       {loading ? (

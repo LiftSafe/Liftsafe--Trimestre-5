@@ -1,14 +1,26 @@
 import { Card, CardContent, Typography, Box, Chip } from '@mui/material';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import TrendingDownIcon from '@mui/icons-material/TrendingDown';
+import { useNavigate } from 'react-router-dom';
 import { brand } from '../theme/colors';
 
-export default function StatCard({ title, value, subtitle, icon, accent = brand.accent, trend, trendLabel }) {
+// `to` (opcional): al hacer clic en la tarjeta lleva a esa ruta (por ejemplo
+// la lista ya filtrada). No cambia el aspecto, solo el cursor.
+export default function StatCard({ title, value, subtitle, icon, accent = brand.accent, trend, trendLabel, to }) {
   const isPositive = trend === undefined || trend >= 0;
+  const navigate = useNavigate();
+  const clickable = Boolean(to);
+  const abrir = () => { if (to) navigate(to); };
 
   return (
     <Card
+      onClick={clickable ? abrir : undefined}
+      onKeyDown={clickable ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); abrir(); } } : undefined}
+      role={clickable ? 'button' : undefined}
+      tabIndex={clickable ? 0 : undefined}
+      aria-label={clickable ? `${title}: ver lista` : undefined}
       sx={{
+        cursor: clickable ? 'pointer' : 'default',
         height: '100%',
         borderRadius: 3,
         border: '1px solid',

@@ -3,6 +3,7 @@ import ElevatorOutlinedIcon from '@mui/icons-material/ElevatorOutlined';
 import AssignmentOutlinedIcon from '@mui/icons-material/AssignmentOutlined';
 import CheckCircleOutlinedIcon from '@mui/icons-material/CheckCircleOutlined';
 import WarningAmberOutlinedIcon from '@mui/icons-material/WarningAmberOutlined';
+import { rutaConEstados } from '../../utils/filtroEstado';
 import StatCard from "../../components/StatCard";
 import WelcomeBanner from "../../components/WelcomeBanner";
 import ChartCard from "../../components/dashboard/ChartCard";
@@ -56,8 +57,8 @@ export default function ClienteDashboard() {
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(4, 1fr)' }, gap: 2, mb: 3 }}>
         <StatCard title="Mis ascensores" value={String(ascensores.length)} subtitle="Registrados" icon={<ElevatorOutlinedIcon />} accent="#0066CC" />
         <StatCard title="Activos" value={String(activeElevators.length)} subtitle="En operación" icon={<CheckCircleOutlinedIcon />} accent="#0E7C4A" />
-        <StatCard title="Inspecciones" value={String(inspecciones.length)} subtitle="Total" icon={<AssignmentOutlinedIcon />} accent="#C97B1A" />
-        <StatCard title="Pendientes" value={String(pending.length)} subtitle="Por realizar" icon={<WarningAmberOutlinedIcon />} accent="#C0392B" />
+        <StatCard to="/dashboard/inspecciones" title="Inspecciones" value={String(inspecciones.length)} subtitle="Total" icon={<AssignmentOutlinedIcon />} accent="#C97B1A" />
+        <StatCard to={rutaConEstados('/dashboard/inspecciones', ['Programada', 'Borrador'])} title="Pendientes" value={String(pending.length)} subtitle="Por realizar" icon={<WarningAmberOutlinedIcon />} accent="#C0392B" />
       </Box>
 
       {loading ? (

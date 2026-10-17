@@ -27,6 +27,7 @@ import { fetchInformes, fetchInspecciones } from '../services/dashboardService';
 import { informeService } from '../services/informeService';
 import { API_BASE_URL } from '../config/api';
 import { statusColor } from '../utils/statusHelpers';
+import { useLocation } from 'react-router-dom';
 
 // Fecha legible (17/10/2026); si no se puede leer, se deja tal cual
 function formatearFecha(valor) {
@@ -45,7 +46,12 @@ export default function Reports() {
   const { data: inspecciones = [], loading: loadingInsp, error: errorInsp } = useDashboardData(fetchInspecciones);
 
   // Filtro elegido al hacer clic en una tarjeta de arriba (null = todos)
-  const [filtro, setFiltro] = useState(null);
+  // También puede llegar desde las tarjetas del inicio: /dashboard/reportes?filtro=pendientes
+  const location = useLocation();
+  const [filtro, setFiltro] = useState(() => {
+    const desdeUrl = new URLSearchParams(location.search).get('filtro');
+    return ['certificados', 'pendientes', 'por_vencer'].includes(desdeUrl) ? desdeUrl : null;
+  });
 
   const esCertificado = (d) => d.status === 'Aprobada' || d.status === 'Finalizada';
   const esPendiente = (i) => [
