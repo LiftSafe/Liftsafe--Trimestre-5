@@ -109,6 +109,9 @@ export default function Solicitudes() {
   // Sucursales que salen de los ascensores del cliente
   const sucursales = sucursalesDeAscensores(ascensores);
   const pideSucursal = sucursales.length >= 2;
+  // Nombre de la sucursal del ascensor de una solicitud (si tiene)
+  const sucursalDe = (solicitud) => ascensores.find((a) => a.id_ascensor === solicitud?.id_ascensor)?.sede || null;
+  const sucursalAsignacion = sucursalDe(assignDialog.solicitud);
   const ascensoresVisibles = pideSucursal
     ? ascensores.filter((a) => sucursal && claveSucursal(a) === sucursal)
     : ascensores;
@@ -496,7 +499,14 @@ export default function Solicitudes() {
                 ) : (
                   paginated.map((s) => (
                     <TableRow key={s.id_solicitud} hover>
-                      <TableCell>{s.ascensor?.codigo_interno || 'N/A'}</TableCell>
+                      <TableCell>
+                        {s.ascensor?.codigo_interno || 'N/A'}
+                        {sucursalDe(s) && (
+                          <Typography variant="caption" color="text.secondary" component="div">
+                            {sucursalDe(s)}
+                          </Typography>
+                        )}
+                      </TableCell>
                       <TableCell>{s.cliente?.nombre_completo || 'N/A'}</TableCell>
                       <TableCell>{s.tipo_servicio}</TableCell>
                       <TableCell>
@@ -699,6 +709,11 @@ export default function Solicitudes() {
         <DialogTitle>
           Asignar inspector — {assignDialog.solicitud?.ascensor?.codigo_interno || 'Ascensor'}
           {assignDialog.solicitud?.cliente?.nombre_completo ? ` (${assignDialog.solicitud.cliente.nombre_completo})` : ''}
+          {sucursalAsignacion && (
+            <Typography variant="body2" color="text.secondary" component="span" sx={{ display: "block", mt: 0.5 }}>
+              Sucursal: <strong>{sucursalAsignacion}</strong>
+            </Typography>
+          )}
         </DialogTitle>
         <DialogContent>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
