@@ -64,4 +64,39 @@ describe('ChecklistInspeccion', () => {
     fireEvent.click(screen.getByText('Pendientes (0)'))
     expect(screen.getByText('¡Todos los ítems están calificados!')).toBeInTheDocument()
   })
+
+  it('should show a Foto button per item with its photo count for inspectors', () => {
+    pintar({
+      puedeSubirFotos: true,
+      onSubirFoto: vi.fn(),
+      fotos: [{ id_foto: 1, id_item: 10, ruta_archivo: 'uploads/fotos/a.jpg' }],
+      urlFoto: (f) => `http://api/${f.ruta_archivo}`,
+    })
+    expect(screen.getByText('Foto (1)')).toBeInTheDocument()
+    expect(screen.getAllByText('Foto (0)')).toHaveLength(2)
+    expect(screen.getByAltText('Foto del ítem: Acceso exclusivo y señalizado')).toHaveAttribute('src', 'http://api/uploads/fotos/a.jpg')
+  })
+
+  it('should upload the chosen file for that item', async () => {
+    const onSubirFoto = vi.fn().mockResolvedValue()
+    pintar({ puedeSubirFotos: true, onSubirFoto })
+    const archivo = new File(['x'], 'cabina.jpg', { type: 'image/jpeg' })
+    fireEvent.change(document.getElementById('foto-item-11'), { target: { files: [archivo] } })
+    await vi.waitFor(() => expect(onSubirFoto).toHaveBeenCalledWith(categorias[0].items[1], archivo))
+  })
+
+  it('should let the inspector remove a photo', () => {
+    const onEliminarFoto = vi.fn()
+    const foto = { id_foto: 5, id_item: 20, ruta_archivo: 'f.jpg' }
+    pintar({ puedeSubirFotos: true, onSubirFoto: vi.fn(), onEliminarFoto, fotos: [foto] })
+    fireEvent.click(screen.getByTitle('Quitar foto'))
+    expect(onEliminarFoto).toHaveBeenCalledWith(foto)
+  })
+
+  it('should only show existing photos (no button) to other roles', () => {
+    pintar({ fotos: [{ id_foto: 1, id_item: 10, ruta_archivo: 'a.jpg' }] })
+    expect(screen.queryByText(/Foto \(/)).not.toBeInTheDocument()
+    expect(screen.getByAltText('Foto del ítem: Acceso exclusivo y señalizado')).toBeInTheDocument()
+    expect(screen.queryByTitle('Quitar foto')).not.toBeInTheDocument()
+  })
 })

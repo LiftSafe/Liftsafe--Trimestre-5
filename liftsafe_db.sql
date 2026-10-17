@@ -798,3 +798,10 @@ CREATE TABLE IF NOT EXISTS `sede` (
 ALTER TABLE `ascensor` ADD COLUMN `id_sede` int(11) NULL COMMENT 'Sede del cliente' AFTER `fecha_instalacion`;
 ALTER TABLE `ascensor` ADD KEY `idx_ascensor_sede` (`id_sede`);
 ALTER TABLE `ascensor` ADD CONSTRAINT `fk_ascensor_sede` FOREIGN KEY (`id_sede`) REFERENCES `sede` (`id_sede`) ON DELETE SET NULL;
+
+
+ALTER TABLE `fotografia` MODIFY `id_informe` int(11) NULL;
+ALTER TABLE `fotografia` ADD COLUMN `id_inspeccion` int(11) NULL COMMENT 'Inspección donde se tomó la foto' AFTER `id_informe`;
+ALTER TABLE `fotografia` ADD KEY `idx_fotografia_inspeccion` (`id_inspeccion`);
+ALTER TABLE `fotografia` ADD CONSTRAINT `fk_fotografia_inspeccion` FOREIGN KEY (`id_inspeccion`) REFERENCES `inspeccion` (`id_inspeccion`) ON DELETE CASCADE;
+UPDATE `fotografia` f JOIN `informe` i ON i.id_informe = f.id_informe SET f.id_inspeccion = i.id_inspeccion WHERE f.id_inspeccion IS NULL;

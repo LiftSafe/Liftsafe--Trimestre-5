@@ -3,7 +3,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from typing import List
 from app.database import get_db
-from app.models.models import Informe, Inspeccion, Usuario, Ascensor, Notificacion, Encuesta, Solicitud
+from app.models.models import Informe, Inspeccion, Usuario, Ascensor, Notificacion, Encuesta, Solicitud, Fotografia
 from app.schemas.schemas import MessageResponse, InformeRevisionRequest
 from app.controllers.informe_controller import generar_pdf_informe
 from app.controllers.email_controller import send_encuesta_email
@@ -67,6 +67,14 @@ def generar_informe(
         )
         db.add(nuevo_informe)
     
+    db.commit()
+
+    # Las fotos que el inspector tomó durante la inspección (antes de que
+    # existiera el informe) quedan asociadas al informe recién generado.
+    informe_actual = db.query(Informe).filter(Informe.id_inspeccion == id_inspeccion).first()
+    db.query(Fotografia).filter(
+        Fotografia.id_inspeccion == id_inspeccion, Fotografia.id_informe.is_(None)
+    ).update({Fotografia.id_informe: informe_actual.id_informe}, synchronize_session=False)
     db.commit()
 
     # FIX: nadie se enteraba de que un informe ya estaba listo para

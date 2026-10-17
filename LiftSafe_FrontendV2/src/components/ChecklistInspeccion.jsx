@@ -1,8 +1,10 @@
 import { useMemo, useState } from 'react';
 import {
-  Box, Chip, LinearProgress, ToggleButton, ToggleButtonGroup, Typography,
+  Box, Button, Chip, CircularProgress, IconButton, LinearProgress, ToggleButton, ToggleButtonGroup, Typography,
 } from '@mui/material';
 import CheckIcon from '@mui/icons-material/Check';
+import CloseIcon from '@mui/icons-material/Close';
+import PhotoCameraOutlinedIcon from '@mui/icons-material/PhotoCameraOutlined';
 import { brand } from '../theme/colors';
 import { resumenChecklist } from '../utils/checklist';
 
@@ -28,8 +30,76 @@ function pasaFiltro(filtro, resultado) {
 // Checklist NTC 5926-1 con el estilo de la app de inspección:
 // barra de progreso, filtros y botones grandes por ítem.
 // Tocar otra vez la opción elegida quita la calificación.
-export default function ChecklistInspeccion({ categorias = [], detalles = {}, savingItem, onCalificar, onQuitar }) {
+// Fotos de un ítem: botón "Foto (n)" abajo a la izquierda y miniaturas.
+function FotosItem({ item, fotos, puedeSubir, onSubir, onEliminar, urlFoto }) {
+  const [subiendo, setSubiendo] = useState(false);
+  const idInput = `foto-item-${item.id_item}`;
+
+  const elegirArchivo = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setSubiendo(true);
+    try {
+      await onSubir(item, file);
+    } finally {
+      setSubiendo(false);
+    }
+  };
+
+  if (!puedeSubir && !fotos.length) return null;
+
+  return (
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1, flexWrap: 'wrap' }}>
+      {puedeSubir && (
+        <>
+          <input id={idInput} type="file" accept="image/jpeg,image/png" hidden onChange={elegirArchivo} />
+          <label htmlFor={idInput}>
+            <Button
+              component="span"
+              size="small"
+              variant="outlined"
+              disabled={subiendo}
+              startIcon={subiendo ? <CircularProgress size={14} /> : <PhotoCameraOutlinedIcon />}
+              sx={{ borderRadius: 5, textTransform: 'none', fontWeight: 600, px: 1.5, py: 0.25 }}
+            >
+              Foto ({fotos.length})
+            </Button>
+          </label>
+        </>
+      )}
+      {fotos.map((foto) => (
+        <Box key={foto.id_foto} sx={{ position: 'relative' }}>
+          <a href={urlFoto(foto)} target="_blank" rel="noreferrer" title="Ver foto">
+            <Box
+              component="img"
+              src={urlFoto(foto)}
+              alt={`Foto del ítem: ${item.descripcion}`}
+              sx={{ width: 44, height: 44, objectFit: 'cover', borderRadius: 1.5, border: '1px solid', borderColor: brand.grayLight, display: 'block' }}
+            />
+          </a>
+          {puedeSubir && (
+            <IconButton
+              size="small"
+              onClick={() => onEliminar(foto)}
+              title="Quitar foto"
+              sx={{ position: 'absolute', top: -8, right: -8, p: 0.25, bgcolor: brand.white, border: '1px solid', borderColor: brand.grayLight, '&:hover': { bgcolor: brand.surface } }}
+            >
+              <CloseIcon sx={{ fontSize: 12 }} />
+            </IconButton>
+          )}
+        </Box>
+      ))}
+    </Box>
+  );
+}
+
+export default function ChecklistInspeccion({
+  categorias = [], detalles = {}, savingItem, onCalificar, onQuitar,
+  fotos = [], puedeSubirFotos = false, onSubirFoto, onEliminarFoto, urlFoto = () => '',
+}) {
   const [filtro, setFiltro] = useState('todos');
+  const fotosDe = (idItem) => fotos.filter((f) => f.id_item === idItem);
   const resumen = useMemo(() => resumenChecklist(categorias, detalles), [categorias, detalles]);
   const porcentaje = resumen.total ? Math.round((resumen.calificados / resumen.total) * 100) : 0;
 
@@ -139,6 +209,14 @@ export default function ChecklistInspeccion({ categorias = [], detalles = {}, sa
                       </ToggleButton>
                     ))}
                   </ToggleButtonGroup>
+                  <FotosItem
+                    item={item}
+                    fotos={fotosDe(item.id_item)}
+                    puedeSubir={puedeSubirFotos && Boolean(onSubirFoto)}
+                    onSubir={onSubirFoto}
+                    onEliminar={onEliminarFoto}
+                    urlFoto={urlFoto}
+                  />
                 </Box>
               </Box>
             ))}

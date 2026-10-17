@@ -410,7 +410,7 @@ class ObservacionResponse(ObservacionBase):
 # ESQUEMAS DE FOTOGRAFÍAS (VALENTINA)
 # ==========================================
 class FotografiaBase(BaseModel):
-    id_informe: int
+    id_informe: int | None = None
     id_item: int | None = None
     descripcion: str | None = None
     tipo_evidencia: str | None = None
@@ -420,6 +420,7 @@ class FotografiaCreate(FotografiaBase):
 
 class FotografiaResponse(FotografiaBase):
     id_foto: int
+    id_inspeccion: int | None = None
     nombre_archivo: str
     ruta_archivo: str
     tamano_kb: int | None = None

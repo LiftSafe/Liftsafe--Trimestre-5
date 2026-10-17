@@ -276,8 +276,10 @@ class Fotografia(Base):
     __tablename__ = "fotografia"
     
     id_foto = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    id_informe = Column(Integer, ForeignKey("informe.id_informe"), nullable=False, 
-                       comment="Informe al que pertenece la fotografía")
+    id_informe = Column(Integer, ForeignKey("informe.id_informe"), nullable=True, 
+                       comment="Informe al que pertenece la fotografía (se asigna al generar el informe)")
+    id_inspeccion = Column(Integer, ForeignKey("inspeccion.id_inspeccion"), nullable=True,
+                           comment="Inspección donde se tomó la foto (permite fotos antes del informe)")
     id_item = Column(Integer, ForeignKey("checklist_item.id_item"), nullable=True, 
                     comment="Item del checklist asociado (opcional)")
     nombre_archivo = Column(String(255), nullable=False)

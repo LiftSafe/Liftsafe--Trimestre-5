@@ -79,6 +79,23 @@ def run():
         else:
             print("Columna ascensor.id_sede ya existe.")
 
+        # Fotos por ítem del checklist (ligadas a la inspección)
+        if not column_exists(conn, "id_inspeccion", "fotografia"):
+            conn.execute(text("ALTER TABLE fotografia MODIFY id_informe INT NULL"))
+            conn.execute(text("ALTER TABLE fotografia ADD COLUMN id_inspeccion INT NULL AFTER id_informe"))
+            conn.execute(text("ALTER TABLE fotografia ADD KEY idx_fotografia_inspeccion (id_inspeccion)"))
+            conn.execute(text(
+                "ALTER TABLE fotografia ADD CONSTRAINT fk_fotografia_inspeccion FOREIGN KEY (id_inspeccion)"
+                " REFERENCES inspeccion (id_inspeccion) ON DELETE CASCADE"
+            ))
+            conn.execute(text(
+                "UPDATE fotografia f JOIN informe i ON i.id_informe = f.id_informe"
+                " SET f.id_inspeccion = i.id_inspeccion WHERE f.id_inspeccion IS NULL"
+            ))
+            print("Columna fotografia.id_inspeccion agregada.")
+        else:
+            print("Columna fotografia.id_inspeccion ya existe.")
+
 
 if __name__ == "__main__":
     run()

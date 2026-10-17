@@ -630,13 +630,11 @@ export default function Inspections() {
         });
       }
 
-      if (detalle.id_informe) {
-        try {
-          const fotosData = await fotografiaService.listarPorInforme(detalle.id_informe);
-          setFotos(Array.isArray(fotosData) ? fotosData : []);
-        } catch {
-          setFotos([]);
-        }
+      try {
+        const fotosData = await fotografiaService.listarPorInspeccion(id);
+        setFotos(Array.isArray(fotosData) ? fotosData : []);
+      } catch {
+        setFotos([]);
       }
 
       await Promise.all([
@@ -679,21 +677,36 @@ export default function Inspections() {
     }
   };
 
+  const idInspeccionActual = selected?.id_inspeccion || selected?.id;
+
+  const recargarFotos = async () => {
+    const fotosData = await fotografiaService.listarPorInspeccion(idInspeccionActual);
+    setFotos(Array.isArray(fotosData) ? fotosData : []);
+  };
+
+  // Foto de un ítem del checklist (botón "Foto" de cada casilla)
+  const subirFotoItem = async (item, file) => {
+    try {
+      await fotografiaService.subirAInspeccion(idInspeccionActual, file, {
+        idItem: item.id_item,
+        descripcion: item.descripcion?.slice(0, 300),
+      });
+      await recargarFotos();
+    } catch (err) {
+      showMessage(err.message || 'Error al subir la foto', 'error');
+    }
+  };
+
   const subirFoto = async () => {
     if (!selectedFile) {
       showMessage('Selecciona una foto primero', 'warning');
       return;
     }
-    if (!selected?.id_informe) {
-      showMessage('Esta inspección no tiene un informe asociado', 'warning');
-      return;
-    }
     try {
-      await fotografiaService.subir(selected.id_informe, selectedFile, fotoDescripcion);
+      await fotografiaService.subirAInspeccion(idInspeccionActual, selectedFile, { descripcion: fotoDescripcion });
       setSelectedFile(null);
       setFotoDescripcion('');
-      const fotosData = await fotografiaService.listarPorInforme(selected.id_informe);
-      setFotos(Array.isArray(fotosData) ? fotosData : []);
+      await recargarFotos();
       showMessage('Foto subida exitosamente', 'success');
     } catch (err) {
       console.error('Error subiendo foto:', err);
@@ -712,8 +725,7 @@ export default function Inspections() {
         closeConfirm();
         try {
           await fotografiaService.eliminar(idFoto);
-          const fotosData = await fotografiaService.listarPorInforme(selected.id_informe);
-          setFotos(Array.isArray(fotosData) ? fotosData : []);
+          await recargarFotos();
         } catch (err) {
           console.error('Error eliminando foto:', err);
           showMessage(err.message || 'Error al eliminar la foto', 'error');
@@ -1230,6 +1242,11 @@ export default function Inspections() {
                   categorias={categorias}
                   detalles={detalles}
                   savingItem={savingItem}
+                  fotos={fotos}
+                  puedeSubirFotos={userRol === 'Inspector'}
+                  onSubirFoto={subirFotoItem}
+                  onEliminarFoto={(foto) => eliminarFoto(foto.id_foto)}
+                  urlFoto={(foto) => `${API_BASE_URL}/${foto.ruta_archivo.replace(/\\/g, '/')}`}
                   onCalificar={calificarItem}
                   onQuitar={eliminarCalificacion}
                 />
