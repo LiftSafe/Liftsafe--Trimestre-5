@@ -169,8 +169,35 @@ def _dibujar_marco(numero_informe, fecha_emision):
 
 
 # ── Documento ────────────────────────────────────────────────────────────────
-def construir_pdf(pdf_path, inspeccion, detalles, informe=None):
-    """Dibuja el PDF. Recibe objetos ya cargados (modelos o equivalentes)."""
+def _fotos_item(rutas, lado=17 * mm, maximo=2):
+    """Miniaturas de las fotos de un ítem del checklist (una debajo de otra).
+    Si hay más de `maximo`, se indica cuántas más hay. Ignora archivos que
+    ya no existan o no se puedan leer."""
+    celdas = []
+    validas = [r for r in rutas if r and os.path.exists(r)]
+    for ruta in validas[:maximo]:
+        try:
+            ancho_px, alto_px = ImageReader(ruta).getSize()
+            escala = min(lado / ancho_px, lado / alto_px)
+            celdas.append([Image(ruta, width=ancho_px * escala, height=alto_px * escala)])
+        except Exception:
+            continue
+    if not celdas:
+        return Paragraph("—", EST["centro"])
+    if len(validas) > maximo:
+        celdas.append([Paragraph(f"+{len(validas) - maximo} más", EST["centro"])])
+    t = Table(celdas, colWidths=[lado + 2 * mm])
+    t.setStyle(TableStyle([("ALIGN", (0, 0), (-1, -1), "CENTER"), ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                           ("TOPPADDING", (0, 0), (-1, -1), 1), ("BOTTOMPADDING", (0, 0), (-1, -1), 1),
+                           ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0)]))
+    return t
+
+
+def construir_pdf(pdf_path, inspeccion, detalles, informe=None, fotos_por_item=None):
+    """Dibuja el PDF. Recibe objetos ya cargados (modelos o equivalentes).
+    `fotos_por_item`: {id_item: [rutas de imagen]} para mostrar la evidencia
+    fotográfica al lado de cada ítem del checklist."""
+    fotos_por_item = fotos_por_item or {}
     ascensor = inspeccion.ascensor
     cliente = getattr(ascensor, "cliente", None)
     inspector = getattr(inspeccion, "inspector_rel", None)
@@ -248,8 +275,8 @@ def construir_pdf(pdf_path, inspeccion, detalles, informe=None):
 
     # 3. Checklist agrupado por categoría
     h.append(_titulo_seccion("3. LISTA DE VERIFICACIÓN (CHECKLIST)", ancho))
-    anchos = [16 * mm, ancho - 16 * mm - 20 * mm - 22 * mm - 50 * mm, 20 * mm, 22 * mm, 50 * mm]
-    filas = [[Paragraph(t, EST["th"]) for t in ("Código", "Ítem verificado", "Criticidad", "Resultado", "Observación")]]
+    anchos = [16 * mm, ancho - 16 * mm - 20 * mm - 22 * mm - 38 * mm - 21 * mm, 20 * mm, 22 * mm, 38 * mm, 21 * mm]
+    filas = [[Paragraph(t, EST["th"]) for t in ("Código", "Ítem verificado", "Criticidad", "Resultado", "Observación", "Foto")]]
     estilos = [("BACKGROUND", (0, 0), (-1, 0), AZUL), ("GRID", (0, 0), (-1, -1), 0.4, GRIS_BORDE),
                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"), ("TOPPADDING", (0, 0), (-1, -1), 3),
                ("BOTTOMPADDING", (0, 0), (-1, -1), 3)]
@@ -266,7 +293,7 @@ def construir_pdf(pdf_path, inspeccion, detalles, informe=None):
         nombre_cat = getattr(cat, "nombre_categoria", None) or "Sin categoría"
         if nombre_cat != categoria_actual:
             categoria_actual = nombre_cat
-            filas.append([Paragraph(_txt(nombre_cat).upper(), EST["celda_b"]), "", "", "", ""])
+            filas.append([Paragraph(_txt(nombre_cat).upper(), EST["celda_b"]), "", "", "", "", ""])
             n = len(filas) - 1
             estilos += [("SPAN", (0, n), (-1, n)), ("BACKGROUND", (0, n), (-1, n), AZUL_CLARO)]
         texto, color, fondo = _resultado(d.resultado)
@@ -279,11 +306,12 @@ def construir_pdf(pdf_path, inspeccion, detalles, informe=None):
             Paragraph(_txt(getattr(d.item, "nivel_criticidad", None)), EST["centro"]),
             Paragraph(f'<font color="{color.hexval()}">{texto}</font>', EST["chip"]),
             Paragraph(obs if obs else "—", EST["celda"]),
+            _fotos_item(fotos_por_item.get(getattr(d, "id_item", None) or getattr(d.item, "id_item", None), [])),
         ])
         n = len(filas) - 1
         estilos.append(("BACKGROUND", (3, n), (3, n), fondo))
     if len(filas) == 1:
-        filas.append([Paragraph("No hay ítems registrados en esta inspección.", EST["celda"]), "", "", "", ""])
+        filas.append([Paragraph("No hay ítems registrados en esta inspección.", EST["celda"]), "", "", "", "", ""])
         estilos.append(("SPAN", (0, 1), (-1, 1)))
     tabla = Table(filas, colWidths=anchos, repeatRows=1)
     tabla.setStyle(TableStyle(estilos))
@@ -328,7 +356,9 @@ def construir_pdf(pdf_path, inspeccion, detalles, informe=None):
 
 
 def generar_pdf_informe(db: Session, id_inspeccion: int):
-    from app.models.models import DetalleChecklist, Informe, Inspeccion
+    from sqlalchemy import or_
+
+    from app.models.models import DetalleChecklist, Fotografia, Informe, Inspeccion
 
     inspeccion = db.query(Inspeccion).filter(Inspeccion.id_inspeccion == id_inspeccion).first()
     if not inspeccion:
@@ -339,7 +369,15 @@ def generar_pdf_informe(db: Session, id_inspeccion: int):
 
     pdf_path = f"informes/INF-{id_inspeccion}-{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
     os.makedirs("informes", exist_ok=True)
-    construir_pdf(pdf_path, inspeccion, detalles, informe)
+    # Fotos tomadas en cada ítem del checklist (por inspección o por informe)
+    condicion = Fotografia.id_inspeccion == id_inspeccion
+    if informe:
+        condicion = or_(condicion, Fotografia.id_informe == informe.id_informe)
+    fotos_por_item = {}
+    for foto in db.query(Fotografia).filter(condicion, Fotografia.id_item.isnot(None)).order_by(Fotografia.id_foto):
+        fotos_por_item.setdefault(foto.id_item, []).append(foto.ruta_archivo)
+
+    construir_pdf(pdf_path, inspeccion, detalles, informe, fotos_por_item)
 
     with open(pdf_path, "rb") as f:
         hash_documento = hashlib.sha256(f.read()).hexdigest()

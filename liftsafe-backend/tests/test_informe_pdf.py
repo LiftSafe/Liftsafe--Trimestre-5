@@ -69,3 +69,38 @@ def test_construye_pdf_sin_items_ni_firmas(tmp_path):
     ruta = tmp_path / "vacio.pdf"
     construir_pdf(str(ruta), _inspeccion(firmas=False), [], None)
     assert ruta.read_bytes().startswith(b"%PDF")
+
+
+def _foto_png(ruta, color=(30, 120, 200)):
+    from PIL import Image as PILImage
+    PILImage.new("RGB", (80, 60), color).save(ruta)
+    return str(ruta)
+
+
+def test_pone_la_foto_al_lado_de_su_item(tmp_path):
+    # Arrange
+    ruta = tmp_path / "con_fotos.pdf"
+    detalle = _detalle("CAB-01", "No Cumple")
+    detalle.id_item = 7
+    foto = _foto_png(tmp_path / "cabina.png")
+
+    # Act
+    construir_pdf(str(ruta), _inspeccion(), [detalle], None, {7: [foto]})
+    sin_fotos = tmp_path / "sin_fotos.pdf"
+    construir_pdf(str(sin_fotos), _inspeccion(), [detalle], None)
+
+    # Assert: el PDF con foto trae una imagen más que el que no tiene
+    con = ruta.read_bytes().count(b"/Subtype /Image")
+    sin = sin_fotos.read_bytes().count(b"/Subtype /Image")
+    assert con == sin + 1
+
+
+def test_miniaturas_del_item_ignoran_archivos_que_no_existen_y_cuentan_las_extra(tmp_path):
+    from reportlab.platypus import Paragraph, Table
+    from app.controllers.informe_controller import _fotos_item
+
+    fotos = [_foto_png(tmp_path / f"f{i}.png") for i in range(4)]
+    assert isinstance(_fotos_item([str(tmp_path / "no_existe.png")]), Paragraph)
+    tabla = _fotos_item(fotos + [str(tmp_path / "no_existe.png")], maximo=2)
+    assert isinstance(tabla, Table)
+    assert len(tabla._cellvalues) == 3  # 2 fotos + "+2 más"
