@@ -45,6 +45,7 @@ EST = {
     "celda_b": ParagraphStyle("celda_b", fontName="Helvetica-Bold", fontSize=8, leading=10, textColor=AZUL_OSCURO),
     "th": ParagraphStyle("th", fontName="Helvetica-Bold", fontSize=8, leading=10, textColor=colors.white),
     "texto": ParagraphStyle("texto", fontName="Helvetica", fontSize=9, leading=12),
+    "nota": ParagraphStyle("nota", fontName="Helvetica-Oblique", fontSize=7, leading=9, textColor=GRIS_TEXTO),
     "enlace": ParagraphStyle("enlace", fontName="Helvetica", fontSize=6.5, leading=8, alignment=TA_CENTER),
     "centro": ParagraphStyle("centro", fontName="Helvetica", fontSize=8, leading=10, alignment=TA_CENTER),
     "numero": ParagraphStyle("numero", fontName="Helvetica-Bold", fontSize=16, leading=20, alignment=TA_CENTER),
@@ -338,6 +339,11 @@ def construir_pdf(pdf_path, inspeccion, detalles, informe=None, fotos_por_item=N
     tabla = Table(filas, colWidths=anchos, repeatRows=1)
     tabla.setStyle(TableStyle(estilos))
     h.append(tabla)
+    if any(fotos_por_item.values()) and base_url_fotos:
+        h.append(Spacer(1, 1.5 * mm))
+        h.append(Paragraph(
+            "Para ver una foto sin cerrar este informe: <b>Ctrl + clic</b> (o clic con la rueda del mouse) "
+            "sobre «Ver foto»; se abrirá en otra pestaña.", EST["nota"]))
     h.append(Spacer(1, 6 * mm))
 
     # 4. Observaciones

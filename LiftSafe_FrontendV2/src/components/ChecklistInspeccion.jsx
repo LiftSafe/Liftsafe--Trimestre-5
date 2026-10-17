@@ -75,8 +75,8 @@ function FotosItem({ item, fotos, puedeSubir, onSubir, onEliminar, urlFoto }) {
           </label>
         </>
       )}
-      {fotos.map((foto) => (
-        <Box key={foto.id_foto} sx={{ position: 'relative' }}>
+      {fotos.map((foto, i) => (
+        <Box key={foto.id_foto} sx={{ position: 'relative', textAlign: 'center' }}>
           <a href={urlFoto(foto)} target="_blank" rel="noreferrer" title="Ver foto">
             <Box
               component="img"
@@ -85,6 +85,15 @@ function FotosItem({ item, fotos, puedeSubir, onSubir, onEliminar, urlFoto }) {
               sx={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 2, border: '2px solid', borderColor: brand.white, boxShadow: '0 1px 4px rgba(11, 25, 41, 0.18)', display: 'block', bgcolor: brand.grayLight }}
             />
           </a>
+          <Box
+            component="a"
+            href={urlFoto(foto)}
+            target="_blank"
+            rel="noreferrer"
+            sx={{ display: 'block', mt: 0.25, fontSize: '0.68rem', fontWeight: 600, color: brand.accent, textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
+          >
+            {fotos.length > 1 ? `Ver foto ${i + 1}` : 'Ver foto'}
+          </Box>
           {puedeSubir && (
             <IconButton
               size="small"
