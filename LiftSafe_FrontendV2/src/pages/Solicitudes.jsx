@@ -44,6 +44,7 @@ import { solicitudService } from '../services/solicitudService';
 import { ascensorService } from '../services/ascensorService';
 import { usuarioService } from '../services/usuarioService';
 import { programacionService } from '../services/programacionService';
+import { claveSucursal, sucursalesDeAscensores } from '../utils/sucursales';
 
 const TIPOS_SERVICIO = [
   'Inspección Periódica',
@@ -77,6 +78,10 @@ export default function Solicitudes() {
     fecha_deseada: '',
     observaciones: ''
   });
+  // Sucursal (sede) elegida en el formulario: si los ascensores del cliente
+  // están en 2 o más sucursales, primero se elige la sucursal y la lista de
+  // ascensores muestra solo los de esa sucursal.
+  const [sucursal, setSucursal] = useState('');
   const [formErrors, setFormErrors] = useState({});
   const [formError, setFormError] = useState('');
   const [submitLoading, setSubmitLoading] = useState(false);
@@ -100,6 +105,13 @@ export default function Solicitudes() {
   const esCliente = userRol === 'Cliente';
   const esAdmin = userRol === 'Administrador';
   const esCoordinador = userRol === 'Coordinador';
+
+  // Sucursales que salen de los ascensores del cliente
+  const sucursales = sucursalesDeAscensores(ascensores);
+  const pideSucursal = sucursales.length >= 2;
+  const ascensoresVisibles = pideSucursal
+    ? ascensores.filter((a) => sucursal && claveSucursal(a) === sucursal)
+    : ascensores;
 
   const { search, setSearch, page, setPage, paginated, totalCount } = usePaginatedSearch(
     solicitudes,
@@ -230,6 +242,8 @@ export default function Solicitudes() {
 
   const handleOpenDialog = (solicitud = null) => {
     if (solicitud) {
+      const asc = ascensores.find((a) => a.id_ascensor === solicitud.id_ascensor);
+      setSucursal(asc ? claveSucursal(asc) : '');
       setEditingId(solicitud.id_solicitud);
       setFormData({
         id_ascensor: solicitud.id_ascensor || '',
@@ -239,6 +253,7 @@ export default function Solicitudes() {
         observaciones: solicitud.observaciones || ''
       });
     } else {
+      setSucursal('');
       setEditingId(null);
       setFormData({
         id_ascensor: '',
@@ -265,8 +280,18 @@ export default function Solicitudes() {
     setFormData({ ...formData, [name]: value });
   };
 
+  const elegirSucursal = (valor) => {
+    setSucursal(valor);
+    // Si el ascensor elegido no es de esa sucursal, se limpia
+    const asc = ascensores.find((a) => a.id_ascensor === formData.id_ascensor);
+    if (asc && claveSucursal(asc) !== valor) {
+      setFormData({ ...formData, id_ascensor: '' });
+    }
+  };
+
   const validateForm = () => {
     const errors = {};
+    if (pideSucursal && !sucursal) errors.sucursal = 'Selecciona una sucursal';
     if (!formData.id_ascensor) errors.id_ascensor = 'Selecciona un ascensor';
     if (!formData.tipo_servicio) errors.tipo_servicio = 'Selecciona un tipo de servicio';
     if (!formData.prioridad) errors.prioridad = 'Selecciona una prioridad';
@@ -291,7 +316,11 @@ export default function Solicitudes() {
     try {
       const payload = {
         ...formData,
-        id_ascensor: Number(formData.id_ascensor)
+        id_ascensor: Number(formData.id_ascensor),
+        // La fecha deseada es opcional: vacía se manda como null (antes
+        // "" hacía fallar la solicitud con un error 422)
+        fecha_deseada: formData.fecha_deseada || null,
+        observaciones: formData.observaciones || null,
       };
 
       if (editingId) {
@@ -559,6 +588,25 @@ export default function Solicitudes() {
                 {formError}
               </Alert>
             )}
+            {pideSucursal && (
+              <TextField
+                select
+                label="Sucursal *"
+                name="sucursal"
+                value={sucursal}
+                onChange={(e) => elegirSucursal(e.target.value)}
+                error={!!formErrors.sucursal}
+                helperText={formErrors.sucursal || 'Elige la sucursal donde está el ascensor'}
+                fullWidth
+              >
+                {sucursales.map((s) => (
+                  <MenuItem key={s.clave} value={s.clave}>
+                    {s.nombre} ({s.total} {s.total === 1 ? 'ascensor' : 'ascensores'})
+                  </MenuItem>
+                ))}
+              </TextField>
+            )}
+
             <TextField
               select
               label="Ascensor *"
@@ -566,11 +614,12 @@ export default function Solicitudes() {
               value={formData.id_ascensor}
               onChange={handleChange}
               error={!!formErrors.id_ascensor}
-              helperText={formErrors.id_ascensor}
+              helperText={formErrors.id_ascensor || (pideSucursal && !sucursal ? 'Primero elige la sucursal' : '')}
+              disabled={pideSucursal && !sucursal}
               fullWidth
             >
               <MenuItem value="">Seleccionar ascensor...</MenuItem>
-              {ascensores.map((a) => (
+              {ascensoresVisibles.map((a) => (
                 <MenuItem key={a.id_ascensor} value={a.id_ascensor}>
                   {a.codigo_interno} - {a.marca} {a.modelo}
                 </MenuItem>

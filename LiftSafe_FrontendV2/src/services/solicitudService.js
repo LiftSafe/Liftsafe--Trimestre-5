@@ -9,7 +9,12 @@ const getToken = () => {
 const handleResponse = async (response) => {
     if (!response.ok) {
         const error = await response.json().catch(() => ({}));
-        throw new Error(error.detail || 'Error en la petición');
+        // FastAPI manda los errores de validación como lista: se muestran
+        // en texto en vez de "[object Object]"
+        const detalle = Array.isArray(error.detail)
+            ? error.detail.map((e) => e.msg || String(e)).join(', ')
+            : error.detail;
+        throw new Error(detalle || 'Error en la petición');
     }
     return response.json();
 };
