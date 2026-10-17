@@ -12,7 +12,6 @@ import DownloadOutlinedIcon from '@mui/icons-material/DownloadOutlined';
 import SendOutlinedIcon from '@mui/icons-material/SendOutlined';
 import CheckCircleOutlinedIcon from '@mui/icons-material/CheckCircleOutlined';
 import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
-import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import PageHeader from '../components/PageHeader';
 import SearchBar from '../components/SearchBar';
@@ -357,16 +356,6 @@ export default function Reports() {
                               <SendOutlinedIcon fontSize="small" />
                             </IconButton>
                           )}
-                          <IconButton
-                            size="small"
-                            color="primary"
-                            onClick={() => {
-                              console.log('Editar reporte:', doc.id);
-                            }}
-                            title="Editar"
-                          >
-                            <EditIcon fontSize="small" />
-                          </IconButton>
                         </TableCell>
                       </TableRow>
                     ))}
