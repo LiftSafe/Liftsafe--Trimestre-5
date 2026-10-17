@@ -112,6 +112,20 @@ export default function Solicitudes() {
   // Nombre de la sucursal del ascensor de una solicitud (si tiene)
   const sucursalDe = (solicitud) => ascensores.find((a) => a.id_ascensor === solicitud?.id_ascensor)?.sede || null;
   const sucursalAsignacion = sucursalDe(assignDialog.solicitud);
+  // Ficha de la solicitud en el diálogo "Asignar inspector"
+  const solAsig = assignDialog.solicitud;
+  const ascAsig = solAsig?.ascensor;
+  const datosAsignacion = solAsig ? [
+    ['Cliente', solAsig.cliente?.nombre_completo || '—'],
+    ['Sucursal', sucursalAsignacion || 'Sin sucursal'],
+    ['Ascensor', ascAsig ? [ascAsig.codigo_interno, [ascAsig.marca, ascAsig.modelo].filter(Boolean).join(' ')].filter(Boolean).join(' · ') : '—'],
+    ['Dirección', [ascAsig?.direccion_completa, ascAsig?.ciudad].filter(Boolean).join(', ') || '—'],
+    ['Teléfono', solAsig.cliente?.telefono || '—'],
+    ['Correo', solAsig.cliente?.correo || '—'],
+    ['Tipo de servicio', solAsig.tipo_servicio || '—'],
+    ['Prioridad', solAsig.prioridad || '—'],
+    ['Fecha deseada', solAsig.fecha_deseada || 'Sin preferencia'],
+  ] : [];
   const ascensoresVisibles = pideSucursal
     ? ascensores.filter((a) => sucursal && claveSucursal(a) === sucursal)
     : ascensores;
@@ -706,17 +720,32 @@ export default function Solicitudes() {
 
       {/* Dialog para asignar inspector (Coordinador/Admin) */}
       <Dialog open={assignDialog.open} onClose={handleCloseAssign} maxWidth="sm" fullWidth>
-        <DialogTitle>
-          Asignar inspector — {assignDialog.solicitud?.ascensor?.codigo_interno || 'Ascensor'}
-          {assignDialog.solicitud?.cliente?.nombre_completo ? ` (${assignDialog.solicitud.cliente.nombre_completo})` : ''}
-          {sucursalAsignacion && (
-            <Typography variant="body2" color="text.secondary" component="span" sx={{ display: "block", mt: 0.5 }}>
-              Sucursal: <strong>{sucursalAsignacion}</strong>
-            </Typography>
-          )}
-        </DialogTitle>
+        <DialogTitle sx={{ pb: 1 }}>Asignar inspector</DialogTitle>
         <DialogContent>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
+          {/* Datos de la solicitud, ordenados y con etiqueta */}
+          <Box sx={{ p: 2, borderRadius: 2, bgcolor: 'grey.50', border: '1px solid', borderColor: 'divider' }}>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, columnGap: 3, rowGap: 1.5 }}>
+              {datosAsignacion.map(([etiqueta, valor]) => (
+                <Box key={etiqueta} sx={{ minWidth: 0 }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 600 }}>
+                    {etiqueta}
+                  </Typography>
+                  <Typography variant="body2" fontWeight={500} sx={{ overflowWrap: 'anywhere' }}>{valor}</Typography>
+                </Box>
+              ))}
+            </Box>
+            {assignDialog.solicitud?.observaciones && (
+              <Box sx={{ mt: 1.5 }}>
+                <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 600 }}>
+                  Observaciones del cliente
+                </Typography>
+                <Typography variant="body2">{assignDialog.solicitud.observaciones}</Typography>
+              </Box>
+            )}
+          </Box>
+
+          <Typography variant="subtitle2" fontWeight={700} sx={{ mt: 2.5 }}>Programación</Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1.5 }}>
             {assignError && (
               <Alert severity="error" onClose={() => setAssignError('')}>
                 {assignError}
