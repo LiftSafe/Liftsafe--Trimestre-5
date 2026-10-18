@@ -15,7 +15,7 @@ Cada semana cada integrante trabaja una capa distinta. El revisor de un PR debe 
 | @MendVal (Valentina) | E2E | API | | | | | | | |
 | @esteban64-64 (Esteban) | E2E | API | | | | | | | |
 | @Felipemesa1 (Felipe) | E2E | E2E (CI) | | | | | | | |
-| @usuario-dayan (Dayan) | E2E | Front | | | | | | | |
+| @mpdayan1804 (Dayan) | E2E | Front | Front: Auditoria | | | | | | |
 | @usuario-luz (Luz) | E2E | Front | | | | | | | |
 
 ## Cobertura semanal
@@ -26,6 +26,7 @@ Cifra real medida al cierre de cada semana (líneas) y umbral que se exige la se
 |---|---|---|---|
 | S1 | 1.22 | 45.64 | Front 30 · Back 45 |
 | S2 | 33.33 | 48.10 | Front 33 · Back 48 |
+| S3 | 41.77 | 52.08 | Front 41 · Back 52 |
 
 ## Integración continua (desde la semana 2)
 
