@@ -80,7 +80,7 @@ export default function Auditoria() {
           </TextField>
 
           <Box sx={{ mb: 2 }}>
-            <SearchBar value={search} onChange={setSearch} placeholder="Buscar por usuario, tabla u operación..." />
+            <SearchBar value={search} onChange={setSearch} placeholder="Buscar por usuario, tabla u operación..." ariaLabel="Buscar en la auditoría" />
           </Box>
 
           {loading ? (
