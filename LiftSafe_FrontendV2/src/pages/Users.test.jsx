@@ -89,3 +89,24 @@ describe('<UsersPage /> crear usuario: validaciones', () => {
     expect(createUserRequest).not.toHaveBeenCalled()
   })
 })
+describe('<UsersPage /> crear usuario', () => {
+  it('should create the user, confirm it and reload the list', async () => {
+    // Arrange
+    createUserRequest.mockResolvedValue({})
+    const user = userEvent.setup()
+    renderWithProviders(<UsersPage />)
+    await abrirCrear(user)
+
+    // Act
+    await llenarCrear(user)
+    await user.click(screen.getByRole('button', { name: 'Crear usuario' }))
+
+    // Assert
+    expect(await screen.findByText('Usuario creado exitosamente')).toBeInTheDocument()
+    expect(createUserRequest).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'Nuevo Usuario', email: 'nuevo@x.com', document: '1098765432', password: 'Abcdefg1' }),
+      'tok',
+    )
+    await waitFor(() => expect(fetchUsuarios).toHaveBeenCalledTimes(2))
+  })
+})
