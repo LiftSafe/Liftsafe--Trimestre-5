@@ -110,3 +110,39 @@ describe('<UsersPage /> crear usuario', () => {
     await waitFor(() => expect(fetchUsuarios).toHaveBeenCalledTimes(2))
   })
 })
+async function abrirEditar(user) {
+  await screen.findByText('Ana Pérez')
+  await user.click(screen.getAllByRole('button', { name: /editar usuario/i })[0])
+}
+
+describe('<UsersPage /> editar usuario', () => {
+  it('should prefill the form and save the changes', async () => {
+    // Arrange
+    updateUserRequest.mockResolvedValue({})
+    const user = userEvent.setup()
+    renderWithProviders(<UsersPage />)
+    await abrirEditar(user)
+    const nombre = screen.getByLabelText('Nombre completo')
+    expect(nombre).toHaveValue('Ana Pérez')
+
+    // Act
+    await user.clear(nombre)
+    await user.type(nombre, 'Ana María')
+    await user.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+
+    // Assert
+    expect(await screen.findByText('Usuario actualizado exitosamente')).toBeInTheDocument()
+    expect(updateUserRequest).toHaveBeenCalledWith(1, expect.objectContaining({ name: 'Ana María', email: 'ana@x.com' }))
+  })
+
+  it('should show the error when the update fails', async () => {
+    updateUserRequest.mockRejectedValue(new Error('Correo duplicado'))
+    const user = userEvent.setup()
+    renderWithProviders(<UsersPage />)
+    await abrirEditar(user)
+
+    await user.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Correo duplicado')
+  })
+})
