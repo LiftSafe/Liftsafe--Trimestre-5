@@ -146,3 +146,32 @@ describe('<UsersPage /> editar usuario', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Correo duplicado')
   })
 })
+describe('<UsersPage /> eliminar usuario', () => {
+  it('should delete the user after confirming', async () => {
+    // Arrange
+    eliminarUsuario.mockResolvedValue({})
+    const user = userEvent.setup()
+    renderWithProviders(<UsersPage />)
+    await screen.findByText('Ana Pérez')
+
+    // Act
+    await user.click(screen.getAllByRole('button', { name: /eliminar usuario/i })[0])
+    await user.click(screen.getByRole('button', { name: 'Eliminar' }))
+
+    // Assert
+    expect(await screen.findByText('Usuario "Ana Pérez" eliminado correctamente')).toBeInTheDocument()
+    expect(eliminarUsuario).toHaveBeenCalledWith(1)
+  })
+
+  it('should show the error when the deletion fails', async () => {
+    eliminarUsuario.mockRejectedValue(new Error('No se puede eliminar'))
+    const user = userEvent.setup()
+    renderWithProviders(<UsersPage />)
+    await screen.findByText('Ana Pérez')
+
+    await user.click(screen.getAllByRole('button', { name: /eliminar usuario/i })[0])
+    await user.click(screen.getByRole('button', { name: 'Eliminar' }))
+
+    expect(await screen.findByText('No se puede eliminar')).toBeInTheDocument()
+  })
+})
