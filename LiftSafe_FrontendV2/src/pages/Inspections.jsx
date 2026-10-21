@@ -404,6 +404,7 @@ export default function Inspections() {
   // Ítems "No cumple" sin foto: la foto es obligatoria y bloquean "Marcar como finalizada"
   const faltanFotosNA = itemsSinFotoObligatoria(categorias, detalles, fotos);
   const [verFaltantes, setVerFaltantes] = useState(false);
+  const checklistRef = useRef(null);
   const [loadingChecklist, setLoadingChecklist] = useState(false);
   const [checklistError, setChecklistError] = useState('');
   const [savingItem, setSavingItem] = useState(null);
@@ -1285,9 +1286,22 @@ export default function Inspections() {
                           Ítems que no cumplen y aún no tienen foto:
                         </Typography>
                         {describirItems(categorias, faltanFotosNA).map((f) => (
-                          <Typography key={f.id_item} variant="body2" sx={{ fontSize: '0.82rem', mb: 0.5 }}>
-                            <strong>{f.numero}.</strong> {f.descripcion}
+                          <Typography
+                            key={f.id_item}
+                            component="button"
+                            type="button"
+                            variant="body2"
+                            onClick={() => checklistRef.current?.irAItem(f.id_item)}
+                            title="Ir al ítem"
+                            sx={{
+                              display: 'block', width: '100%', textAlign: 'left', fontSize: '0.82rem', mb: 0.25, px: 0.75, py: 0.5,
+                              bgcolor: 'transparent', border: 0, borderRadius: 1.5, cursor: 'pointer', color: 'inherit', fontFamily: 'inherit',
+                              '&:hover': { bgcolor: 'rgba(209, 67, 67, 0.10)', '& .ir': { textDecoration: 'underline' } },
+                            }}
+                          >
+                            <strong>{f.numero}.</strong> <span className="ir">{f.descripcion}</span>
                             <Typography component="span" variant="caption" color="text.secondary">{'  ·  '}{f.grupo}</Typography>
+                            <Typography component="span" variant="caption" sx={{ color: '#D14343', fontWeight: 700 }}>{'  '}Ir →</Typography>
                           </Typography>
                         ))}
                       </Box>
@@ -1326,6 +1340,7 @@ export default function Inspections() {
 
               {!loadingChecklist && categorias.length > 0 && (
                 <ChecklistInspeccion
+                  ref={checklistRef}
                   categorias={categorias}
                   detalles={detalles}
                   savingItem={savingItem}

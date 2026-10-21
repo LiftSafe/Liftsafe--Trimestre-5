@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useImperativeHandle, useMemo, useRef, useState } from 'react';
 import {
   Box, Button, Chip, CircularProgress, IconButton, LinearProgress, Pagination, ToggleButton, ToggleButtonGroup, Typography,
 } from '@mui/material';
@@ -123,6 +123,7 @@ function FotosItem({ item, fotos, puedeSubir, onSubir, onEliminar, urlFoto, obli
 export default function ChecklistInspeccion({
   categorias = [], detalles = {}, savingItem, onCalificar, onQuitar,
   fotos = [], puedeSubirFotos = false, onSubirFoto, onEliminarFoto, urlFoto = () => '',
+  ref,
 }) {
   const [filtro, setFiltro] = useState('todos');
   const [pagina, setPagina] = useState(0);
@@ -149,6 +150,23 @@ export default function ChecklistInspeccion({
     setPagina(i);
     arriba.current?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
   };
+  // Ir a un ítem desde fuera (lista de fotos faltantes): muestra todos,
+  // abre la página de su grupo, baja hasta él y lo resalta un momento.
+  const [resaltado, setResaltado] = useState(null);
+  useImperativeHandle(ref, () => ({
+    irAItem(idItem) {
+      const indice = bloques.filter((b) => b.items.length).findIndex((b) => b.items.some((i) => i.item.id_item === idItem));
+      if (indice < 0) return;
+      setFiltro('todos');
+      setPagina(indice);
+      setResaltado(idItem);
+      setTimeout(() => {
+        document.getElementById(`item-checklist-${idItem}`)?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+      }, 120);
+      setTimeout(() => setResaltado((r) => (r === idItem ? null : r)), 2500);
+    },
+  }));
+
   const elegirFiltro = (id) => {
     setFiltro(id);
     setPagina(0);
@@ -227,7 +245,14 @@ export default function ChecklistInspeccion({
             </Box>
 
             {visibles.map(({ item, numero: n, resultado }) => (
-              <Box key={item.id_item} sx={{ display: 'flex', gap: 1.5, py: 1.25 }}>
+              <Box
+                key={item.id_item}
+                id={`item-checklist-${item.id_item}`}
+                sx={{
+                  display: 'flex', gap: 1.5, py: 1.25, px: 1, mx: -1, borderRadius: 2, transition: 'background-color .4s ease',
+                  bgcolor: resaltado === item.id_item ? 'rgba(209, 67, 67, 0.10)' : 'transparent',
+                }}
+              >
                 <Typography variant="body2" fontWeight={700} sx={{ color: brand.silverDark, minWidth: 24, textAlign: 'right', pt: 0.1 }}>
                   {n}
                 </Typography>

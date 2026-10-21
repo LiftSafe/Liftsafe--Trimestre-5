@@ -1,4 +1,5 @@
-import { render, screen, fireEvent } from '@testing-library/react'
+import { createRef } from 'react'
+import { render, screen, fireEvent, act } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
 import ChecklistInspeccion from './ChecklistInspeccion'
 import { resumenChecklist } from '../utils/checklist'
@@ -139,5 +140,17 @@ describe('ChecklistInspeccion', () => {
     expect(screen.getByText(/NTC-6.1-01/)).toBeInTheDocument()
     expect(screen.getByText('Muy grave')).toBeInTheDocument()
     expect(screen.queryByText('Siguiente')).not.toBeInTheDocument()
+  })
+
+  it('should jump to the page of an item when asked from outside', () => {
+    const ref = createRef()
+    render(<ChecklistInspeccion ref={ref} categorias={categorias} detalles={detalles} onCalificar={vi.fn()} onQuitar={vi.fn()} />)
+    fireEvent.click(screen.getByText('Pendientes (1)'))
+    act(() => ref.current.irAItem(20))
+    expect(screen.getByText('Foso del Ascensor')).toBeInTheDocument()
+    expect(screen.getByText('Grupo 2 de 2')).toBeInTheDocument()
+    expect(document.getElementById('item-checklist-20')).toBeInTheDocument()
+    act(() => ref.current.irAItem(999))
+    expect(screen.getByText('Foso del Ascensor')).toBeInTheDocument()
   })
 })
