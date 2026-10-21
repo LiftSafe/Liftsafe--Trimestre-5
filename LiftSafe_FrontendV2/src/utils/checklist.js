@@ -19,3 +19,13 @@ export function itemsSinFotoObligatoria(categorias = [], detalles = {}, fotos = 
     .flatMap((c) => c.items || [])
     .filter((i) => detalles[i.id_item]?.resultado === RESULTADO_FOTO_OBLIGATORIA && !conFoto.has(i.id_item));
 }
+
+// Para mostrar cuáles ítems faltan: número continuo, grupo y descripción.
+export function describirItems(categorias = [], items = []) {
+  const ids = new Set(items.map((i) => i.id_item));
+  let numero = 0;
+  return categorias.flatMap((c) => (c.items || []).map((item) => {
+    numero += 1;
+    return ids.has(item.id_item) ? { numero, grupo: c.nombre_categoria, descripcion: item.descripcion, id_item: item.id_item } : null;
+  })).filter(Boolean);
+}

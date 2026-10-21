@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { itemsSinFotoObligatoria } from './checklist'
+import { describirItems, itemsSinFotoObligatoria } from './checklist'
 
 const categorias = [
   { id_categoria: 1, items: [{ id_item: 1 }, { id_item: 2 }] },
@@ -15,5 +15,19 @@ describe('itemsSinFotoObligatoria', () => {
   it('should return nothing when every not compliant item has a photo or there is no data', () => {
     expect(itemsSinFotoObligatoria(categorias, { 1: { resultado: 'No Cumple' } }, [{ id_item: 1 }])).toEqual([])
     expect(itemsSinFotoObligatoria()).toEqual([])
+  })
+})
+
+describe('describirItems', () => {
+  it('should give the continuous number and group of each item', () => {
+    const cats = [
+      { nombre_categoria: '6.1 Puertas', items: [{ id_item: 1, descripcion: 'A' }, { id_item: 2, descripcion: 'B' }] },
+      { nombre_categoria: '6.2 Cables', items: [{ id_item: 3, descripcion: 'C' }] },
+    ]
+    expect(describirItems(cats, [{ id_item: 3 }, { id_item: 1 }])).toEqual([
+      { numero: 1, grupo: '6.1 Puertas', descripcion: 'A', id_item: 1 },
+      { numero: 3, grupo: '6.2 Cables', descripcion: 'C', id_item: 3 },
+    ])
+    expect(describirItems()).toEqual([])
   })
 })

@@ -4,7 +4,7 @@ import {
   TableContainer, TableHead, TableRow,
   Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem,
   Typography, Divider, IconButton, CircularProgress, Alert, Paper,
-  FormControlLabel, Checkbox,
+  FormControlLabel, Checkbox, Collapse,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import CloseIcon from '@mui/icons-material/Close';
@@ -21,7 +21,7 @@ import ConfirmDialog from '../components/ConfirmDialog';
 import { canDo } from '../config/roles';
 import { usePaginatedSearch } from '../hooks/usePaginatedSearch';
 import ChecklistInspeccion from '../components/ChecklistInspeccion';
-import { itemsSinFotoObligatoria } from '../utils/checklist';
+import { describirItems, itemsSinFotoObligatoria } from '../utils/checklist';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { leerEstados, filtrarPorEstado } from '../utils/filtroEstado';
 import { ESTADO_PENDIENTE_FIRMA, ESTADO_PENDIENTE_REVISION } from '../utils/statusHelpers';
@@ -403,6 +403,7 @@ export default function Inspections() {
   const [detalles, setDetalles] = useState({}); // { [id_item]: { id_detalle, resultado } }
   // Ítems "No cumple" sin foto: la foto es obligatoria y bloquean "Marcar como finalizada"
   const faltanFotosNA = itemsSinFotoObligatoria(categorias, detalles, fotos);
+  const [verFaltantes, setVerFaltantes] = useState(false);
   const [loadingChecklist, setLoadingChecklist] = useState(false);
   const [checklistError, setChecklistError] = useState('');
   const [savingItem, setSavingItem] = useState(null);
@@ -1257,14 +1258,40 @@ export default function Inspections() {
                     {finalizando ? 'Finalizando...' : 'Marcar como finalizada'}
                   </Button>
                   {faltanFotosNA.length > 0 && (
-                    <Typography variant="caption" sx={{ color: '#D14343', fontWeight: 600 }}>
-                      {faltanFotosNA.length === 1 ? 'Falta la foto de 1 ítem que no cumple' : `Faltan las fotos de ${faltanFotosNA.length} ítems que no cumplen`} (obligatoria).
+                    <Typography
+                      component="button"
+                      type="button"
+                      variant="caption"
+                      onClick={() => setVerFaltantes((v) => !v)}
+                      aria-expanded={verFaltantes}
+                      title="Ver cuáles ítems faltan"
+                      sx={{
+                        color: '#D14343', fontWeight: 600, bgcolor: 'transparent', border: 0, p: 0,
+                        cursor: 'pointer', textAlign: 'left', textDecoration: 'underline dotted', textUnderlineOffset: 3,
+                      }}
+                    >
+                      {faltanFotosNA.length === 1 ? 'Falta la foto de 1 ítem que no cumple' : `Faltan las fotos de ${faltanFotosNA.length} ítems que no cumplen`} (obligatoria). {verFaltantes ? '▴' : '▾'}
                     </Typography>
                   )}
                   {!firmas?.firma_inspector && (
                     <Typography variant="caption" color="text.secondary">
                       Registra primero la firma del inspector.
                     </Typography>
+                  )}
+                  {faltanFotosNA.length > 0 && (
+                    <Collapse in={verFaltantes} sx={{ width: '100%' }}>
+                      <Box sx={{ mt: 0.5, p: 1.5, borderRadius: 2, bgcolor: 'rgba(209, 67, 67, 0.06)', border: '1px solid rgba(209, 67, 67, 0.25)' }}>
+                        <Typography variant="caption" sx={{ display: 'block', fontWeight: 700, color: '#D14343', mb: 0.75 }}>
+                          Ítems que no cumplen y aún no tienen foto:
+                        </Typography>
+                        {describirItems(categorias, faltanFotosNA).map((f) => (
+                          <Typography key={f.id_item} variant="body2" sx={{ fontSize: '0.82rem', mb: 0.5 }}>
+                            <strong>{f.numero}.</strong> {f.descripcion}
+                            <Typography component="span" variant="caption" color="text.secondary">{'  ·  '}{f.grupo}</Typography>
+                          </Typography>
+                        ))}
+                      </Box>
+                    </Collapse>
                   )}
                 </Box>
               )}
