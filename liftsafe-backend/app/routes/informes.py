@@ -33,6 +33,27 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Security(securi
     except JWTError as e:
         raise HTTPException(status_code=401, detail=f"Token invalido: {str(e)}")
 
+async def crear_encuesta_si_falta(db: Session, inspeccion, ascensor, cliente, mensaje: str) -> bool:
+    """Crea la encuesta de satisfacción de la inspección (una sola vez),
+    avisa al cliente en la campanita y le manda el correo."""
+    if not (inspeccion and ascensor and cliente):
+        return False
+    if db.query(Encuesta).filter(Encuesta.id_inspeccion == inspeccion.id_inspeccion).first():
+        return False
+    db.add(Encuesta(id_inspeccion=inspeccion.id_inspeccion, id_cliente=cliente.id_usuario))
+    db.add(Notificacion(
+        id_usuario_destino=cliente.id_usuario,
+        mensaje=mensaje,
+        enlace="/dashboard/encuestas",
+        leida=False,
+    ))
+    db.commit()
+    try:
+        await send_encuesta_email(cliente.correo, cliente.nombre_completo, ascensor.codigo_interno)
+    except Exception as e:
+        print(f"⚠️ No se pudo enviar el correo de encuesta: {e}")
+    return True
+
 # ============================================
 # 1. GENERAR INFORME PDF (ESTEBAN)
 # ============================================
@@ -140,7 +161,7 @@ def obtener_informe_por_inspeccion(
 # 3.5 APROBAR / RECHAZAR INFORME (RF-023, paso 7 del flujo)
 # ============================================
 @router.put("/{id}/revisar", response_model=MessageResponse)
-def revisar_informe(
+async def revisar_informe(
     id: int,
     data: InformeRevisionRequest,
     db: Session = Depends(get_db),
@@ -186,6 +207,16 @@ def revisar_informe(
                     leida=False,
                 ))
             db.commit()
+        # Con el informe aprobado el proceso terminó para el cliente:
+        # se le habilita la encuesta de satisfacción.
+        if insp:
+            asc = db.query(Ascensor).filter(Ascensor.id_ascensor == insp.id_ascensor).first()
+            cli = db.query(Usuario).filter(Usuario.id_usuario == asc.id_cliente).first() if asc else None
+            await crear_encuesta_si_falta(
+                db, insp, asc, cli,
+                f"La inspección del ascensor {asc.codigo_interno if asc else ''} terminó. "
+                "Cuéntanos cómo fue todo el proceso en la sección Encuestas.",
+            )
 
     # FIX: el inspector que hizo la inspección no se enteraba de si su
     # informe había sido aprobado o rechazado.
@@ -262,29 +293,12 @@ async def enviar_informe(
         # en que el informe (ya aprobado) se envía al cliente, que es
         # cuando de verdad se completa todo el proceso. Si por algún motivo
         # ya existiera una encuesta para esta inspección, no se duplica.
-        ya_existe = db.query(Encuesta).filter(
-            Encuesta.id_inspeccion == inspeccion_rel.id_inspeccion
-        ).first()
-        if not ya_existe:
-            db.add(Encuesta(
-                id_inspeccion=inspeccion_rel.id_inspeccion,
-                id_cliente=cliente_rel.id_usuario,
-            ))
-            db.add(Notificacion(
-                id_usuario_destino=cliente_rel.id_usuario,
-                mensaje=(
-                    f"Ya tienes el informe completo del ascensor {ascensor_rel.codigo_interno}. "
-                    "Cuéntanos cómo fue todo el proceso en la sección Encuestas."
-                ),
-                enlace="/dashboard/encuestas",
-                leida=False,
-            ))
-            db.commit()
-
-            try:
-                await send_encuesta_email(cliente_rel.correo, cliente_rel.nombre_completo, ascensor_rel.codigo_interno)
-            except Exception as e:
-                print(f"⚠️ No se pudo enviar el correo de encuesta: {e}")
+        # Normalmente la encuesta ya se creó al aprobar; si no, se crea aquí.
+        await crear_encuesta_si_falta(
+            db, inspeccion_rel, ascensor_rel, cliente_rel,
+            f"Ya tienes el informe completo del ascensor {ascensor_rel.codigo_interno}. "
+            "Cuéntanos cómo fue todo el proceso en la sección Encuestas.",
+        )
 
     return {"message": "Informe enviado correctamente"}
 

@@ -1,0 +1,48 @@
+"""La encuesta se crea una sola vez cuando termina el proceso."""
+import asyncio
+from types import SimpleNamespace as N
+from unittest.mock import AsyncMock, MagicMock, patch
+
+from app.routes import informes
+
+
+def _db(ya_existe):
+    db = MagicMock()
+    db.query.return_value.filter.return_value.first.return_value = ya_existe
+    return db
+
+
+INSP, ASC = N(id_inspeccion=63), N(codigo_interno="ASC-002")
+CLI = N(id_usuario=5, correo="c@x.com", nombre_completo="Camila")
+
+
+def test_crea_encuesta_notifica_y_manda_correo():
+    db = _db(None)
+    with patch.object(informes, "send_encuesta_email", AsyncMock()) as correo:
+        creada = asyncio.run(informes.crear_encuesta_si_falta(db, INSP, ASC, CLI, "Cuéntanos"))
+    assert creada is True
+    agregados = [c.args[0] for c in db.add.call_args_list]
+    assert any(type(a).__name__ == "Encuesta" and a.id_inspeccion == 63 for a in agregados)
+    assert any(type(a).__name__ == "Notificacion" and a.enlace == "/dashboard/encuestas" for a in agregados)
+    correo.assert_awaited_once_with("c@x.com", "Camila", "ASC-002")
+
+
+def test_no_duplica_la_encuesta():
+    db = _db(N(id_encuesta=1))
+    with patch.object(informes, "send_encuesta_email", AsyncMock()) as correo:
+        assert asyncio.run(informes.crear_encuesta_si_falta(db, INSP, ASC, CLI, "x")) is False
+    db.add.assert_not_called()
+    correo.assert_not_awaited()
+
+
+def test_si_falla_el_correo_igual_queda_la_encuesta():
+    db = _db(None)
+    with patch.object(informes, "send_encuesta_email", AsyncMock(side_effect=RuntimeError("smtp"))):
+        assert asyncio.run(informes.crear_encuesta_si_falta(db, INSP, ASC, CLI, "x")) is True
+    db.commit.assert_called()
+
+
+def test_sin_cliente_no_hace_nada():
+    db = _db(None)
+    assert asyncio.run(informes.crear_encuesta_si_falta(db, INSP, ASC, None, "x")) is False
+    db.add.assert_not_called()
