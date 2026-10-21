@@ -1493,6 +1493,30 @@ export default function Inspections() {
 
               {informeError && <Alert severity="error" sx={{ mb: 2 }}>{informeError}</Alert>}
 
+              {/* El cliente solo descarga el informe cuando el coordinador o el administrador lo aprueba */}
+              {userRol === 'Cliente' ? (
+                informe?.ruta_pdf && !informe?.pendiente_aprobacion ? (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+                    <Chip size="small" color="success" label={`Estado: ${informe.estado}`} />
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      startIcon={<DownloadOutlinedIcon />}
+                      component="a"
+                      href={`${API_BASE_URL}/${informe.ruta_pdf.replace(/\\/g, '/')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Descargar PDF
+                    </Button>
+                  </Box>
+                ) : (
+                  <Alert severity="info">
+                    El informe podrá descargarse cuando el coordinador o el administrador lo apruebe.
+                  </Alert>
+                )
+              ) : (
+              <>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
                 <Chip
                   size="small"
@@ -1532,6 +1556,8 @@ export default function Inspections() {
                 <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
                   Se necesitan ambas firmas (inspector y cliente) para poder generar el informe.
                 </Typography>
+              )}
+              </>
               )}
             </>
           )}

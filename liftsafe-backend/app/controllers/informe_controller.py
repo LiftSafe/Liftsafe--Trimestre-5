@@ -8,6 +8,7 @@ import base64
 import hashlib
 import io
 import os
+import secrets
 from datetime import datetime
 from urllib.parse import quote
 
@@ -395,7 +396,8 @@ def generar_pdf_informe(db: Session, id_inspeccion: int):
     detalles = db.query(DetalleChecklist).filter(DetalleChecklist.id_inspeccion == id_inspeccion).all()
     informe = db.query(Informe).filter(Informe.id_inspeccion == id_inspeccion).first()
 
-    pdf_path = f"informes/INF-{id_inspeccion}-{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+    # Sufijo aleatorio: el PDF se sirve como archivo y no debe poder adivinarse
+    pdf_path = f"informes/INF-{id_inspeccion}-{datetime.now().strftime('%Y%m%d_%H%M%S')}-{secrets.token_hex(8)}.pdf"
     os.makedirs("informes", exist_ok=True)
     # Fotos tomadas en cada ítem del checklist (por inspección o por informe)
     condicion = Fotografia.id_inspeccion == id_inspeccion

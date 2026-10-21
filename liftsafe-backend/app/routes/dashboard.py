@@ -235,7 +235,12 @@ def get_informes(current_user = Depends(get_current_user), db: Session = Depends
             joinedload(Inspeccion.inspector_rel),
         ).filter(
             Inspeccion.estado.in_(["Aprobada", "Finalizada", "Completada", "Pendiente revisión"])
-        ).order_by(Inspeccion.fecha_creacion.desc()).all()
+        )
+        if current_user.get("rol") == "Cliente":
+            # El cliente solo ve las inspecciones de sus propios ascensores
+            inspecciones = inspecciones.join(Ascensor, Ascensor.id_ascensor == Inspeccion.id_ascensor).filter(
+                Ascensor.id_cliente == current_user.get("user_id"))
+        inspecciones = inspecciones.order_by(Inspeccion.fecha_creacion.desc()).all()
 
         return [{
             "id": i.id_inspeccion,

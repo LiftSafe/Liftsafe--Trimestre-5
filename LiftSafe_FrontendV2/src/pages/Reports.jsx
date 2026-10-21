@@ -124,6 +124,10 @@ export default function Reports() {
     setProcesandoInformeId(doc.id);
     try {
       const inf = await informeService.obtenerPorInspeccion(doc.id);
+      if (inf?.pendiente_aprobacion) {
+        showMessage('El informe podrá descargarse cuando el coordinador o el administrador lo apruebe.', 'info');
+        return;
+      }
       if (!inf?.ruta_pdf) {
         showMessage('Esta inspección todavía no tiene un PDF generado. Genérelo desde Inspecciones.', 'warning');
         return;

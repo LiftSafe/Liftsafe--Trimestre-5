@@ -5,6 +5,9 @@ from typing import List
 from app.database import get_db
 from app.models.models import Informe, Inspeccion, Usuario, Ascensor, Notificacion, Encuesta, Solicitud, Fotografia
 from app.controllers.foto_obligatoria_controller import exigir_fotos_no_aplica
+from app.controllers.informe_acceso_controller import (
+    ROL_CLIENTE, cliente_puede_descargar, es_inspeccion_del_cliente, informe_para_usuario,
+)
 from app.schemas.schemas import MessageResponse, InformeRevisionRequest
 from app.controllers.informe_controller import generar_pdf_informe
 from app.controllers.email_controller import send_encuesta_email
@@ -39,6 +42,8 @@ def generar_informe(
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
+    if current_user["rol"] == ROL_CLIENTE:
+        raise HTTPException(status_code=403, detail="El cliente no puede generar informes")
     inspeccion = db.query(Inspeccion).filter(Inspeccion.id_inspeccion == id_inspeccion).first()
     if not inspeccion:
         raise HTTPException(status_code=404, detail="Inspeccion no encontrada")
@@ -104,7 +109,15 @@ def listar_informes(
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
-    return db.query(Informe).order_by(Informe.id_informe.desc()).all()
+    consulta = db.query(Informe)
+    if current_user["rol"] == ROL_CLIENTE:
+        # El cliente solo ve sus informes ya aprobados
+        consulta = consulta.join(Inspeccion, Inspeccion.id_inspeccion == Informe.id_inspeccion).join(
+            Ascensor, Ascensor.id_ascensor == Inspeccion.id_ascensor
+        ).filter(Ascensor.id_cliente == current_user["user_id"])
+        return [informe_para_usuario(i, ROL_CLIENTE) for i in consulta.order_by(Informe.id_informe.desc()).all()
+                if cliente_puede_descargar(i.estado)]
+    return [informe_para_usuario(i, current_user["rol"]) for i in consulta.order_by(Informe.id_informe.desc()).all()]
 
 # ============================================
 # 3. OBTENER INFORME POR INSPECCIÓN (ESTEBAN)
@@ -115,10 +128,13 @@ def obtener_informe_por_inspeccion(
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
+    if current_user["rol"] == ROL_CLIENTE and not es_inspeccion_del_cliente(db, id_inspeccion, current_user["user_id"]):
+        raise HTTPException(status_code=403, detail="No tienes permiso para ver este informe")
     informe = db.query(Informe).filter(Informe.id_inspeccion == id_inspeccion).first()
     if not informe:
         raise HTTPException(status_code=404, detail="Informe no encontrado")
-    return informe
+    # Al cliente se le oculta el PDF hasta que el coordinador lo apruebe
+    return informe_para_usuario(informe, current_user["rol"])
 
 # ============================================
 # 3.5 APROBAR / RECHAZAR INFORME (RF-023, paso 7 del flujo)
@@ -196,6 +212,8 @@ async def enviar_informe(
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
+    if current_user["rol"] == ROL_CLIENTE:
+        raise HTTPException(status_code=403, detail="El cliente no puede enviar informes")
     informe = db.query(Informe).filter(Informe.id_informe == id).first()
     if not informe:
         raise HTTPException(status_code=404, detail="Informe no encontrado")
