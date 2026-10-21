@@ -99,8 +99,8 @@ describe('ChecklistInspeccion', () => {
     expect(screen.getByAltText('Foto del ítem: Acceso exclusivo y señalizado')).toBeInTheDocument()
     expect(screen.queryByTitle('Quitar foto')).not.toBeInTheDocument()
   })
-  it('should warn that an N/A item needs a photo until it has one', () => {
-    const conNA = { 11: { resultado: 'No Aplica' } }
+  it('should warn that a not compliant item needs a photo until it has one', () => {
+    const conNA = { 11: { resultado: 'No Cumple' } }
     const { unmount } = render(<ChecklistInspeccion categorias={categorias} detalles={conNA} puedeSubirFotos onSubirFoto={vi.fn()} onCalificar={vi.fn()} onQuitar={vi.fn()} />)
     expect(screen.getByRole('alert')).toHaveTextContent('Foto obligatoria')
     unmount()

@@ -401,7 +401,7 @@ export default function Inspections() {
   // ---- Checklist (Felipe) ----
   const [categorias, setCategorias] = useState([]);
   const [detalles, setDetalles] = useState({}); // { [id_item]: { id_detalle, resultado } }
-  // Ítems N/A sin foto: la foto es obligatoria y bloquean "Marcar como finalizada"
+  // Ítems "No cumple" sin foto: la foto es obligatoria y bloquean "Marcar como finalizada"
   const faltanFotosNA = itemsSinFotoObligatoria(categorias, detalles, fotos);
   const [loadingChecklist, setLoadingChecklist] = useState(false);
   const [checklistError, setChecklistError] = useState('');
@@ -802,7 +802,7 @@ export default function Inspections() {
     if (!id) return;
     if (faltanFotosNA.length) {
       showMessage(
-        `No puedes finalizar: ${faltanFotosNA.length === 1 ? 'falta la foto de 1 ítem marcado' : `faltan las fotos de ${faltanFotosNA.length} ítems marcados`} N/A. La foto es obligatoria.`,
+        `No puedes finalizar: ${faltanFotosNA.length === 1 ? 'falta la foto de 1 ítem marcado' : `faltan las fotos de ${faltanFotosNA.length} ítems marcados`} "No cumple". La foto es obligatoria.`,
         'warning',
       );
       return;
@@ -886,7 +886,7 @@ export default function Inspections() {
         [item.id_item]: { id_detalle: guardado.id_detalle, resultado: guardado.resultado },
       }));
       if (resultado === RESULTADO_FOTO_OBLIGATORIA && !fotos.some((f) => f.id_item === item.id_item)) {
-        showMessage('Marcaste este ítem como N/A: es obligatorio subirle una foto. Sin ella no podrás finalizar la inspección.', 'warning', 'Foto obligatoria');
+        showMessage('Marcaste este ítem como "No cumple": es obligatorio subirle una foto. Sin ella no podrás finalizar la inspección.', 'warning', 'Foto obligatoria');
       }
     } catch (err) {
       setChecklistError(err.message || 'No se pudo guardar la calificación');
@@ -1261,7 +1261,7 @@ export default function Inspections() {
                   </Button>
                   {faltanFotosNA.length > 0 && (
                     <Typography variant="caption" sx={{ color: '#D14343', fontWeight: 600 }}>
-                      {faltanFotosNA.length === 1 ? 'Falta la foto de 1 ítem marcado N/A' : `Faltan las fotos de ${faltanFotosNA.length} ítems marcados N/A`} (obligatoria).
+                      {faltanFotosNA.length === 1 ? 'Falta la foto de 1 ítem que no cumple' : `Faltan las fotos de ${faltanFotosNA.length} ítems que no cumplen`} (obligatoria).
                     </Typography>
                   )}
                   {!firmas?.firma_inspector && (

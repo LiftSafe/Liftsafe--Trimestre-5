@@ -421,7 +421,7 @@ async def actualizar_estado(
     # sin firma del cliente -> "Pendiente firma cliente"; con las dos firmas
     # -> "Pendiente revisión". "Finalizada" la pone la aprobación del
     # informe por parte del coordinador.
-    # Los ítems "No Aplica" deben tener foto antes de terminar la inspección.
+    # Los ítems "No Cumple" deben tener foto antes de terminar la inspección.
     if estado in ("Finalizada", PENDIENTE_FIRMA_CLIENTE, PENDIENTE_REVISION):
         exigir_fotos_no_aplica(db, inspeccion.id_inspeccion)
     if estado == "Finalizada":

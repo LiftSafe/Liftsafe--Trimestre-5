@@ -75,7 +75,7 @@ function FotosItem({ item, fotos, puedeSubir, onSubir, onEliminar, urlFoto, obli
           </label>
           {obligatoria && !fotos.length && (
             <Typography variant="caption" role="alert" sx={{ color: '#D14343', fontWeight: 600 }}>
-              Foto obligatoria: los ítems marcados N/A deben tener foto.
+              Foto obligatoria: los ítems que no cumplen deben tener foto.
             </Typography>
           )}
         </>

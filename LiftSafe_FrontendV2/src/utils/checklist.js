@@ -10,8 +10,8 @@ export function resumenChecklist(categorias = [], detalles = {}) {
   };
 }
 
-// Los ítems calificados "No Aplica" deben llevar al menos una foto.
-export const RESULTADO_FOTO_OBLIGATORIA = 'No Aplica';
+// Los ítems calificados "No Cumple" deben llevar al menos una foto.
+export const RESULTADO_FOTO_OBLIGATORIA = 'No Cumple';
 
 export function itemsSinFotoObligatoria(categorias = [], detalles = {}, fotos = []) {
   const conFoto = new Set(fotos.map((f) => f.id_item));

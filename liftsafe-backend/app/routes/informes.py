@@ -140,7 +140,7 @@ def revisar_informe(
     if informe.estado != "Generado":
         raise HTTPException(status_code=400, detail="Solo se pueden revisar informes en estado 'Generado'")
 
-    # No se aprueba si faltan fotos de ítems marcados "No Aplica".
+    # No se aprueba si faltan fotos de ítems marcados "No Cumple".
     if data.decision == "Aprobado":
         exigir_fotos_no_aplica(db, informe.id_inspeccion)
 
