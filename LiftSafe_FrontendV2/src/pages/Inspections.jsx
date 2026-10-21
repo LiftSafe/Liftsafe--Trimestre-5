@@ -562,7 +562,7 @@ export default function Inspections() {
     setChecklistError('');
     try {
       const [cats, existentes] = await Promise.all([
-        checklistService.obtenerCategorias(),
+        checklistService.obtenerCategorias(idInspeccion),
         checklistService.listarPorInspeccion(idInspeccion),
       ]);
       setCategorias(cats || []);

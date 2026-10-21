@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from jose import jwt, JWTError
 
 from app.database import get_db
@@ -12,6 +12,8 @@ from app.schemas.schemas import (
     ChecklistCategoriaResponse,
     MessageResponse,
 )
+from app.controllers.checklist_controller import categorias_visibles
+
 router = APIRouter(prefix="/checklist", tags=["Checklist"])
 
 
@@ -115,10 +117,19 @@ def listar_checklist_inspeccion(
 @router.get("/categorias", response_model=List[ChecklistCategoriaResponse])
 def listar_categorias(
     request: Request,
+    id_inspeccion: Optional[int] = None,
     db: Session = Depends(get_db),
 ):
+    """Checklist vigente (NTC 5926-1) en orden. Con id_inspeccion también
+    incluye los ítems ya respondidos en esa inspección aunque estén inactivos."""
     get_current_user_role(request)
-    return db.query(ChecklistCategoria).filter(ChecklistCategoria.activo == True).all()
+    activas = {f[0] for f in db.query(ChecklistCategoria.id_categoria).filter(ChecklistCategoria.activo == True).all()}
+    items_activos = {f[0] for f in db.query(ChecklistItem.id_item).filter(ChecklistItem.activo == True).all()}
+    respondidos = set()
+    if id_inspeccion:
+        respondidos = {f[0] for f in db.query(DetalleChecklist.id_item).filter(
+            DetalleChecklist.id_inspeccion == id_inspeccion).all()}
+    return categorias_visibles(db.query(ChecklistCategoria).all(), activas, items_activos, respondidos)
 
 
 @router.get("/cumplimiento/{id_inspeccion}")

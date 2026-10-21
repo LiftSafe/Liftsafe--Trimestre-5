@@ -1,4 +1,6 @@
 """Aplica migraciones pendientes en la base de datos."""
+from pathlib import Path
+
 from sqlalchemy import text
 from app.database import engine
 
@@ -95,6 +97,15 @@ def run():
             print("Columna fotografia.id_inspeccion agregada.")
         else:
             print("Columna fotografia.id_inspeccion ya existe.")
+
+        # Checklist según la NTC 5926-1:2012 (idempotente: no duplica nada)
+        sql = (Path(__file__).parent / "migrations" / "checklist_ntc5926.sql").read_text(encoding="utf-8")
+        sentencias = [l for l in sql.splitlines() if l.strip() and not l.startswith("--")]
+        for sentencia in sentencias:
+            # exec_driver_sql: el texto lleva ":" (NTC 5926-1:2012) que no son
+            # parámetros; el "%" del LIKE se escapa como "%%" para el conector.
+            conn.exec_driver_sql(sentencia.rstrip(";").replace("%", "%%"))
+        print("Checklist NTC 5926-1 aplicado.")
 
 
 if __name__ == "__main__":

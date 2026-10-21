@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
-  Box, Button, Chip, CircularProgress, IconButton, LinearProgress, ToggleButton, ToggleButtonGroup, Typography,
+  Box, Button, Chip, CircularProgress, IconButton, LinearProgress, Pagination, ToggleButton, ToggleButtonGroup, Typography,
 } from '@mui/material';
 import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
@@ -8,6 +8,8 @@ import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
 import CancelRoundedIcon from '@mui/icons-material/CancelRounded';
 import RemoveCircleRoundedIcon from '@mui/icons-material/RemoveCircleRounded';
 import PhotoCameraOutlinedIcon from '@mui/icons-material/PhotoCameraOutlined';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { brand } from '../theme/colors';
 import { resumenChecklist, RESULTADO_FOTO_OBLIGATORIA } from '../utils/checklist';
 
@@ -23,6 +25,9 @@ const FILTROS = [
   { id: 'pendientes', texto: 'Pendientes' },
   { id: 'nocumple', texto: 'No cumple' },
 ];
+
+// Color del nivel de defecto según la NTC 5926-1 (Leve, Grave, Muy grave)
+const COLOR_NIVEL = { 'Muy grave': '#D14343', Grave: '#C77700', Leve: '#6B7A8C' };
 
 function pasaFiltro(filtro, resultado) {
   if (filtro === 'pendientes') return !resultado;
@@ -120,6 +125,8 @@ export default function ChecklistInspeccion({
   fotos = [], puedeSubirFotos = false, onSubirFoto, onEliminarFoto, urlFoto = () => '',
 }) {
   const [filtro, setFiltro] = useState('todos');
+  const [pagina, setPagina] = useState(0);
+  const arriba = useRef(null);
   const fotosDe = (idItem) => fotos.filter((f) => f.id_item === idItem);
   const resumen = useMemo(() => resumenChecklist(categorias, detalles), [categorias, detalles]);
   const porcentaje = resumen.total ? Math.round((resumen.calificados / resumen.total) * 100) : 0;
@@ -133,6 +140,20 @@ export default function ChecklistInspeccion({
     return [...acc, { cat, items, fin: inicio + items.length, calificados: items.filter((i) => i.resultado).length }];
   }, []);
 
+  // Paginado: un grupo de la norma por página para no saturar el scroll
+  const paginas = bloques
+    .map((b) => ({ ...b, visibles: b.items.filter((i) => pasaFiltro(filtro, i.resultado)) }))
+    .filter((b) => b.visibles.length);
+  const actual = Math.min(pagina, Math.max(paginas.length - 1, 0));
+  const irA = (i) => {
+    setPagina(i);
+    arriba.current?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+  };
+  const elegirFiltro = (id) => {
+    setFiltro(id);
+    setPagina(0);
+  };
+
   const conteoFiltro = {
     todos: resumen.total,
     pendientes: resumen.total - resumen.calificados,
@@ -140,7 +161,7 @@ export default function ChecklistInspeccion({
   };
 
   return (
-    <Box>
+    <Box ref={arriba}>
       {/* Resumen y progreso */}
       <Box sx={{ mb: 1.5 }}>
         <Typography variant="body2" fontWeight={700} sx={{ color: brand.navy }}>
@@ -169,7 +190,7 @@ export default function ChecklistInspeccion({
               key={f.id}
               label={`${f.texto} (${conteoFiltro[f.id]})`}
               icon={activo ? <CheckIcon /> : undefined}
-              onClick={() => setFiltro(f.id)}
+              onClick={() => elegirFiltro(f.id)}
               sx={{
                 borderRadius: 5, fontWeight: 600, px: 0.5,
                 bgcolor: activo ? brand.accentSoft : brand.surface,
@@ -182,9 +203,20 @@ export default function ChecklistInspeccion({
         })}
       </Box>
 
-      {bloques.map(({ cat, items, calificados }) => {
-        const visibles = items.filter((i) => pasaFiltro(filtro, i.resultado));
-        if (!visibles.length) return null;
+      {paginas.length > 1 && (
+        <Pagination
+          count={paginas.length}
+          page={actual + 1}
+          onChange={(_e, p) => irA(p - 1)}
+          size="small"
+          color="primary"
+          siblingCount={1}
+          aria-label="Grupos del checklist"
+          sx={{ mb: 2, '& .MuiPagination-ul': { justifyContent: 'center' } }}
+        />
+      )}
+
+      {paginas.slice(actual, actual + 1).map(({ cat, items, calificados, visibles }) => {
         return (
           <Box key={cat.id_categoria} sx={{ mb: 3 }}>
             <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', mb: 1, pb: 0.5, borderBottom: '1px solid', borderColor: brand.grayLight }}>
@@ -200,7 +232,15 @@ export default function ChecklistInspeccion({
                   {n}
                 </Typography>
                 <Box sx={{ flex: 1, minWidth: 0 }}>
-                  <Typography variant="body2" sx={{ mb: 1, color: brand.navy }}>{item.descripcion}</Typography>
+                  <Typography variant="body2" sx={{ mb: item.nivel_criticidad ? 0.25 : 1, color: brand.navy }}>{item.descripcion}</Typography>
+                  {item.nivel_criticidad && (
+                    <Typography variant="caption" sx={{ display: 'block', mb: 1, color: brand.silverDark }}>
+                      {item.codigo_item}{item.codigo_item ? ' · ' : ''}
+                      <Box component="span" sx={{ fontWeight: 700, color: COLOR_NIVEL[item.nivel_criticidad] || brand.silverDark }}>
+                        {item.nivel_criticidad}
+                      </Box>
+                    </Typography>
+                  )}
                   <ToggleButtonGroup
                     exclusive
                     fullWidth
@@ -253,6 +293,20 @@ export default function ChecklistInspeccion({
           </Box>
         );
       })}
+
+      {paginas.length > 1 && (
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1, mt: 1 }}>
+          <Button size="small" startIcon={<ChevronLeftIcon />} disabled={actual === 0} onClick={() => irA(actual - 1)} sx={{ textTransform: 'none' }}>
+            Anterior
+          </Button>
+          <Typography variant="caption" color="text.secondary">
+            Grupo {actual + 1} de {paginas.length}
+          </Typography>
+          <Button size="small" endIcon={<ChevronRightIcon />} disabled={actual >= paginas.length - 1} onClick={() => irA(actual + 1)} sx={{ textTransform: 'none' }}>
+            Siguiente
+          </Button>
+        </Box>
+      )}
 
       {filtro !== 'todos' && conteoFiltro[filtro] === 0 && (
         <Typography variant="body2" color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>
