@@ -7,7 +7,8 @@ from app.database import get_db
 from app.models.models import Usuario, Rol, Programacion
 from app.schemas.schemas import UsuarioCreate, UsuarioUpdate, MessageResponse
 from app.controllers.usuario_controller import get_user_profile, get_admin_stats, get_cliente_ascensores, get_inspector_inspecciones
-from app.utils.auth_deps import require_admin_from_request, get_current_user, INSPECTOR_ROL_ID
+from app.utils.auth_deps import require_admin_from_request, get_current_user, get_current_user_role_from_request, INSPECTOR_ROL_ID
+from app.controllers.gestion_usuarios_controller import exigir_gestor, exigir_rol_permitido, solo_clientes
 from app.config import settings
 from sqlalchemy import text
 
@@ -34,7 +35,8 @@ def crear_usuario(
     user_data: UsuarioCreate,
     db: Session = Depends(get_db)
 ):
-    require_admin_from_request(request)
+    # Administrador: cualquier rol. Asesor: solo clientes.
+    gestor = exigir_gestor(get_current_user_role_from_request(request)[0])
 
     existing = db.query(Usuario).filter(Usuario.correo == user_data.correo).first()
     if existing:
@@ -43,6 +45,7 @@ def crear_usuario(
     rol = db.query(Rol).filter(Rol.id_rol == user_data.id_rol).first()
     if not rol:
         raise HTTPException(status_code=400, detail="Rol no válido")
+    exigir_rol_permitido(gestor, rol.nombre_rol)
 
     # ✅ Insertar con AES_ENCRYPT directo
     db.execute(
@@ -112,15 +115,16 @@ def dashboard_inspector(inspector_id: int, db: Session = Depends(get_db)):
 # ============================================
 @router.get("/listado")
 def listado_usuarios(request: Request, db: Session = Depends(get_db)):
-    require_admin_from_request(request)
-    
-    # ✅ Usar vista segura que NO incluye contrasena
+    gestor = exigir_gestor(get_current_user_role_from_request(request)[0])
+
+    # ✅ Usar vista segura que NO incluye contrasena (el asesor solo ve clientes)
     result = db.execute(text("""
         SELECT u.*, r.nombre_rol
         FROM vista_usuarios_segura u
         JOIN rol r ON u.id_rol = r.id_rol
+        WHERE (:solo_clientes = 0 OR r.nombre_rol = 'Cliente')
         ORDER BY u.id_usuario DESC
-    """)).mappings().all()
+    """), {"solo_clientes": 1 if solo_clientes(gestor) else 0}).mappings().all()
     
     return [
         {
@@ -195,11 +199,16 @@ def editar_usuario(
     request: Request,
     db: Session = Depends(get_db)
 ):
-    require_admin_from_request(request)
+    gestor = exigir_gestor(get_current_user_role_from_request(request)[0])
 
     user = db.query(Usuario).filter(Usuario.id_usuario == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    # El asesor solo edita clientes y no puede cambiarles el rol
+    exigir_rol_permitido(gestor, user.rol.nombre_rol if user.rol else None)
+    if user_data.id_rol is not None:
+        nuevo_rol = db.query(Rol).filter(Rol.id_rol == user_data.id_rol).first()
+        exigir_rol_permitido(gestor, nuevo_rol.nombre_rol if nuevo_rol else None)
 
     # Validar correo único si se está cambiando
     if user_data.correo is not None and user_data.correo != user.correo:

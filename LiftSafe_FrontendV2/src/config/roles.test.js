@@ -21,6 +21,7 @@ describe('roles: permisos de pantallas', () => {
     ['Asesor', 'inspecciones', false],
     ['Inspector', 'ascensores', true],
     ['Visitante', 'usuarios', false],
+    ['Asesor', 'usuarios', true], // el Asesor crea los clientes
   ])('canAccess(%s, %s) should be %s', (rol, pantalla, esperado) => {
     expect(canAccess(rol, pantalla)).toBe(esperado)
   })
@@ -33,7 +34,7 @@ describe('roles: permisos de pantallas', () => {
     const claves = getMenuForRole(rol).map((item) => item.key)
 
     // Assert: el orden lo define MENU_ITEMS, no la lista de permisos del rol
-    expect(claves).toEqual(['dashboard', 'solicitudes', 'reportes', 'configuracion'])
+    expect(claves).toEqual(['dashboard', 'solicitudes', 'reportes', 'usuarios', 'configuracion'])
   })
 })
 

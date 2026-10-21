@@ -52,11 +52,10 @@ def test_registro_rechaza_tipo_documento_invalido():
         UsuarioRegister(**datos_registro(tipo_documento="XYZ"))
 
 
-# ── UsuarioCreate (lo crea un administrador) ─────────────────────────
-def test_usuario_create_rechaza_rol_cliente():
-    with pytest.raises(ValidationError) as exc:
-        UsuarioCreate(**datos_registro(id_rol=CLIENTE_ROL_ID))
-    assert "Los clientes deben registrarse por su cuenta" in str(exc.value)
+# ── UsuarioCreate (lo crea el administrador o el asesor) ─────────────
+def test_usuario_create_acepta_rol_cliente_para_el_asesor():
+    usuario = UsuarioCreate(**datos_registro(id_rol=CLIENTE_ROL_ID))
+    assert usuario.id_rol == CLIENTE_ROL_ID
 
 
 def test_usuario_create_acepta_rol_inspector():

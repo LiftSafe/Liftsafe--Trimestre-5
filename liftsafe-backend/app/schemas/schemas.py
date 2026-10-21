@@ -101,12 +101,8 @@ class UsuarioCreate(BaseModel):
         validate_password(v)
         return v
 
-    @field_validator("id_rol")
-    @classmethod
-    def not_cliente(cls, v: int) -> int:
-        if v == CLIENTE_ROL_ID:
-            raise ValueError("Los clientes deben registrarse por su cuenta")
-        return v
+    # El rol Cliente ya no se bloquea aquí: el Asesor crea los clientes.
+    # Quién puede crear qué rol lo controla la ruta (gestion_usuarios_controller).
 
     @field_validator("tipo_documento")
     @classmethod

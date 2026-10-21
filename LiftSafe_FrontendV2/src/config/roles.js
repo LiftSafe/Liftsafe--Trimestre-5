@@ -16,7 +16,8 @@ export const ROLE_PERMISSIONS = {
   // antes la página existía en el código pero no tenía ruta ni entrada
   // de menú, así que nadie podía llegar a ella.
   Administrador: ['dashboard', 'inspecciones', 'solicitudes', 'ascensores', 'edificios', 'reportes', 'usuarios', 'auditoria', 'configuracion'],
-  Asesor: ['dashboard', 'solicitudes', 'reportes', 'configuracion'],
+  // El Asesor crea los clientes: tiene Usuarios, pero solo para clientes
+  Asesor: ['dashboard', 'solicitudes', 'reportes', 'usuarios', 'configuracion'],
   Coordinador: ['dashboard', 'inspecciones', 'solicitudes', 'ascensores', 'edificios', 'reportes', 'configuracion'],
   // ✅ FIX: la documentación del rol dice "Ve inspecciones, ascensores,
   // edificios e informes de todo el sistema en modo supervisión", pero
@@ -53,7 +54,7 @@ export const ROLE_ACTIONS = {
   createInspection: ['Administrador', 'Coordinador', 'Inspector'],
   createElevator: ['Administrador'],
   createBuilding: ['Administrador'],
-  createUser: ['Administrador'],
+  createUser: ['Administrador', 'Asesor'],
   viewAllInspections: ['Administrador'],
   viewAllReports: ['Administrador', 'Inspector'],
   manageNotifications: ['Administrador', 'Coordinador', 'Director Técnico', 'Inspector', 'Asesor'],

@@ -18,8 +18,9 @@ from app.utils.auth_deps import get_current_user_role
 
 router = APIRouter(prefix="/clientes", tags=["Clientes y sedes"])
 
-ROLES_LECTURA = {"Administrador", "Director Técnico", "Coordinador"}
-ROLES_ESCRITURA = {"Administrador"}
+# El Asesor crea los clientes y registra sus sedes
+ROLES_LECTURA = {"Administrador", "Director Técnico", "Coordinador", "Asesor"}
+ROLES_ESCRITURA = {"Administrador", "Asesor"}
 
 
 def _exigir_rol(rol: str, permitidos: set, accion: str):
