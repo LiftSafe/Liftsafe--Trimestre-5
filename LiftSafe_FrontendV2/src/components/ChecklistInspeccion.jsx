@@ -9,7 +9,7 @@ import CancelRoundedIcon from '@mui/icons-material/CancelRounded';
 import RemoveCircleRoundedIcon from '@mui/icons-material/RemoveCircleRounded';
 import PhotoCameraOutlinedIcon from '@mui/icons-material/PhotoCameraOutlined';
 import { brand } from '../theme/colors';
-import { resumenChecklist } from '../utils/checklist';
+import { resumenChecklist, RESULTADO_FOTO_OBLIGATORIA } from '../utils/checklist';
 
 // Opciones de calificación: el valor es el que guarda el backend.
 const OPCIONES = [
@@ -34,7 +34,7 @@ function pasaFiltro(filtro, resultado) {
 // barra de progreso, filtros y botones grandes por ítem.
 // Tocar otra vez la opción elegida quita la calificación.
 // Fotos de un ítem: botón "Foto (n)" abajo a la izquierda y miniaturas.
-function FotosItem({ item, fotos, puedeSubir, onSubir, onEliminar, urlFoto }) {
+function FotosItem({ item, fotos, puedeSubir, onSubir, onEliminar, urlFoto, obligatoria = false }) {
   const [subiendo, setSubiendo] = useState(false);
   const idInput = `foto-item-${item.id_item}`;
 
@@ -73,6 +73,11 @@ function FotosItem({ item, fotos, puedeSubir, onSubir, onEliminar, urlFoto }) {
               Foto ({fotos.length})
             </Button>
           </label>
+          {obligatoria && !fotos.length && (
+            <Typography variant="caption" role="alert" sx={{ color: '#D14343', fontWeight: 600 }}>
+              Foto obligatoria: los ítems marcados N/A deben tener foto.
+            </Typography>
+          )}
         </>
       )}
       {fotos.map((foto, i) => (
@@ -240,6 +245,7 @@ export default function ChecklistInspeccion({
                     onSubir={onSubirFoto}
                     onEliminar={onEliminarFoto}
                     urlFoto={urlFoto}
+                    obligatoria={resultado === RESULTADO_FOTO_OBLIGATORIA}
                   />
                 </Box>
               </Box>

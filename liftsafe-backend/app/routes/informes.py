@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from app.database import get_db
 from app.models.models import Informe, Inspeccion, Usuario, Ascensor, Notificacion, Encuesta, Solicitud, Fotografia
+from app.controllers.foto_obligatoria_controller import exigir_fotos_no_aplica
 from app.schemas.schemas import MessageResponse, InformeRevisionRequest
 from app.controllers.informe_controller import generar_pdf_informe
 from app.controllers.email_controller import send_encuesta_email
@@ -138,6 +139,10 @@ def revisar_informe(
 
     if informe.estado != "Generado":
         raise HTTPException(status_code=400, detail="Solo se pueden revisar informes en estado 'Generado'")
+
+    # No se aprueba si faltan fotos de ítems marcados "No Aplica".
+    if data.decision == "Aprobado":
+        exigir_fotos_no_aplica(db, informe.id_inspeccion)
 
     informe.fecha_revision = datetime.now()
     informe.id_revisor = current_user["user_id"]
