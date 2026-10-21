@@ -183,13 +183,16 @@ def crear_ascensor(
     
     # ✅ FIX: Director Técnico opera en "modo supervisión" (ve todo, aprueba
     # informes) y no debería poder crear ascensores desde acá.
-    if rol not in ['Administrador', 'Coordinador']:
+    # El Asesor registra los ascensores de los edificios de sus clientes.
+    if rol not in ['Administrador', 'Coordinador', 'Asesor']:
         raise HTTPException(status_code=403, detail="No autorizado para crear ascensores")
     
     # Validar que el cliente exista
     cliente = db.query(Usuario).filter(Usuario.id_usuario == data.id_cliente).first()
     if not cliente:
         raise HTTPException(status_code=404, detail="Cliente no encontrado")
+    if rol == 'Asesor' and (not cliente.rol or cliente.rol.nombre_rol != 'Cliente'):
+        raise HTTPException(status_code=403, detail="El asesor solo registra ascensores de clientes")
     
     # Validar código interno único
     existente = db.query(Ascensor).filter(Ascensor.codigo_interno == data.codigo_interno).first()

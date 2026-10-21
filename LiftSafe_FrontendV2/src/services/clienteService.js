@@ -10,4 +10,6 @@ export const clienteService = {
   crearSede: (idCliente, data) => apiPost(`/clientes/${idCliente}/sedes`, data),
   modificarSede: (idSede, data) => apiPut(`/clientes/sedes/${idSede}`, data),
   eliminarSede: (idSede) => apiDelete(`/clientes/sedes/${idSede}`),
+  // Ascensores de una sede (para el Asesor, "edificio")
+  listarAscensoresSede: (idSede) => apiGet(`/clientes/sedes/${idSede}/ascensores`),
 };

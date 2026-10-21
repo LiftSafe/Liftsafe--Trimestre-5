@@ -140,6 +140,28 @@ def editar_sede(id_sede: int, data: SedeUpdate, db: Session = Depends(get_db), u
     return sede_a_dict(sede)
 
 
+@router.get("/sedes/{id_sede}/ascensores")
+def listar_ascensores_de_sede(id_sede: int, db: Session = Depends(get_db), user_data: tuple = Depends(get_current_user_role)):
+    """Ascensores de una sede (edificio) del cliente."""
+    rol, _, _ = user_data
+    _exigir_rol(rol, ROLES_LECTURA, "ver los ascensores de la sede")
+    if not db.query(Sede).filter(Sede.id_sede == id_sede).first():
+        raise HTTPException(status_code=404, detail="Sede no encontrada")
+    ascensores = db.query(Ascensor).filter(Ascensor.id_sede == id_sede).order_by(Ascensor.codigo_interno).all()
+    return [{
+        "id_ascensor": a.id_ascensor,
+        "codigo_interno": a.codigo_interno,
+        "marca": a.marca,
+        "modelo": a.modelo,
+        "tipo_ascensor": a.tipo_ascensor,
+        "capacidad_kg": a.capacidad_kg,
+        "capacidad_personas": a.capacidad_personas,
+        "numero_pisos": a.numero_pisos,
+        "ubicacion_exacta": a.ubicacion_exacta,
+        "estado": a.estado,
+    } for a in ascensores]
+
+
 @router.delete("/sedes/{id_sede}")
 def eliminar_sede(id_sede: int, db: Session = Depends(get_db), user_data: tuple = Depends(get_current_user_role)):
     rol, _, _ = user_data

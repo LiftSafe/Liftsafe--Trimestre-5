@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import {
   Alert, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle,
   IconButton, List, ListItem, ListItemText, TextField, Typography,
@@ -9,6 +9,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
 import { clienteService } from '../services/clienteService';
+import AscensoresEdificio from './AscensoresEdificio';
 
 const SEDE_VACIA = { nombre: '', direccion: '', ciudad: '' };
 
@@ -16,7 +17,23 @@ const SEDE_VACIA = { nombre: '', direccion: '', ciudad: '' };
 // al registrar un ascensor se pide elegir en qué sede está.
 // Se monta solo mientras está abierto (ver Users.jsx), así cada vez que se
 // abre empieza limpio y carga las sedes de ese cliente.
-export default function SedesClienteDialog({ open, cliente, onClose }) {
+// Textos según quién lo usa: el Asesor habla de "edificios" y en cada uno
+// registra los ascensores; el Administrador habla de "sedes".
+const TEXTOS = {
+  sede: {
+    titulo: 'Sedes de', ayuda: 'Si el cliente tiene 2 o más sedes, al registrar un ascensor se pedirá elegir en cuál está.',
+    vacio: 'Este cliente todavía no tiene sedes.', agregar: 'Agregar sede', nombre: 'Nombre de la sede',
+    ejemplo: 'Ej: Sede Norte', una: 'la sede', editar: 'Editar sede', eliminar: 'Eliminar sede', guardar: 'Guardar sede',
+  },
+  edificio: {
+    titulo: 'Edificios de', ayuda: 'Registra los edificios del cliente y, en cada uno, sus ascensores.',
+    vacio: 'Este cliente todavía no tiene edificios.', agregar: 'Agregar edificio', nombre: 'Nombre del edificio',
+    ejemplo: 'Ej: Edificio Torre Norte', una: 'el edificio', editar: 'Editar edificio', eliminar: 'Eliminar edificio', guardar: 'Guardar edificio',
+  },
+};
+
+export default function SedesClienteDialog({ open, cliente, onClose, etiqueta = 'sede', conAscensores = false }) {
+  const t = TEXTOS[etiqueta] || TEXTOS.sede;
   const [sedes, setSedes] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState('');
@@ -41,7 +58,7 @@ export default function SedesClienteDialog({ open, cliente, onClose }) {
 
   const agregar = async () => {
     if (!nueva.nombre.trim()) {
-      setError('Escribe el nombre de la sede');
+      setError(`Escribe el nombre de ${t.una}`);
       return;
     }
     setGuardando(true);
@@ -51,7 +68,7 @@ export default function SedesClienteDialog({ open, cliente, onClose }) {
       setNueva(SEDE_VACIA);
       await cargar();
     } catch (err) {
-      setError(err.message || 'No se pudo agregar la sede');
+      setError(err.message || `No se pudo agregar ${t.una}`);
     } finally {
       setGuardando(false);
     }
@@ -59,7 +76,7 @@ export default function SedesClienteDialog({ open, cliente, onClose }) {
 
   const guardarEdicion = async () => {
     if (!editando.nombre.trim()) {
-      setError('El nombre de la sede no puede quedar vacío');
+      setError(`El nombre de ${t.una} no puede quedar vacío`);
       return;
     }
     setGuardando(true);
@@ -88,10 +105,10 @@ export default function SedesClienteDialog({ open, cliente, onClose }) {
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle fontWeight={700}>Sedes de {cliente?.name || 'cliente'}</DialogTitle>
+      <DialogTitle fontWeight={700}>{t.titulo} {cliente?.name || 'cliente'}</DialogTitle>
       <DialogContent>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Si el cliente tiene 2 o más sedes, al registrar un ascensor se pedirá elegir en cuál está.
+          {t.ayuda}
         </Typography>
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
@@ -100,7 +117,7 @@ export default function SedesClienteDialog({ open, cliente, onClose }) {
         ) : (
           <List dense disablePadding sx={{ mb: 2 }}>
             {!sedes.length && (
-              <Typography color="text.secondary" sx={{ py: 1 }}>Este cliente todavía no tiene sedes.</Typography>
+              <Typography color="text.secondary" sx={{ py: 1 }}>{t.vacio}</Typography>
             )}
             {sedes.map((s) => (
               editando?.id_sede === s.id_sede ? (
@@ -111,7 +128,7 @@ export default function SedesClienteDialog({ open, cliente, onClose }) {
                     onChange={(e) => setEditando({ ...editando, direccion: e.target.value })} />
                   <TextField size="small" label="Ciudad" value={editando.ciudad || ''}
                     onChange={(e) => setEditando({ ...editando, ciudad: e.target.value })} />
-                  <IconButton color="primary" onClick={guardarEdicion} disabled={guardando} title="Guardar sede">
+                  <IconButton color="primary" onClick={guardarEdicion} disabled={guardando} title={t.guardar}>
                     <CheckIcon fontSize="small" />
                   </IconButton>
                   <IconButton onClick={() => setEditando(null)} title="Cancelar">
@@ -119,16 +136,16 @@ export default function SedesClienteDialog({ open, cliente, onClose }) {
                   </IconButton>
                 </ListItem>
               ) : (
+                <Fragment key={s.id_sede}>
                 <ListItem
-                  key={s.id_sede}
-                  divider
+                  divider={!conAscensores}
                   disableGutters
                   secondaryAction={(
                     <>
-                      <IconButton size="small" color="primary" onClick={() => setEditando({ ...s })} title="Editar sede">
+                      <IconButton size="small" color="primary" onClick={() => setEditando({ ...s })} title={t.editar}>
                         <EditIcon fontSize="small" />
                       </IconButton>
-                      <IconButton size="small" color="error" onClick={() => eliminar(s)} title="Eliminar sede">
+                      <IconButton size="small" color="error" onClick={() => eliminar(s)} title={t.eliminar}>
                         <DeleteIcon fontSize="small" />
                       </IconButton>
                     </>
@@ -139,15 +156,21 @@ export default function SedesClienteDialog({ open, cliente, onClose }) {
                     secondary={[s.direccion, s.ciudad, `${s.total_ascensores || 0} ascensor(es)`].filter(Boolean).join(' · ')}
                   />
                 </ListItem>
+                {conAscensores && (
+                  <Box sx={{ borderBottom: '1px solid', borderColor: 'divider', mb: 0.5 }}>
+                    <AscensoresEdificio sede={s} idCliente={idCliente} onCambio={cargar} />
+                  </Box>
+                )}
+                </Fragment>
               )
             ))}
           </List>
         )}
 
-        <Typography fontWeight={600} sx={{ mb: 1 }}>Agregar sede</Typography>
+        <Typography fontWeight={600} sx={{ mb: 1 }}>{t.agregar}</Typography>
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5 }}>
-          <TextField label="Nombre de la sede" required size="small" sx={{ gridColumn: '1 / -1' }}
-            placeholder="Ej: Sede Norte" value={nueva.nombre}
+          <TextField label={t.nombre} required size="small" sx={{ gridColumn: '1 / -1' }}
+            placeholder={t.ejemplo} value={nueva.nombre}
             onChange={(e) => setNueva({ ...nueva, nombre: e.target.value })} />
           <TextField label="Dirección" size="small" value={nueva.direccion}
             onChange={(e) => setNueva({ ...nueva, direccion: e.target.value })} />
@@ -155,7 +178,7 @@ export default function SedesClienteDialog({ open, cliente, onClose }) {
             onChange={(e) => setNueva({ ...nueva, ciudad: e.target.value })} />
         </Box>
         <Button sx={{ mt: 1.5 }} variant="outlined" startIcon={<AddIcon />} onClick={agregar} disabled={guardando}>
-          {guardando ? 'Guardando...' : 'Agregar sede'}
+          {guardando ? 'Guardando...' : t.agregar}
         </Button>
       </DialogContent>
       <DialogActions sx={{ p: 2 }}>

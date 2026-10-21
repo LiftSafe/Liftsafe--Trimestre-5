@@ -9,8 +9,10 @@ vi.mock('../services/clienteService', () => ({
     crearSede: vi.fn(),
     modificarSede: vi.fn(),
     eliminarSede: vi.fn(),
+    listarAscensoresSede: vi.fn(),
   },
 }))
+vi.mock('../services/ascensorService', () => ({ ascensorService: { crear: vi.fn() } }))
 
 const cliente = { id: 8, name: 'Torres del Norte' }
 const sedes = [
@@ -92,5 +94,18 @@ describe('SedesClienteDialog', () => {
     fireEvent.click(screen.getByTitle('Guardar sede'))
     expect(await screen.findByText('El nombre de la sede no puede quedar vacío')).toBeInTheDocument()
     expect(clienteService.modificarSede).not.toHaveBeenCalled()
+  })
+
+  it('should talk about buildings and show their elevators for the advisor', async () => {
+    clienteService.listarAscensoresSede.mockResolvedValue([
+      { id_ascensor: 5, codigo_interno: 'ASC-005', tipo_ascensor: 'Eléctrico', marca: 'Otis', modelo: 'Gen2', numero_pisos: 10, ubicacion_exacta: 'Torre A' },
+    ])
+    render(<SedesClienteDialog open cliente={cliente} onClose={vi.fn()} etiqueta="edificio" conAscensores />)
+    expect(screen.getByText('Edificios de Torres del Norte')).toBeInTheDocument()
+    expect(screen.getAllByText('Agregar edificio').length).toBeGreaterThan(0)
+    await screen.findByText('Sede Norte')
+    fireEvent.click(screen.getByText('Ascensores (2)'))
+    expect(await screen.findByText('ASC-005')).toBeInTheDocument()
+    expect(clienteService.listarAscensoresSede).toHaveBeenCalledWith(1)
   })
 })

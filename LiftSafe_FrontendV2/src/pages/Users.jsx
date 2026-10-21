@@ -287,7 +287,7 @@ export default function UsersPage() {
                               size="small"
                               color="secondary"
                               onClick={() => setSedesCliente(u)}
-                              title="Sedes del cliente"
+                              title={esAsesor ? 'Edificios y ascensores del cliente' : 'Sedes del cliente'}
                             >
                               <StoreOutlinedIcon fontSize="small" />
                             </IconButton>
@@ -422,6 +422,8 @@ export default function UsersPage() {
       {/* SEDES DEL CLIENTE */}
       {sedesCliente && (
         <SedesClienteDialog
+          etiqueta={esAsesor ? 'edificio' : 'sede'}
+          conAscensores={esAsesor}
           key={sedesCliente.id}
           open
           cliente={sedesCliente}
