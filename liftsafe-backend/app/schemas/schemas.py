@@ -159,6 +159,9 @@ class ResetClaveRequest(BaseModel):
 
 class MessageResponse(BaseModel):
     message: str
+
+class AscensorCreadoResponse(MessageResponse):
+    id_ascensor: int
     
 class InspeccionCreate(BaseModel):
     id_ascensor: int

@@ -68,7 +68,7 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Security(securi
             "rol": rol,
         }
     except JWTError as e:
-        raise HTTPException(status_code=401, detail=f"Token inválido: {str(e)}")
+        raise HTTPException(status_code=401, detail="Token inválido")
 
 # ============================================
 # VERSIÓN LEGACY - Para rutas que usan Request
@@ -85,7 +85,7 @@ def get_current_user_role_from_request(request: Request):
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         return payload.get("rol"), payload.get("sub"), payload.get("user_id")
     except JWTError as e:
-        raise HTTPException(status_code=401, detail=f"Token inválido: {str(e)}")
+        raise HTTPException(status_code=401, detail="Token inválido")
 
 # ============================================
 # VERSIÓN NUEVA - Con HTTPBearer para Swagger
@@ -98,7 +98,7 @@ def get_current_user_role(credentials: HTTPAuthorizationCredentials = Security(s
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         return payload.get("rol"), payload.get("sub"), payload.get("user_id")
     except JWTError as e:
-        raise HTTPException(status_code=401, detail=f"Token inválido: {str(e)}")
+        raise HTTPException(status_code=401, detail="Token inválido")
 
 # ============================================
 # FUNCIONES DE PERMISOS (ROLES) - CORREGIDAS

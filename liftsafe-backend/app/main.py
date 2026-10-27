@@ -1,9 +1,13 @@
 # instalar las librerias 
 # pip install -r requirements.txt
 
+import logging
 import os
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.exception_handlers import request_validation_exception_handler
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
@@ -26,6 +30,8 @@ from app.routes import (
     notificaciones,
     encuestas,
 )
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="LiftSafe API",
@@ -57,6 +63,27 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ============================================
+# CONTRATO DE ERRORES (semana 4)
+# Todo error responde JSON con la clave "detail" y nunca expone información
+# interna (stack traces, SQL, rutas del servidor).
+# ============================================
+@app.exception_handler(RequestValidationError)
+async def handle_request_validation(request: Request, exc: RequestValidationError):
+    # JSON mal formado: 400 con el formato del contrato.
+    # El resto (tipos incorrectos, campos faltantes) conserva el 422 de FastAPI.
+    if any(error["type"] == "json_invalid" for error in exc.errors()):
+        return JSONResponse(status_code=400, content={"detail": "Cuerpo de la petición mal formado"})
+    return await request_validation_exception_handler(request, exc)
+
+
+@app.exception_handler(Exception)
+async def handle_unexpected_error(request: Request, exc: Exception):
+    # El detalle real queda en el log del servidor, no en la respuesta.
+    logger.exception("Error no controlado en %s %s", request.method, request.url.path)
+    return JSONResponse(status_code=500, content={"detail": "Error interno del servidor"})
+
 
 # ============================================
 # ROUTERS - TODOS LOS MÓDULOS DE TODOS

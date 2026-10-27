@@ -23,3 +23,33 @@ os.environ["DB_PORT"] = "3307"
 os.environ["DB_USER"] = "root"
 os.environ["DB_PASSWORD"] = "test_root"
 os.environ["DB_NAME"] = "liftsafe_test"
+
+
+# ============================================================================
+# Semana 4 — pruebas de API sin servidor y sin base de datos
+# ============================================================================
+import pytest  # noqa: E402
+from fastapi.testclient import TestClient  # noqa: E402
+
+from tests.fakes import FakeSession  # noqa: E402
+
+
+@pytest.fixture
+def db():
+    """Sesión de BD falsa. Cada test la configura: FakeSession(firsts=[...], alls=[...])."""
+    return FakeSession()
+
+
+@pytest.fixture
+def client(db):
+    """TestClient con get_db reemplazada por la sesión falsa (no hay MySQL ni Docker).
+
+    raise_server_exceptions=False: un error inesperado debe llegar como respuesta
+    HTTP (así se prueba el manejador de errores 500), no como excepción del test.
+    """
+    from app.database import get_db
+    from app.main import app
+
+    app.dependency_overrides[get_db] = lambda: db
+    yield TestClient(app, raise_server_exceptions=False)
+    app.dependency_overrides.clear()

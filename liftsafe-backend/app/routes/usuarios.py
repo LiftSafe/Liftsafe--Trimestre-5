@@ -38,7 +38,7 @@ def crear_usuario(
 
     existing = db.query(Usuario).filter(Usuario.correo == user_data.correo).first()
     if existing:
-        raise HTTPException(status_code=400, detail="El correo ya está registrado")
+        raise HTTPException(status_code=409, detail="El correo ya está registrado")
 
     rol = db.query(Rol).filter(Rol.id_rol == user_data.id_rol).first()
     if not rol:
@@ -72,7 +72,7 @@ def crear_usuario(
 # 2. OBTENER PERFIL DE USUARIO
 # ============================================
 @router.get("/perfil/{user_id}")
-def perfil(user_id: int, db: Session = Depends(get_db)):
+def perfil(user_id: int, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
     result = db.execute(text("""
         SELECT u.*, r.nombre_rol 
         FROM vista_usuarios_segura u
@@ -96,15 +96,15 @@ def perfil(user_id: int, db: Session = Depends(get_db)):
 # 3. DASHBOARDS
 # ============================================
 @router.get("/dashboard/admin")
-def dashboard_admin(db: Session = Depends(get_db)):
+def dashboard_admin(db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
     return get_admin_stats(db)
 
 @router.get("/dashboard/cliente/{client_id}")
-def dashboard_cliente(client_id: int, db: Session = Depends(get_db)):
+def dashboard_cliente(client_id: int, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
     return get_cliente_ascensores(db, client_id)
 
 @router.get("/dashboard/inspector/{inspector_id}")
-def dashboard_inspector(inspector_id: int, db: Session = Depends(get_db)):
+def dashboard_inspector(inspector_id: int, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
     return get_inspector_inspecciones(db, inspector_id)
 
 # ============================================
@@ -271,7 +271,7 @@ def eliminar_usuario(
     if admin_rol and user.id_rol == admin_rol.id_rol:
         total_admins = db.query(Usuario).filter(Usuario.id_rol == admin_rol.id_rol).count()
         if total_admins <= 1:
-            raise HTTPException(status_code=400, detail="No se puede eliminar el último administrador")
+            raise HTTPException(status_code=409, detail="No se puede eliminar el último administrador")
     
     # Eliminar usuario
     db.delete(user)

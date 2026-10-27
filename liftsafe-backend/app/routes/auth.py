@@ -65,7 +65,7 @@ def register(user_data: UsuarioRegister, db: Session = Depends(get_db)):
 
     existing = db.query(Usuario).filter(Usuario.correo == user_data.correo).first()
     if existing:
-        raise HTTPException(status_code=400, detail="El correo ya está registrado")
+        raise HTTPException(status_code=409, detail="El correo ya está registrado")
     
     rol = db.query(Rol).filter(Rol.id_rol == CLIENTE_ROL_ID).first()
     if not rol:

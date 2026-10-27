@@ -1,0 +1,922 @@
+diff --git a/liftsafe-backend/app/main.py b/liftsafe-backend/app/main.py
+index 8fab41b..17a3b23 100644
+--- a/liftsafe-backend/app/main.py
++++ b/liftsafe-backend/app/main.py
+@@ -1,9 +1,13 @@
+ # instalar las librerias 
+ # pip install -r requirements.txt
+ 
++import logging
+ import os
+ 
+-from fastapi import FastAPI
++from fastapi import FastAPI, Request
++from fastapi.exception_handlers import request_validation_exception_handler
++from fastapi.exceptions import RequestValidationError
++from fastapi.responses import JSONResponse
+ from fastapi.middleware.cors import CORSMiddleware
+ from fastapi.staticfiles import StaticFiles
+ 
+@@ -27,6 +31,8 @@ from app.routes import (
+     encuestas,
+ )
+ 
++logger = logging.getLogger(__name__)
++
+ app = FastAPI(
+     title="LiftSafe API",
+     version="1.0",
+@@ -58,6 +64,27 @@ app.add_middleware(
+     allow_headers=["*"],
+ )
+ 
++# ============================================
++# CONTRATO DE ERRORES (semana 4)
++# Todo error responde JSON con la clave "detail" y nunca expone información
++# interna (stack traces, SQL, rutas del servidor).
++# ============================================
++@app.exception_handler(RequestValidationError)
++async def handle_request_validation(request: Request, exc: RequestValidationError):
++    # JSON mal formado: 400 con el formato del contrato.
++    # El resto (tipos incorrectos, campos faltantes) conserva el 422 de FastAPI.
++    if any(error["type"] == "json_invalid" for error in exc.errors()):
++        return JSONResponse(status_code=400, content={"detail": "Cuerpo de la petición mal formado"})
++    return await request_validation_exception_handler(request, exc)
++
++
++@app.exception_handler(Exception)
++async def handle_unexpected_error(request: Request, exc: Exception):
++    # El detalle real queda en el log del servidor, no en la respuesta.
++    logger.exception("Error no controlado en %s %s", request.method, request.url.path)
++    return JSONResponse(status_code=500, content={"detail": "Error interno del servidor"})
++
++
+ # ============================================
+ # ROUTERS - TODOS LOS MÓDULOS DE TODOS
+ # ============================================
+diff --git a/liftsafe-backend/app/routes/ascensores.py b/liftsafe-backend/app/routes/ascensores.py
+index 31b38ab..032c786 100644
+--- a/liftsafe-backend/app/routes/ascensores.py
++++ b/liftsafe-backend/app/routes/ascensores.py
+@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
+ from sqlalchemy import func
+ from app.database import get_db
+ from app.models.models import Ascensor, Usuario, Inspeccion
+-from app.schemas.schemas import AscensorCreate, AscensorUpdate, MessageResponse
++from app.schemas.schemas import AscensorCreate, AscensorCreadoResponse, AscensorUpdate, MessageResponse
+ from app.controllers.sede_controller import sede_para_ascensor
+ from jose import jwt, JWTError
+ from app.config import settings
+@@ -173,7 +173,7 @@ def mis_ascensores_inspeccionados(
+ # ============================================
+ # 4. CREAR ASCENSOR (HEAD - CRUD)
+ # ============================================
+-@router.post("/", response_model=MessageResponse)
++@router.post("/", response_model=AscensorCreadoResponse, status_code=201)
+ def crear_ascensor(
+     data: AscensorCreate,
+     credentials: HTTPAuthorizationCredentials = Security(security),
+@@ -194,7 +194,7 @@ def crear_ascensor(
+     # Validar código interno único
+     existente = db.query(Ascensor).filter(Ascensor.codigo_interno == data.codigo_interno).first()
+     if existente:
+-        raise HTTPException(status_code=400, detail="El código interno ya está registrado")
++        raise HTTPException(status_code=409, detail="El código interno ya está registrado")
+ 
+     # Sede: obligatoria solo si el cliente tiene 2 o más sedes
+     id_sede = sede_para_ascensor(db, data.id_cliente, data.id_sede)
+@@ -256,7 +256,7 @@ def editar_ascensor(
+             Ascensor.id_ascensor != id_ascensor
+         ).first()
+         if existente:
+-            raise HTTPException(status_code=400, detail="El código interno ya está registrado")
++            raise HTTPException(status_code=409, detail="El código interno ya está registrado")
+         ascensor.codigo_interno = data.codigo_interno
+     
+     if data.marca is not None:
+@@ -315,7 +315,7 @@ def eliminar_ascensor(
+     
+     # Validar que no tenga inspecciones asociadas
+     if ascensor.inspecciones:
+-        raise HTTPException(status_code=400, detail="No se puede eliminar el ascensor porque tiene inspecciones asociadas")
++        raise HTTPException(status_code=409, detail="No se puede eliminar el ascensor porque tiene inspecciones asociadas")
+     
+     db.delete(ascensor)
+     db.commit()
+diff --git a/liftsafe-backend/app/routes/auth.py b/liftsafe-backend/app/routes/auth.py
+index fc8af36..830144d 100644
+--- a/liftsafe-backend/app/routes/auth.py
++++ b/liftsafe-backend/app/routes/auth.py
+@@ -65,7 +65,7 @@ def register(user_data: UsuarioRegister, db: Session = Depends(get_db)):
+ 
+     existing = db.query(Usuario).filter(Usuario.correo == user_data.correo).first()
+     if existing:
+-        raise HTTPException(status_code=400, detail="El correo ya está registrado")
++        raise HTTPException(status_code=409, detail="El correo ya está registrado")
+     
+     rol = db.query(Rol).filter(Rol.id_rol == CLIENTE_ROL_ID).first()
+     if not rol:
+diff --git a/liftsafe-backend/app/routes/clientes.py b/liftsafe-backend/app/routes/clientes.py
+index 5802c57..c7af5a2 100644
+--- a/liftsafe-backend/app/routes/clientes.py
++++ b/liftsafe-backend/app/routes/clientes.py
+@@ -105,7 +105,7 @@ def crear_sede(id_cliente: int, data: SedeCreate, db: Session = Depends(get_db),
+         .first()
+     )
+     if repetida:
+-        raise HTTPException(status_code=400, detail="Este cliente ya tiene una sede con ese nombre")
++        raise HTTPException(status_code=409, detail="Este cliente ya tiene una sede con ese nombre")
+     sede = Sede(
+         id_cliente=id_cliente,
+         nombre=nombre,
+@@ -149,7 +149,7 @@ def eliminar_sede(id_sede: int, db: Session = Depends(get_db), user_data: tuple
+     en_uso = db.query(Ascensor).filter(Ascensor.id_sede == id_sede).count()
+     if en_uso:
+         raise HTTPException(
+-            status_code=400,
++            status_code=409,
+             detail=f"No se puede eliminar: la sede tiene {en_uso} ascensor(es). Muévelos a otra sede primero.",
+         )
+     db.delete(sede)
+diff --git a/liftsafe-backend/app/routes/usuarios.py b/liftsafe-backend/app/routes/usuarios.py
+index 0716525..ebef3c1 100644
+--- a/liftsafe-backend/app/routes/usuarios.py
++++ b/liftsafe-backend/app/routes/usuarios.py
+@@ -38,7 +38,7 @@ def crear_usuario(
+ 
+     existing = db.query(Usuario).filter(Usuario.correo == user_data.correo).first()
+     if existing:
+-        raise HTTPException(status_code=400, detail="El correo ya está registrado")
++        raise HTTPException(status_code=409, detail="El correo ya está registrado")
+ 
+     rol = db.query(Rol).filter(Rol.id_rol == user_data.id_rol).first()
+     if not rol:
+@@ -72,7 +72,7 @@ def crear_usuario(
+ # 2. OBTENER PERFIL DE USUARIO
+ # ============================================
+ @router.get("/perfil/{user_id}")
+-def perfil(user_id: int, db: Session = Depends(get_db)):
++def perfil(user_id: int, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+     result = db.execute(text("""
+         SELECT u.*, r.nombre_rol 
+         FROM vista_usuarios_segura u
+@@ -96,15 +96,15 @@ def perfil(user_id: int, db: Session = Depends(get_db)):
+ # 3. DASHBOARDS
+ # ============================================
+ @router.get("/dashboard/admin")
+-def dashboard_admin(db: Session = Depends(get_db)):
++def dashboard_admin(db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+     return get_admin_stats(db)
+ 
+ @router.get("/dashboard/cliente/{client_id}")
+-def dashboard_cliente(client_id: int, db: Session = Depends(get_db)):
++def dashboard_cliente(client_id: int, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+     return get_cliente_ascensores(db, client_id)
+ 
+ @router.get("/dashboard/inspector/{inspector_id}")
+-def dashboard_inspector(inspector_id: int, db: Session = Depends(get_db)):
++def dashboard_inspector(inspector_id: int, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+     return get_inspector_inspecciones(db, inspector_id)
+ 
+ # ============================================
+@@ -271,7 +271,7 @@ def eliminar_usuario(
+     if admin_rol and user.id_rol == admin_rol.id_rol:
+         total_admins = db.query(Usuario).filter(Usuario.id_rol == admin_rol.id_rol).count()
+         if total_admins <= 1:
+-            raise HTTPException(status_code=400, detail="No se puede eliminar el último administrador")
++            raise HTTPException(status_code=409, detail="No se puede eliminar el último administrador")
+     
+     # Eliminar usuario
+     db.delete(user)
+diff --git a/liftsafe-backend/app/schemas/schemas.py b/liftsafe-backend/app/schemas/schemas.py
+index d277d80..5ec749d 100644
+--- a/liftsafe-backend/app/schemas/schemas.py
++++ b/liftsafe-backend/app/schemas/schemas.py
+@@ -159,6 +159,9 @@ class ResetClaveRequest(BaseModel):
+ 
+ class MessageResponse(BaseModel):
+     message: str
++
++class AscensorCreadoResponse(MessageResponse):
++    id_ascensor: int
+     
+ class InspeccionCreate(BaseModel):
+     id_ascensor: int
+diff --git a/liftsafe-backend/app/utils/auth_deps.py b/liftsafe-backend/app/utils/auth_deps.py
+index d4f8019..2371c80 100644
+--- a/liftsafe-backend/app/utils/auth_deps.py
++++ b/liftsafe-backend/app/utils/auth_deps.py
+@@ -68,7 +68,7 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Security(securi
+             "rol": rol,
+         }
+     except JWTError as e:
+-        raise HTTPException(status_code=401, detail=f"Token inválido: {str(e)}")
++        raise HTTPException(status_code=401, detail="Token inválido")
+ 
+ # ============================================
+ # VERSIÓN LEGACY - Para rutas que usan Request
+@@ -85,7 +85,7 @@ def get_current_user_role_from_request(request: Request):
+         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+         return payload.get("rol"), payload.get("sub"), payload.get("user_id")
+     except JWTError as e:
+-        raise HTTPException(status_code=401, detail=f"Token inválido: {str(e)}")
++        raise HTTPException(status_code=401, detail="Token inválido")
+ 
+ # ============================================
+ # VERSIÓN NUEVA - Con HTTPBearer para Swagger
+@@ -98,7 +98,7 @@ def get_current_user_role(credentials: HTTPAuthorizationCredentials = Security(s
+         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+         return payload.get("rol"), payload.get("sub"), payload.get("user_id")
+     except JWTError as e:
+-        raise HTTPException(status_code=401, detail=f"Token inválido: {str(e)}")
++        raise HTTPException(status_code=401, detail="Token inválido")
+ 
+ # ============================================
+ # FUNCIONES DE PERMISOS (ROLES) - CORREGIDAS
+diff --git a/liftsafe-backend/tests/conftest.py b/liftsafe-backend/tests/conftest.py
+index 52539fd..3481830 100644
+--- a/liftsafe-backend/tests/conftest.py
++++ b/liftsafe-backend/tests/conftest.py
+@@ -23,3 +23,33 @@ os.environ["DB_PORT"] = "3307"
+ os.environ["DB_USER"] = "root"
+ os.environ["DB_PASSWORD"] = "test_root"
+ os.environ["DB_NAME"] = "liftsafe_test"
++
++
++# ============================================================================
++# Semana 4 — pruebas de API sin servidor y sin base de datos
++# ============================================================================
++import pytest  # noqa: E402
++from fastapi.testclient import TestClient  # noqa: E402
++
++from tests.fakes import FakeSession  # noqa: E402
++
++
++@pytest.fixture
++def db():
++    """Sesión de BD falsa. Cada test la configura: FakeSession(firsts=[...], alls=[...])."""
++    return FakeSession()
++
++
++@pytest.fixture
++def client(db):
++    """TestClient con get_db reemplazada por la sesión falsa (no hay MySQL ni Docker).
++
++    raise_server_exceptions=False: un error inesperado debe llegar como respuesta
++    HTTP (así se prueba el manejador de errores 500), no como excepción del test.
++    """
++    from app.database import get_db
++    from app.main import app
++
++    app.dependency_overrides[get_db] = lambda: db
++    yield TestClient(app, raise_server_exceptions=False)
++    app.dependency_overrides.clear()
+diff --git a/liftsafe-backend/tests/fakes.py b/liftsafe-backend/tests/fakes.py
+new file mode 100644
+index 0000000..626f33b
+--- /dev/null
++++ b/liftsafe-backend/tests/fakes.py
+@@ -0,0 +1,127 @@
++"""Dobles de prueba para las pruebas de API (semana 4).
++
++Reemplazan la sesión de SQLAlchemy: ningún test necesita MySQL, Docker ni la BD
++de desarrollo. Cada consulta devuelve lo que el test dejó preparado.
++"""
++import time
++from types import SimpleNamespace
++
++from jose import jwt
++from sqlalchemy import inspect as sa_inspect
++
++from app.config import settings
++
++
++class FakeQuery:
++    """Consulta encadenable: db.query(X).join(...).filter(...).order_by(...).all()"""
++
++    def __init__(self, session):
++        self._session = session
++
++    def _chain(self, *_args, **_kwargs):
++        return self
++
++    join = outerjoin = filter = filter_by = order_by = group_by = distinct = limit = offset = _chain
++
++    def first(self):
++        return self._session._next(self._session.firsts, None)
++
++    def all(self):
++        return self._session._next(self._session.alls, [])
++
++    def count(self):
++        return self._session.count_value
++
++
++class FakeResult:
++    """Resultado de db.execute(text(...)).mappings().first()"""
++
++    def __init__(self, rows):
++        self._rows = rows
++
++    def mappings(self):
++        return self
++
++    def first(self):
++        return self._rows[0] if self._rows else None
++
++    def all(self):
++        return list(self._rows)
++
++
++class FakeSession:
++    """Doble de Session.
++
++    firsts: valores que devuelven, en orden, las llamadas a .first()
++    alls:   listas que devuelven, en orden, las llamadas a .all()
++    count_value: lo que devuelve .count()
++    exec_rows: filas de db.execute(...)
++    error: si se da, cualquier db.query(...) lanza esa excepción (simula una BD caída)
++    """
++
++    def __init__(self, firsts=(), alls=(), count_value=0, exec_rows=(), error=None):
++        self.firsts = list(firsts)
++        self.alls = list(alls)
++        self.count_value = count_value
++        self.exec_rows = list(exec_rows)
++        self.error = error
++        self.added = []
++        self.deleted = []
++        self.commits = 0
++
++    @staticmethod
++    def _next(queue, default):
++        return queue.pop(0) if queue else default
++
++    def query(self, *_args, **_kwargs):
++        if self.error:
++            raise self.error
++        return FakeQuery(self)
++
++    def execute(self, *_args, **_kwargs):
++        if self.error:
++            raise self.error
++        return FakeResult(self.exec_rows)
++
++    def add(self, obj):
++        self.added.append(obj)
++
++    def delete(self, obj):
++        self.deleted.append(obj)
++
++    def commit(self):
++        self.commits += 1
++
++    def refresh(self, obj):
++        # Simula que la BD asignó la clave primaria al insertar
++        pk = sa_inspect(obj).mapper.primary_key[0].name
++        if getattr(obj, pk) is None:
++            setattr(obj, pk, 99)
++
++    def close(self):
++        pass
++
++
++def fila(**campos):
++    """Objeto con atributos, como una fila/modelo devuelto por SQLAlchemy."""
++    return SimpleNamespace(**campos)
++
++
++# ── Autenticación en tests ───────────────────────────────────────────────────
++def token_para(rol="Administrador", user_id=1, correo="usuario@example.com", **extra):
++    """JWT firmado con la clave de PRUEBA (la que conftest.py fija en SECRET_KEY)."""
++    claims = {"sub": correo, "user_id": user_id, "rol": rol, **extra}
++    return jwt.encode(claims, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
++
++
++def auth(rol="Administrador", user_id=1, **extra):
++    """Encabezado Authorization listo para pasar a client.get(..., headers=auth('Cliente'))."""
++    return {"Authorization": f"Bearer {token_para(rol, user_id, **extra)}"}
++
++
++def token_vencido(rol="Administrador"):
++    return jwt.encode(
++        {"sub": "a@example.com", "user_id": 1, "rol": rol, "exp": int(time.time()) - 60},
++        settings.SECRET_KEY,
++        algorithm=settings.ALGORITHM,
++    )
+diff --git a/liftsafe-backend/tests/test_api_ascensores.py b/liftsafe-backend/tests/test_api_ascensores.py
+new file mode 100644
+index 0000000..7c7b9a7
+--- /dev/null
++++ b/liftsafe-backend/tests/test_api_ascensores.py
+@@ -0,0 +1,81 @@
++"""Pruebas de API — ángulo API: el CRUD del recurso central (ascensores).
++
++Sin servidor y sin BD: la sesión es un FakeSession (ver tests/fakes.py).
++"""
++from tests.fakes import auth, fila
++
++ASCENSOR_VALIDO = {
++    "id_cliente": 5,
++    "codigo_interno": "ASC-001",
++    "marca": "Otis",
++    "modelo": "Gen2",
++    "numero_serie": "SN-1",
++    "tipo_ascensor": "Pasajeros",
++    "capacidad_kg": 630,
++    "numero_pisos": 8,
++    "ubicacion_exacta": "Torre A",
++    "direccion_completa": "Cra 1 # 2-3",
++    "ciudad": "Bogotá",
++    "estado": "Activo",
++}
++
++
++def test_crear_ascensor_responde_201_con_mensaje_e_id(client, db):
++    # Arrange: el cliente existe y el código interno no está repetido
++    db.firsts = [fila(id_usuario=5), None]
++
++    # Act
++    respuesta = client.post("/ascensores/", json=ASCENSOR_VALIDO, headers=auth("Administrador"))
++
++    # Assert: código, cuerpo y Content-Type
++    assert respuesta.status_code == 201
++    assert respuesta.json() == {"message": "Ascensor creado exitosamente", "id_ascensor": 99}
++    assert respuesta.headers["content-type"] == "application/json"
++    assert db.commits == 1
++
++
++def test_crear_ascensor_con_capacidad_no_numerica_responde_422_con_el_campo(client):
++    datos = {**ASCENSOR_VALIDO, "capacidad_kg": "mucha"}
++
++    respuesta = client.post("/ascensores/", json=datos, headers=auth("Administrador"))
++
++    assert respuesta.status_code == 422
++    assert respuesta.json()["detail"][0]["loc"] == ["body", "capacidad_kg"]
++
++
++def test_crear_ascensor_de_un_cliente_inexistente_responde_404(client, db):
++    db.firsts = [None]  # el cliente no existe
++
++    respuesta = client.post("/ascensores/", json=ASCENSOR_VALIDO, headers=auth("Administrador"))
++
++    assert respuesta.status_code == 404
++    assert respuesta.json() == {"detail": "Cliente no encontrado"}
++
++
++def test_editar_ascensor_inexistente_responde_404(client, db):
++    db.firsts = [None]
++
++    respuesta = client.put("/ascensores/999", json={"marca": "Schindler"}, headers=auth("Coordinador"))
++
++    assert respuesta.status_code == 404
++    assert respuesta.json() == {"detail": "Ascensor no encontrado"}
++
++
++def test_eliminar_ascensor_responde_200_y_borra_el_registro(client, db):
++    ascensor = fila(id_ascensor=1, inspecciones=[])
++    db.firsts = [ascensor]
++
++    respuesta = client.delete("/ascensores/1", headers=auth("Administrador"))
++
++    assert respuesta.status_code == 200
++    assert respuesta.json() == {"message": "Ascensor eliminado exitosamente"}
++    assert db.deleted == [ascensor]
++
++
++def test_eliminar_ascensor_inexistente_responde_404(client, db):
++    db.firsts = [None]
++
++    respuesta = client.delete("/ascensores/999", headers=auth("Administrador"))
++
++    assert respuesta.status_code == 404
++    assert respuesta.json() == {"detail": "Ascensor no encontrado"}
+diff --git a/liftsafe-backend/tests/test_api_bd.py b/liftsafe-backend/tests/test_api_bd.py
+new file mode 100644
+index 0000000..1f0a732
+--- /dev/null
++++ b/liftsafe-backend/tests/test_api_bd.py
+@@ -0,0 +1,116 @@
++"""Pruebas de API — ángulo BD: respuestas que dependen de lo que hay guardado.
++
++Duplicados (409), registros con dependientes (409) y búsquedas. Todo con la
++sesión simulada: no se toca ninguna base de datos.
++"""
++from tests.fakes import auth, fila
++
++ASCENSOR_VALIDO = {
++    "id_cliente": 5,
++    "codigo_interno": "ASC-001",
++    "marca": "Otis",
++    "modelo": "Gen2",
++    "numero_serie": "SN-1",
++    "tipo_ascensor": "Pasajeros",
++    "capacidad_kg": 630,
++    "numero_pisos": 8,
++    "ubicacion_exacta": "Torre A",
++    "direccion_completa": "Cra 1 # 2-3",
++    "ciudad": "Bogotá",
++    "estado": "Activo",
++}
++
++
++def test_crear_ascensor_con_codigo_repetido_responde_409(client, db):
++    # Arrange: el cliente existe y YA hay un ascensor con ese código interno
++    db.firsts = [fila(id_usuario=5), fila(id_ascensor=7)]
++
++    # Act
++    respuesta = client.post("/ascensores/", json=ASCENSOR_VALIDO, headers=auth("Administrador"))
++
++    # Assert
++    assert respuesta.status_code == 409
++    assert respuesta.json() == {"detail": "El código interno ya está registrado"}
++    assert db.commits == 0  # no se guardó nada
++
++
++def test_eliminar_ascensor_con_inspecciones_responde_409_y_no_lo_borra(client, db):
++    db.firsts = [fila(id_ascensor=1, inspecciones=[object()])]
++
++    respuesta = client.delete("/ascensores/1", headers=auth("Administrador"))
++
++    assert respuesta.status_code == 409
++    assert "tiene inspecciones asociadas" in respuesta.json()["detail"]
++    assert db.deleted == []
++
++
++def test_crear_sede_con_nombre_repetido_responde_409(client, db):
++    # Arrange: el cliente existe y ya tiene una sede con ese nombre
++    db.firsts = [fila(id_usuario=5), fila(id_sede=3)]
++
++    respuesta = client.post("/clientes/5/sedes", json={"nombre": "Norte"}, headers=auth("Administrador"))
++
++    assert respuesta.status_code == 409
++    assert respuesta.json() == {"detail": "Este cliente ya tiene una sede con ese nombre"}
++
++
++def test_eliminar_sede_con_ascensores_responde_409_y_no_la_borra(client, db):
++    db.firsts = [fila(id_sede=3)]
++    db.count_value = 2  # la sede tiene 2 ascensores
++
++    respuesta = client.delete("/clientes/sedes/3", headers=auth("Administrador"))
++
++    assert respuesta.status_code == 409
++    assert respuesta.json()["detail"].startswith("No se puede eliminar: la sede tiene 2 ascensor(es)")
++    assert db.deleted == []
++
++
++def test_eliminar_sede_sin_ascensores_responde_200(client, db):
++    sede = fila(id_sede=3)
++    db.firsts = [sede]
++    db.count_value = 0
++
++    respuesta = client.delete("/clientes/sedes/3", headers=auth("Administrador"))
++
++    assert respuesta.status_code == 200
++    assert respuesta.json() == {"message": "Sede eliminada"}
++    assert db.deleted == [sede]
++
++
++def test_listar_sedes_de_un_cliente_incluye_el_total_de_ascensores_de_cada_una(client, db):
++    # Arrange: 1) el cliente  2) sus sedes  3) conteo (id_sede, total) por sede
++    sede = fila(id_sede=3, id_cliente=5, nombre="Norte", direccion="Cra 1", ciudad="Bogotá")
++    db.firsts = [fila(id_usuario=5)]
++    db.alls = [[sede], [(3, 2)]]
++
++    respuesta = client.get("/clientes/5/sedes", headers=auth("Administrador"))
++
++    assert respuesta.status_code == 200
++    assert respuesta.json() == [
++        {"id_sede": 3, "id_cliente": 5, "nombre": "Norte", "direccion": "Cra 1", "ciudad": "Bogotá", "total_ascensores": 2}
++    ]
++
++
++def test_listar_sedes_de_un_cliente_inexistente_responde_404(client, db):
++    db.firsts = [None]
++
++    respuesta = client.get("/clientes/999/sedes", headers=auth("Administrador"))
++
++    assert respuesta.status_code == 404
++    assert respuesta.json() == {"detail": "Cliente no encontrado"}
++
++
++def test_registro_con_correo_ya_registrado_responde_409(client, db):
++    db.firsts = [fila(id_usuario=1)]  # el correo ya existe
++    datos = {
++        "nombre_completo": "Ana Pérez",
++        "correo": "ana@example.com",
++        "contrasena": "Segura2024x",
++        "tipo_documento": "CC",
++        "documento_identidad": "123456789",
++    }
++
++    respuesta = client.post("/auth/register", json=datos)
++
++    assert respuesta.status_code == 409
++    assert respuesta.json() == {"detail": "El correo ya está registrado"}
+diff --git a/liftsafe-backend/tests/test_api_front.py b/liftsafe-backend/tests/test_api_front.py
+new file mode 100644
+index 0000000..4ce9e02
+--- /dev/null
++++ b/liftsafe-backend/tests/test_api_front.py
+@@ -0,0 +1,110 @@
++"""Pruebas de API — ángulo Front: el contrato exacto que consume la interfaz.
++
++Se verifican los campos del JSON que React lee (LiftSafe_FrontendV2/src/services)
++y el formato de error que la interfaz muestra (`detail` como texto o como lista
++con `msg`, ver apiClient.js).
++"""
++from datetime import datetime
++
++from jose import jwt
++
++from app.config import settings
++from tests.fakes import auth, fila
++
++
++def test_login_exitoso_entrega_los_campos_que_guarda_el_frontend(client, monkeypatch):
++    # Arrange: se simula la validación de credenciales (AES_DECRYPT necesita MySQL real)
++    usuario = fila(correo="ana@example.com", id_usuario=7, nombre_completo="Ana Pérez", rol=fila(nombre_rol="Cliente"))
++    monkeypatch.setattr("app.routes.auth.authenticate_user", lambda db, correo, clave: usuario)
++
++    # Act
++    respuesta = client.post("/auth/login", json={"correo": "ana@example.com", "contrasena": "Segura2024x"})
++
++    # Assert
++    cuerpo = respuesta.json()
++    assert respuesta.status_code == 200
++    assert respuesta.headers["content-type"] == "application/json"
++    assert set(cuerpo) == {"access_token", "token_type", "rol", "nombre"}
++    assert cuerpo["token_type"] == "bearer"
++    assert (cuerpo["rol"], cuerpo["nombre"]) == ("Cliente", "Ana Pérez")
++
++
++def test_el_token_del_login_lleva_el_usuario_y_el_rol(client, monkeypatch):
++    usuario = fila(correo="ana@example.com", id_usuario=7, nombre_completo="Ana", rol=fila(nombre_rol="Inspector"))
++    monkeypatch.setattr("app.routes.auth.authenticate_user", lambda db, correo, clave: usuario)
++
++    token = client.post("/auth/login", json={"correo": "ana@example.com", "contrasena": "x"}).json()["access_token"]
++
++    payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
++    assert (payload["user_id"], payload["rol"], payload["sub"]) == (7, "Inspector", "ana@example.com")
++
++
++def test_login_con_credenciales_incorrectas_responde_401_con_detail_de_texto(client, monkeypatch):
++    monkeypatch.setattr("app.routes.auth.authenticate_user", lambda db, correo, clave: None)
++
++    respuesta = client.post("/auth/login", json={"correo": "ana@example.com", "contrasena": "mala"})
++
++    assert respuesta.status_code == 401
++    assert respuesta.json() == {"detail": "Credenciales incorrectas"}
++    assert respuesta.headers["content-type"] == "application/json"
++
++
++def test_login_con_correo_invalido_responde_422_con_lista_de_errores_con_msg(client):
++    respuesta = client.post("/auth/login", json={"correo": "no-es-un-correo", "contrasena": "x"})
++
++    assert respuesta.status_code == 422
++    errores = respuesta.json()["detail"]
++    assert errores[0]["loc"] == ["body", "correo"]
++    assert "msg" in errores[0]  # apiClient.js une los `msg` para mostrarlos
++
++
++def test_auth_me_entrega_los_campos_del_perfil(client, db):
++    # Arrange: la consulta devuelve (Usuario, nombre_rol)
++    usuario = fila(
++        id_usuario=7, nombre_completo="Ana Pérez", correo="ana@example.com", telefono="3001234567",
++        tipo_documento="CC", documento_identidad="123", estado="activo", fecha_registro=datetime(2026, 1, 5),
++    )
++    db.firsts = [(usuario, "Cliente")]
++
++    respuesta = client.get("/auth/me", headers=auth("Cliente", 7, correo="ana@example.com"))
++
++    assert respuesta.status_code == 200
++    assert respuesta.json() == {
++        "id_usuario": 7,
++        "nombre_completo": "Ana Pérez",
++        "correo": "ana@example.com",
++        "rol": "Cliente",
++        "telefono": "3001234567",
++        "tipo_documento": "CC",
++        "documento_identidad": "123",
++        "estado": "activo",
++        "fecha_registro": "2026-01-05T00:00:00",
++    }
++
++
++def test_listado_de_ascensores_entrega_exactamente_los_campos_que_usa_la_tabla(client, db):
++    ascensor = fila(
++        id_ascensor=1, codigo_interno="ASC-001", marca="Otis", modelo="Gen2", tipo_ascensor="Pasajeros",
++        capacidad_kg=630, ciudad="Bogotá", estado="Activo", id_sede=None, sede=None,
++    )
++    db.alls = [[(ascensor, "Edificio Central")]]
++
++    respuesta = client.get("/ascensores/listado", headers=auth("Administrador"))
++
++    assert respuesta.status_code == 200
++    fila_json = respuesta.json()[0]
++    assert set(fila_json) == {
++        "id_ascensor", "codigo_interno", "marca", "modelo", "tipo_ascensor",
++        "capacidad_kg", "ciudad", "estado", "cliente", "id_sede", "sede",
++    }
++    assert fila_json["cliente"] == "Edificio Central"
++    assert fila_json["sede"] is None
++
++
++def test_listado_de_ascensores_de_un_cliente_que_no_existe_en_la_bd_responde_404(client, db):
++    db.firsts = [None]
++
++    respuesta = client.get("/ascensores/listado", headers=auth("Cliente", 7))
++
++    assert respuesta.status_code == 404
++    assert respuesta.json() == {"detail": "Usuario no encontrado"}
+diff --git a/liftsafe-backend/tests/test_api_seguridad.py b/liftsafe-backend/tests/test_api_seguridad.py
+new file mode 100644
+index 0000000..13dbbd0
+--- /dev/null
++++ b/liftsafe-backend/tests/test_api_seguridad.py
+@@ -0,0 +1,185 @@
++"""Pruebas de API — ángulo E2E (transversal): seguridad y contrato de errores.
++
++Parte 1: endpoints protegidos con los tres casos (401, 403, autorizado).
++Parte 2: el contrato de errores de TODO el API: siempre JSON con `detail` y
++         sin stack traces, SQL ni mensajes internos.
++"""
++import pytest
++
++from tests.fakes import FakeSession, auth, token_vencido
++
++ASCENSOR = {
++    "id_cliente": 5, "codigo_interno": "A-1", "marca": "Otis", "modelo": "G", "numero_serie": "S",
++    "tipo_ascensor": "P", "capacidad_kg": 1, "numero_pisos": 1, "ubicacion_exacta": "x",
++    "direccion_completa": "x", "ciudad": "x", "estado": "Activo",
++}
++
++# (método, ruta, cuerpo) de endpoints que exigen sesión
++PROTEGIDOS = [
++    ("get", "/auth/me", None),
++    ("get", "/ascensores/listado", None),
++    ("post", "/ascensores/", ASCENSOR),
++    ("delete", "/ascensores/1", None),
++    ("get", "/clientes/", None),
++    ("get", "/usuarios/listado", None),
++    ("delete", "/usuarios/1", None),
++    ("get", "/usuarios/perfil/1", None),
++    ("get", "/usuarios/dashboard/admin", None),
++    ("get", "/usuarios/dashboard/cliente/1", None),
++    ("get", "/usuarios/dashboard/inspector/1", None),
++]
++
++
++def _enviar(client, metodo, ruta, cuerpo, headers=None):
++    return getattr(client, metodo)(ruta, headers=headers, **({"json": cuerpo} if cuerpo else {}))
++
++
++# ── 401: sin autenticar ──────────────────────────────────────────────────────
++@pytest.mark.parametrize("metodo,ruta,cuerpo", PROTEGIDOS)
++def test_endpoint_protegido_sin_token_responde_401(client, metodo, ruta, cuerpo):
++    respuesta = _enviar(client, metodo, ruta, cuerpo)
++
++    assert respuesta.status_code == 401
++    assert isinstance(respuesta.json()["detail"], str)
++
++
++def test_token_basura_responde_401_sin_filtrar_el_mensaje_interno_de_la_libreria(client):
++    respuesta = client.get("/usuarios/perfil/1", headers={"Authorization": "Bearer abc.def.ghi"})
++
++    assert respuesta.status_code == 401
++    assert respuesta.json() == {"detail": "Token inválido"}
++
++
++def test_token_vencido_responde_401(client):
++    respuesta = client.get("/ascensores/listado", headers={"Authorization": f"Bearer {token_vencido()}"})
++
++    assert respuesta.status_code == 401
++    assert respuesta.json() == {"detail": "Token inválido"}
++
++
++def test_token_firmado_con_otra_clave_responde_401(client):
++    from jose import jwt
++
++    falso = jwt.encode({"user_id": 1, "rol": "Administrador"}, "clave-del-atacante", algorithm="HS256")
++
++    respuesta = client.get("/ascensores/listado", headers={"Authorization": f"Bearer {falso}"})
++
++    assert respuesta.status_code == 401
++
++
++# ── 403: autenticado pero sin permiso ────────────────────────────────────────
++def test_cliente_no_puede_listar_clientes_responde_403(client):
++    respuesta = client.get("/clientes/", headers=auth("Cliente"))
++
++    assert respuesta.status_code == 403
++    assert respuesta.json() == {"detail": "No autorizado para ver los clientes"}
++
++
++def test_inspector_no_puede_crear_ascensores_responde_403(client):
++    respuesta = client.post("/ascensores/", json=ASCENSOR, headers=auth("Inspector"))
++
++    assert respuesta.status_code == 403
++    assert respuesta.json() == {"detail": "No autorizado para crear ascensores"}
++
++
++def test_director_tecnico_no_puede_eliminar_ascensores_responde_403(client):
++    respuesta = client.delete("/ascensores/1", headers=auth("Director Técnico"))
++
++    assert respuesta.status_code == 403
++
++
++def test_coordinador_no_puede_eliminar_usuarios_responde_403(client):
++    respuesta = client.delete("/usuarios/1", headers=auth("Coordinador"))
++
++    assert respuesta.status_code == 403
++    assert respuesta.json() == {"detail": "Solo el administrador puede realizar esta acción"}
++
++
++def test_cliente_no_puede_crear_sedes_responde_403(client):
++    respuesta = client.post("/clientes/5/sedes", json={"nombre": "Norte"}, headers=auth("Cliente", 5))
++
++    assert respuesta.status_code == 403
++
++
++# ── Autorizado ───────────────────────────────────────────────────────────────
++def test_administrador_lista_clientes_responde_200(client):
++    respuesta = client.get("/clientes/", headers=auth("Administrador"))
++
++    assert respuesta.status_code == 200
++    assert respuesta.json() == []
++
++
++def test_usuario_autenticado_consulta_un_perfil_responde_200(client, db):
++    db.exec_rows = [{
++        "id_usuario": 1, "nombre_completo": "Ana", "correo": "ana@example.com",
++        "nombre_rol": "Cliente", "telefono": None, "estado": "activo", "id_rol": 6,
++    }]
++
++    respuesta = client.get("/usuarios/perfil/1", headers=auth("Cliente", 1))
++
++    assert respuesta.status_code == 200
++    assert respuesta.json()["rol"] == "Cliente"
++
++
++def test_administrador_crea_una_sede_responde_201_con_la_sede(client, db):
++    from tests.fakes import fila
++
++    db.firsts = [fila(id_usuario=5), None]  # el cliente existe; no hay sede repetida
++
++    respuesta = client.post(
++        "/clientes/5/sedes",
++        json={"nombre": "Norte", "direccion": "Cra 1", "ciudad": "Bogotá"},
++        headers=auth("Administrador"),
++    )
++
++    assert respuesta.status_code == 201
++    assert respuesta.json() == {
++        "id_sede": 99, "id_cliente": 5, "nombre": "Norte", "direccion": "Cra 1",
++        "ciudad": "Bogotá", "total_ascensores": 0,
++    }
++
++
++# ── Contrato de errores de todo el API ───────────────────────────────────────
++def test_json_mal_formado_responde_400_con_detail_json(client):
++    respuesta = client.post("/auth/login", content='{"correo":', headers={"Content-Type": "application/json"})
++
++    assert respuesta.status_code == 400
++    assert respuesta.json() == {"detail": "Cuerpo de la petición mal formado"}
++    assert respuesta.headers["content-type"] == "application/json"
++
++
++def test_tipos_incorrectos_responden_422_con_el_campo_en_error(client):
++    respuesta = client.post("/auth/login", json={"correo": 123, "contrasena": ["x"]})
++
++    assert respuesta.status_code == 422
++    campos = {tuple(e["loc"]) for e in respuesta.json()["detail"]}
++    assert ("body", "correo") in campos
++
++
++def test_ruta_inexistente_responde_404_en_json(client):
++    respuesta = client.get("/esta-ruta-no-existe")
++
++    assert respuesta.status_code == 404
++    assert respuesta.json() == {"detail": "Not Found"}
++
++
++def test_metodo_no_permitido_responde_405_en_json(client):
++    respuesta = client.delete("/auth/login")
++
++    assert respuesta.status_code == 405
++    assert isinstance(respuesta.json()["detail"], str)
++
++
++def test_error_inesperado_responde_500_json_sin_sql_ni_stack_trace(client, db):
++    # Arrange: la BD "se cae" con un mensaje que contiene SQL y datos internos
++    db.error = RuntimeError("(pymysql.err.OperationalError) (2003, \"Can't connect\") SELECT * FROM usuario WHERE clave='x'")
++
++    # Act
++    respuesta = client.get("/ascensores/listado", headers=auth("Administrador"))
++
++    # Assert
++    assert respuesta.status_code == 500
++    assert respuesta.headers["content-type"] == "application/json"
++    assert respuesta.json() == {"detail": "Error interno del servidor"}
++    for pista in ("SELECT", "pymysql", "Traceback", "RuntimeError", "usuario"):
++        assert pista not in respuesta.text
