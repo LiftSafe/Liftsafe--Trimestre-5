@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.database import get_db
 from app.models.models import Ascensor, Usuario, Inspeccion
-from app.schemas.schemas import AscensorCreate, AscensorUpdate, MessageResponse
+from app.schemas.schemas import AscensorCreate, AscensorCreadoResponse, AscensorUpdate, MessageResponse
 from app.controllers.sede_controller import sede_para_ascensor
 from jose import jwt, JWTError
 from app.config import settings
@@ -173,7 +173,7 @@ def mis_ascensores_inspeccionados(
 # ============================================
 # 4. CREAR ASCENSOR (HEAD - CRUD)
 # ============================================
-@router.post("/", response_model=MessageResponse)
+@router.post("/", response_model=AscensorCreadoResponse, status_code=201)
 def crear_ascensor(
     data: AscensorCreate,
     credentials: HTTPAuthorizationCredentials = Security(security),
@@ -194,7 +194,7 @@ def crear_ascensor(
     # Validar código interno único
     existente = db.query(Ascensor).filter(Ascensor.codigo_interno == data.codigo_interno).first()
     if existente:
-        raise HTTPException(status_code=400, detail="El código interno ya está registrado")
+        raise HTTPException(status_code=409, detail="El código interno ya está registrado")
 
     # Sede: obligatoria solo si el cliente tiene 2 o más sedes
     id_sede = sede_para_ascensor(db, data.id_cliente, data.id_sede)
@@ -256,7 +256,7 @@ def editar_ascensor(
             Ascensor.id_ascensor != id_ascensor
         ).first()
         if existente:
-            raise HTTPException(status_code=400, detail="El código interno ya está registrado")
+            raise HTTPException(status_code=409, detail="El código interno ya está registrado")
         ascensor.codigo_interno = data.codigo_interno
     
     if data.marca is not None:
@@ -315,7 +315,7 @@ def eliminar_ascensor(
     
     # Validar que no tenga inspecciones asociadas
     if ascensor.inspecciones:
-        raise HTTPException(status_code=400, detail="No se puede eliminar el ascensor porque tiene inspecciones asociadas")
+        raise HTTPException(status_code=409, detail="No se puede eliminar el ascensor porque tiene inspecciones asociadas")
     
     db.delete(ascensor)
     db.commit()
