@@ -25,6 +25,7 @@ from app.routes import (
     solicitudes,
     notificaciones,
     encuestas,
+    reportes,
 )
 
 app = FastAPI(
@@ -78,6 +79,7 @@ app.include_router(programacion.router)      # Luz
 app.include_router(solicitudes.router)       # Luz
 app.include_router(notificaciones.router)    # Equipo - requiere correr migrations/add_notificacion_table.sql antes de usar
 app.include_router(encuestas.router)         # requiere correr migrations/add_encuesta_table.sql antes de usar
+app.include_router(reportes.router)          # Luz - RF-024 reporte de productividad
 
 # ============================================
 # SERVIR FOTOS SUBIDAS
