@@ -30,7 +30,10 @@ function ordenar(lista) {
 // Edificios del cliente para la nueva solicitud: todos sus edificios (aunque
 // todavía no tengan ascensores) con cuántos ascensores tiene cada uno.
 export function edificiosDelCliente(sedes = [], ascensores = []) {
-  const mapa = new Map(sedes.map((s) => [String(s.id_sede), { clave: String(s.id_sede), nombre: s.nombre, total: 0 }]));
+  const mapa = new Map(sedes.map((s) => [
+    String(s.id_sede),
+    { clave: String(s.id_sede), nombre: s.nombre, direccion: s.direccion || '', total: 0 },
+  ]));
   sucursalesDeAscensores(ascensores).forEach((g) => {
     if (mapa.has(g.clave)) mapa.get(g.clave).total = g.total;
     else mapa.set(g.clave, { ...g });
@@ -39,3 +42,6 @@ export function edificiosDelCliente(sedes = [], ascensores = []) {
 }
 
 export const tieneEdificios = (edificios = []) => edificios.some((e) => e.clave !== SIN_SUCURSAL);
+
+// Texto del edificio en un selector: "Sede Centro (Calle 120 #15-88)"
+export const etiquetaEdificio = (e) => (e.direccion ? `${e.nombre} (${e.direccion})` : e.nombre);

@@ -44,7 +44,7 @@ import { solicitudService } from '../services/solicitudService';
 import { ascensorService } from '../services/ascensorService';
 import { usuarioService } from '../services/usuarioService';
 import { programacionService } from '../services/programacionService';
-import { claveSucursal, edificiosDelCliente, tieneEdificios } from '../utils/sucursales';
+import { claveSucursal, edificiosDelCliente, etiquetaEdificio, tieneEdificios } from '../utils/sucursales';
 import { clienteService } from '../services/clienteService';
 import { useLocation } from 'react-router-dom';
 import { leerEstados, filtrarPorEstado } from '../utils/filtroEstado';
@@ -656,7 +656,7 @@ export default function Solicitudes() {
               >
                 {sucursales.map((s) => (
                   <MenuItem key={s.clave} value={s.clave}>
-                    {s.nombre}{s.total ? '' : ' (sin ascensores)'}
+                    {etiquetaEdificio(s)}{s.total ? '' : ' — sin ascensores'}
                   </MenuItem>
                 ))}
               </TextField>
