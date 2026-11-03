@@ -182,5 +182,10 @@ INSERT IGNORE INTO `checklist_item` (`id_categoria`, `codigo_item`, `descripcion
 UPDATE `checklist_categoria` SET `activo` = 0 WHERE `norma_referencia` IS NULL OR `norma_referencia` NOT LIKE 'NTC 5926-1:2012 num. 6.%';
 UPDATE `checklist_categoria` SET `activo` = 1 WHERE `norma_referencia` LIKE 'NTC 5926-1:2012 num. 6.%';
 
+-- 8) Solicitudes que quedaron 'Programada' aunque su inspección ya terminó
+UPDATE `solicitud` s JOIN `inspeccion` i ON i.id_solicitud = s.id_solicitud
+   SET s.estado = 'Finalizada'
+ WHERE i.estado IN ('Finalizada', 'Aprobada') AND s.estado NOT IN ('Finalizada', 'Cancelada');
+
 -- Listo: la base queda igual a la de liftsafe_db.sql actual.
 SELECT 'Base de datos actualizada correctamente' AS resultado;

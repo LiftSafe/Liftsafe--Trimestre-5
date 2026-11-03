@@ -33,6 +33,18 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Security(securi
     except JWTError as e:
         raise HTTPException(status_code=401, detail=f"Token invalido: {str(e)}")
 
+def finalizar_solicitud(db: Session, inspeccion) -> bool:
+    """Marca como Finalizada la solicitud de la que salió la inspección."""
+    if not inspeccion or not inspeccion.id_solicitud:
+        return False
+    solicitud = db.query(Solicitud).filter(Solicitud.id_solicitud == inspeccion.id_solicitud).first()
+    if not solicitud or solicitud.estado == "Finalizada":
+        return False
+    solicitud.estado = "Finalizada"
+    db.commit()
+    return True
+
+
 async def crear_encuesta_si_falta(db: Session, inspeccion, ascensor, cliente, mensaje: str) -> bool:
     """Crea la encuesta de satisfacción de la inspección (una sola vez),
     avisa al cliente en la campanita y le manda el correo."""
@@ -207,8 +219,10 @@ async def revisar_informe(
                     leida=False,
                 ))
             db.commit()
-        # Con el informe aprobado el proceso terminó para el cliente:
-        # se le habilita la encuesta de satisfacción.
+        # Con el informe aprobado el proceso terminó: la solicitud queda
+        # Finalizada (antes solo pasaba al "Enviar informe") y se habilita
+        # la encuesta de satisfacción.
+        finalizar_solicitud(db, insp)
         if insp:
             asc = db.query(Ascensor).filter(Ascensor.id_ascensor == insp.id_ascensor).first()
             cli = db.query(Usuario).filter(Usuario.id_usuario == asc.id_cliente).first() if asc else None
@@ -271,13 +285,7 @@ async def enviar_informe(
     # Solicitudes el cliente/coordinador nunca veía que el proceso ya había
     # terminado. Ahora, cuando el informe se envía, se marca la Solicitud
     # asociada como "Finalizada".
-    if inspeccion_rel:
-        solicitud_rel = db.query(Solicitud).filter(
-            Solicitud.id_solicitud == inspeccion_rel.id_solicitud
-        ).first()
-        if solicitud_rel and solicitud_rel.estado != "Finalizada":
-            solicitud_rel.estado = "Finalizada"
-            db.commit()
+    finalizar_solicitud(db, inspeccion_rel)
 
     if cliente_rel:
         db.add(Notificacion(

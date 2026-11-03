@@ -107,6 +107,14 @@ def run():
             conn.exec_driver_sql(sentencia.rstrip(";").replace("%", "%%"))
         print("Checklist NTC 5926-1 aplicado.")
 
+        # Solicitudes que quedaron "Programada" aunque su inspección ya terminó
+        n = conn.execute(text(
+            "UPDATE solicitud s JOIN inspeccion i ON i.id_solicitud = s.id_solicitud"
+            " SET s.estado = 'Finalizada'"
+            " WHERE i.estado IN ('Finalizada', 'Aprobada') AND s.estado NOT IN ('Finalizada', 'Cancelada')"
+        )).rowcount
+        print(f"Solicitudes finalizadas por inspección terminada: {n}")
+
 
 if __name__ == "__main__":
     run()

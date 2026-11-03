@@ -46,3 +46,14 @@ def test_sin_cliente_no_hace_nada():
     db = _db(None)
     assert asyncio.run(informes.crear_encuesta_si_falta(db, INSP, ASC, None, "x")) is False
     db.add.assert_not_called()
+
+
+def test_finalizar_solicitud_la_marca_una_sola_vez():
+    solicitud = N(estado="Programada")
+    db = MagicMock()
+    db.query.return_value.filter.return_value.first.return_value = solicitud
+    assert informes.finalizar_solicitud(db, N(id_solicitud=4)) is True
+    assert solicitud.estado == "Finalizada"
+    assert informes.finalizar_solicitud(db, N(id_solicitud=4)) is False
+    assert informes.finalizar_solicitud(db, None) is False
+    assert informes.finalizar_solicitud(db, N(id_solicitud=None)) is False
