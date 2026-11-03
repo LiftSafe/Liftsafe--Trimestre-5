@@ -29,3 +29,9 @@ export function describirItems(categorias = [], items = []) {
     return ids.has(item.id_item) ? { numero, grupo: c.nombre_categoria, descripcion: item.descripcion, id_item: item.id_item } : null;
   })).filter(Boolean);
 }
+
+// Primer ítem del checklist (en orden) que todavía no tiene calificación
+export function primerItemSinCalificar(categorias = [], detalles = {}) {
+  const item = categorias.flatMap((c) => c.items || []).find((i) => !detalles[i.id_item]?.resultado);
+  return item ? item.id_item : null;
+}

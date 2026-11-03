@@ -21,7 +21,7 @@ import ConfirmDialog from '../components/ConfirmDialog';
 import { canDo } from '../config/roles';
 import { usePaginatedSearch } from '../hooks/usePaginatedSearch';
 import ChecklistInspeccion from '../components/ChecklistInspeccion';
-import { describirItems, itemsSinFotoObligatoria } from '../utils/checklist';
+import { describirItems, itemsSinFotoObligatoria, primerItemSinCalificar, resumenChecklist } from '../utils/checklist';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { leerEstados, filtrarPorEstado } from '../utils/filtroEstado';
 import { ESTADO_PENDIENTE_FIRMA, ESTADO_PENDIENTE_REVISION } from '../utils/statusHelpers';
@@ -403,6 +403,9 @@ export default function Inspections() {
   const [detalles, setDetalles] = useState({}); // { [id_item]: { id_detalle, resultado } }
   // Ítems "No cumple" sin foto: la foto es obligatoria y bloquean "Marcar como finalizada"
   const faltanFotosNA = itemsSinFotoObligatoria(categorias, detalles, fotos);
+  // RF-009: no se finaliza con ítems del checklist sin calificar
+  const resumenCk = resumenChecklist(categorias, detalles);
+  const sinCalificar = resumenCk.total - resumenCk.calificados;
   const [verFaltantes, setVerFaltantes] = useState(false);
   const checklistRef = useRef(null);
   const [loadingChecklist, setLoadingChecklist] = useState(false);
@@ -695,6 +698,9 @@ export default function Inspections() {
 
   const idInspeccionActual = selected?.id_inspeccion || selected?.id;
   // El cliente solo ve el checklist final (después de la revisión del coordinador)
+  // RF-011: una inspección cerrada ya no se edita (checklist ni fotos)
+  const inspeccionCerrada = ['Finalizada', 'Completada', 'Aprobada', 'Cancelada', ESTADO_PENDIENTE_FIRMA, ESTADO_PENDIENTE_REVISION]
+    .includes(selected?.estado);
   const clienteEsperaRevision = userRol === 'Cliente' && !['Finalizada', 'Aprobada'].includes(selected?.estado);
 
   const recargarFotos = async () => {
@@ -802,6 +808,10 @@ export default function Inspections() {
   const finalizarInspeccion = () => {
     const id = selected?.id_inspeccion || selected?.id;
     if (!id) return;
+    if (sinCalificar > 0) {
+      showMessage(`No puedes finalizar: ${sinCalificar === 1 ? 'falta 1 ítem' : `faltan ${sinCalificar} ítems`} del checklist por calificar.`, 'warning');
+      return;
+    }
     if (faltanFotosNA.length) {
       showMessage(
         `No puedes finalizar: ${faltanFotosNA.length === 1 ? 'falta la foto de 1 ítem marcado' : `faltan las fotos de ${faltanFotosNA.length} ítems marcados`} "No cumple". La foto es obligatoria.`,
@@ -1248,16 +1258,34 @@ export default function Inspections() {
 
               {/* Marcar inspección como finalizada (Inspector, o Coordinador/Admin) */}
               {(userRol === 'Inspector' || userRol === 'Coordinador' || userRol === 'Administrador') &&
-                !['Finalizada', 'Completada', 'Aprobada', 'Cancelada', ESTADO_PENDIENTE_FIRMA, ESTADO_PENDIENTE_REVISION].includes(selected?.estado) && (
+                !inspeccionCerrada && (
                 <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
                   <Button
                     variant="outlined"
                     size="small"
                     onClick={finalizarInspeccion}
-                    disabled={finalizando || !firmas?.firma_inspector || faltanFotosNA.length > 0}
+                    disabled={finalizando || !firmas?.firma_inspector || faltanFotosNA.length > 0 || sinCalificar > 0}
                   >
                     {finalizando ? 'Finalizando...' : 'Marcar como finalizada'}
                   </Button>
+                  {sinCalificar > 0 && (
+                    <Typography
+                      component="button"
+                      type="button"
+                      variant="caption"
+                      onClick={() => {
+                        const id = primerItemSinCalificar(categorias, detalles);
+                        if (id) checklistRef.current?.irAItem(id);
+                      }}
+                      title="Ir al primer ítem sin calificar"
+                      sx={{
+                        color: '#C77700', fontWeight: 600, bgcolor: 'transparent', border: 0, p: 0,
+                        cursor: 'pointer', textAlign: 'left', textDecoration: 'underline dotted', textUnderlineOffset: 3,
+                      }}
+                    >
+                      {sinCalificar === 1 ? 'Falta 1 ítem' : `Faltan ${sinCalificar} ítems`} del checklist por calificar →
+                    </Typography>
+                  )}
                   {faltanFotosNA.length > 0 && (
                     <Typography
                       component="button"
@@ -1317,6 +1345,20 @@ export default function Inspections() {
                 Checklist NTC 5926-1
               </Typography>
 
+              {/* RF-023: el inspector ve por qué le rechazaron el informe */}
+              {userRol !== 'Cliente' && informe?.estado === 'Rechazado' && !inspeccionCerrada && (
+                <Alert severity="warning" sx={{ mb: 2 }}>
+                  <strong>El informe fue rechazado.</strong>
+                  {informe.observaciones_revision ? ` Motivo: ${informe.observaciones_revision}` : ''}
+                  {' '}Corrige lo necesario y vuelve a marcar la inspección como finalizada.
+                </Alert>
+              )}
+              {inspeccionCerrada && userRol === 'Inspector' && (
+                <Alert severity="info" sx={{ mb: 2 }}>
+                  La inspección ya fue cerrada: el checklist y las fotos quedan solo para consulta.
+                </Alert>
+              )}
+
               {clienteEsperaRevision ? (
                 <Alert severity="info" sx={{ mb: 2 }}>
                   {selected?.estado === ESTADO_PENDIENTE_FIRMA
@@ -1345,7 +1387,8 @@ export default function Inspections() {
                   detalles={detalles}
                   savingItem={savingItem}
                   fotos={fotos}
-                  puedeSubirFotos={userRol === 'Inspector'}
+                  puedeSubirFotos={userRol === 'Inspector' && !inspeccionCerrada}
+                  bloqueado={userRol !== 'Inspector' || inspeccionCerrada}
                   onSubirFoto={subirFotoItem}
                   onEliminarFoto={(foto) => eliminarFoto(foto.id_foto)}
                   urlFoto={(foto) => `${API_BASE_URL}/${foto.ruta_archivo.replace(/\\/g, '/')}`}

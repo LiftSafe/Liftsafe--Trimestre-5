@@ -7,6 +7,7 @@ import shutil
 from app.database import get_db
 from sqlalchemy import or_
 from app.models.models import Fotografia, Informe, Inspeccion, ChecklistItem
+from app.controllers.cierre_inspeccion_controller import exigir_inspeccion_abierta
 from app.schemas.schemas import FotografiaResponse, MessageResponse, FotografiaUpdate
 from app.utils.auth_deps import get_current_user_role_from_request as get_current_user_role
 
@@ -103,6 +104,7 @@ def subir_foto_inspeccion(
         raise HTTPException(status_code=404, detail="Inspección no encontrada")
     if inspeccion.id_inspector != user_id:
         raise HTTPException(status_code=403, detail="Solo el inspector asignado puede subir fotos a esta inspección")
+    exigir_inspeccion_abierta(inspeccion)  # RF-011
     if id_item is not None and not db.query(ChecklistItem).filter(ChecklistItem.id_item == id_item).first():
         raise HTTPException(status_code=404, detail="Ítem del checklist no encontrado")
 
@@ -167,6 +169,9 @@ def eliminar_foto(
     foto = db.query(Fotografia).filter(Fotografia.id_foto == id_foto).first()
     if not foto:
         raise HTTPException(status_code=404, detail="Foto no encontrada")
+    if foto.id_inspeccion:
+        exigir_inspeccion_abierta(
+            db.query(Inspeccion).filter(Inspeccion.id_inspeccion == foto.id_inspeccion).first())
 
     if os.path.exists(foto.ruta_archivo):
         os.remove(foto.ruta_archivo)

@@ -13,6 +13,7 @@ from app.schemas.schemas import (
     MessageResponse,
 )
 from app.controllers.checklist_controller import categorias_visibles
+from app.controllers.cierre_inspeccion_controller import exigir_inspeccion_abierta
 
 router = APIRouter(prefix="/checklist", tags=["Checklist"])
 
@@ -46,6 +47,7 @@ def calificar_item(
 
     if inspeccion.id_inspector != user_id:
         raise HTTPException(status_code=403, detail="No eres el inspector asignado a esta inspección")
+    exigir_inspeccion_abierta(inspeccion)  # RF-011: cerrada = no se edita
 
     item = db.query(ChecklistItem).filter(ChecklistItem.id_item == data.id_item).first()
     if not item:
@@ -172,6 +174,7 @@ def eliminar_detalle_checklist(
     inspeccion = db.query(Inspeccion).filter(Inspeccion.id_inspeccion == detalle.id_inspeccion).first()
     if rol != "Inspector" or not inspeccion or inspeccion.id_inspector != user_id:
         raise HTTPException(status_code=403, detail="No tienes permiso para eliminar este registro")
+    exigir_inspeccion_abierta(inspeccion)
 
     db.delete(detalle)
     db.commit()

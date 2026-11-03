@@ -7,6 +7,7 @@ from app.models.models import Inspeccion, Ascensor, Usuario, Informe, Notificaci
 from app.schemas.schemas import InspeccionCreate, InspeccionUpdate, FirmaRequest, MessageResponse
 from app.controllers.inspeccion_controller import crear_inspeccion
 from app.controllers.foto_obligatoria_controller import exigir_fotos_no_aplica
+from app.controllers.cierre_inspeccion_controller import exigir_checklist_completo
 from app.utils.auth_deps import get_current_user_role, ADMIN_ROL_ID, COORDINADOR_ROL_ID
 from app.config import settings
 from jose import jwt, JWTError
@@ -422,7 +423,9 @@ async def actualizar_estado(
     # -> "Pendiente revisión". "Finalizada" la pone la aprobación del
     # informe por parte del coordinador.
     # Los ítems "No Cumple" deben tener foto antes de terminar la inspección.
+    # RF-009: todo el checklist calificado antes de terminar la inspección.
     if estado in ("Finalizada", PENDIENTE_FIRMA_CLIENTE, PENDIENTE_REVISION):
+        exigir_checklist_completo(db, inspeccion.id_inspeccion)
         exigir_fotos_no_aplica(db, inspeccion.id_inspeccion)
     if estado == "Finalizada":
         estado = PENDIENTE_REVISION if inspeccion.firma_cliente else PENDIENTE_FIRMA_CLIENTE

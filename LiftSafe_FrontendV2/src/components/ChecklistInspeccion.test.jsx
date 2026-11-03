@@ -153,4 +153,12 @@ describe('ChecklistInspeccion', () => {
     act(() => ref.current.irAItem(999))
     expect(screen.getByText('Foso del Ascensor')).toBeInTheDocument()
   })
+
+  it('should not let grade or upload photos when the inspection is closed', () => {
+    const { onCalificar } = pintar({ bloqueado: true })
+    const grupo = screen.getByRole('group', { name: 'Calificación del ítem 2' })
+    expect(grupo.querySelector('button[value="Cumple"]')).toBeDisabled()
+    fireEvent.click(grupo.querySelector('button[value="Cumple"]'))
+    expect(onCalificar).not.toHaveBeenCalled()
+  })
 })

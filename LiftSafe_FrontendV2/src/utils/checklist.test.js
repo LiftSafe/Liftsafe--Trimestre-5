@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { describirItems, itemsSinFotoObligatoria } from './checklist'
+import { describirItems, itemsSinFotoObligatoria, primerItemSinCalificar } from './checklist'
 
 const categorias = [
   { id_categoria: 1, items: [{ id_item: 1 }, { id_item: 2 }] },
@@ -29,5 +29,14 @@ describe('describirItems', () => {
       { numero: 3, grupo: '6.2 Cables', descripcion: 'C', id_item: 3 },
     ])
     expect(describirItems()).toEqual([])
+  })
+})
+
+describe('primerItemSinCalificar', () => {
+  it('should return the first item without a grade, in order', () => {
+    const cats = [{ items: [{ id_item: 1 }, { id_item: 2 }] }, { items: [{ id_item: 3 }] }]
+    expect(primerItemSinCalificar(cats, { 1: { resultado: 'Cumple' } })).toBe(2)
+    expect(primerItemSinCalificar(cats, { 1: { resultado: 'Cumple' }, 2: { resultado: 'No Aplica' }, 3: { resultado: 'Cumple' } })).toBeNull()
+    expect(primerItemSinCalificar()).toBeNull()
   })
 })

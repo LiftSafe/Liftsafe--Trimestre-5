@@ -192,6 +192,9 @@ async def revisar_informe(
     # No se aprueba si faltan fotos de ítems marcados "No Cumple".
     if data.decision == "Aprobado":
         exigir_fotos_no_aplica(db, informe.id_inspeccion)
+    # RF-023: al rechazar, el comentario es obligatorio (orienta al inspector).
+    if data.decision == "Rechazado" and not (data.observaciones_revision or "").strip():
+        raise HTTPException(status_code=400, detail="Escribe el motivo del rechazo para orientar al inspector")
 
     informe.fecha_revision = datetime.now()
     informe.id_revisor = current_user["user_id"]
@@ -237,11 +240,20 @@ async def revisar_informe(
     inspeccion_rel = db.query(Inspeccion).filter(
         Inspeccion.id_inspeccion == informe.id_inspeccion
     ).first()
+    # Rechazado: la inspección vuelve al inspector para que la corrija
+    # y la finalice otra vez (al aprobarla después, el informe se regenera).
+    if data.decision == "Rechazado" and inspeccion_rel:
+        inspeccion_rel.estado = "En Progreso"
+        db.commit()
     if inspeccion_rel and inspeccion_rel.id_inspector:
+        mensaje = f"Tu informe de la inspección #{informe.id_inspeccion} fue {data.decision.lower()}."
+        if data.decision == "Rechazado":
+            mensaje = (f"Tu informe de la inspección #{informe.id_inspeccion} fue rechazado. "
+                       f"Motivo: {data.observaciones_revision.strip()}. Corrígela y finalízala de nuevo.")
         db.add(Notificacion(
             id_usuario_destino=inspeccion_rel.id_inspector,
-            mensaje=f"Tu informe de la inspección #{informe.id_inspeccion} fue {data.decision.lower()}.",
-            enlace="/dashboard/reportes",
+            mensaje=mensaje[:255],
+            enlace="/dashboard/inspecciones" if data.decision == "Rechazado" else "/dashboard/reportes",
             leida=False,
         ))
         db.commit()

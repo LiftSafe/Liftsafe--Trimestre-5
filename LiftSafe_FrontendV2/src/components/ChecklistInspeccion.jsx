@@ -123,6 +123,7 @@ function FotosItem({ item, fotos, puedeSubir, onSubir, onEliminar, urlFoto, obli
 export default function ChecklistInspeccion({
   categorias = [], detalles = {}, savingItem, onCalificar, onQuitar,
   fotos = [], puedeSubirFotos = false, onSubirFoto, onEliminarFoto, urlFoto = () => '',
+  bloqueado = false, // RF-011: inspección cerrada o rol que solo consulta
   ref,
 }) {
   const [filtro, setFiltro] = useState('todos');
@@ -271,7 +272,7 @@ export default function ChecklistInspeccion({
                     fullWidth
                     size="small"
                     value={resultado || null}
-                    disabled={savingItem === item.id_item}
+                    disabled={bloqueado || savingItem === item.id_item}
                     aria-label={`Calificación del ítem ${n}`}
                     onChange={(_e, valor) => (valor ? onCalificar(item, valor) : onQuitar(item))}
                     sx={{
