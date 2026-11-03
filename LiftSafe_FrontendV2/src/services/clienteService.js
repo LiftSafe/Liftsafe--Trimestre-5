@@ -7,6 +7,8 @@ export const clienteService = {
   modificar: (id, data) => apiPut(`/clientes/${id}`, data),
   // Sedes (sucursales) del cliente
   listarSedes: (idCliente) => apiGet(`/clientes/${idCliente}/sedes`),
+  // Edificios del cliente que inició sesión
+  misSedes: () => apiGet('/clientes/mis-sedes'),
   crearSede: (idCliente, data) => apiPost(`/clientes/${idCliente}/sedes`, data),
   modificarSede: (idSede, data) => apiPut(`/clientes/sedes/${idSede}`, data),
   eliminarSede: (idSede) => apiDelete(`/clientes/sedes/${idSede}`),

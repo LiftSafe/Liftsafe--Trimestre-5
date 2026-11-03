@@ -22,6 +22,7 @@ describe('roles: permisos de pantallas', () => {
     ['Inspector', 'ascensores', true],
     ['Visitante', 'usuarios', false],
     ['Asesor', 'usuarios', true], // el Asesor crea los clientes
+    ['Cliente', 'misEdificios', true], // el cliente ve sus edificios
   ])('canAccess(%s, %s) should be %s', (rol, pantalla, esperado) => {
     expect(canAccess(rol, pantalla)).toBe(esperado)
   })

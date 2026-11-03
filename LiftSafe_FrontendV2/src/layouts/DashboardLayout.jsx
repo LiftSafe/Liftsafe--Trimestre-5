@@ -35,6 +35,7 @@ const ICONS = {
   solicitudes: <AssignmentIcon fontSize="small" />,
   ascensores: <ElevatorIcon fontSize="small" />,
   edificios: <BusinessIcon fontSize="small" />,
+  misEdificios: <BusinessIcon fontSize="small" />,
   reportes: <DescriptionIcon fontSize="small" />,
   usuarios: <PeopleIcon fontSize="small" />,
   configuracion: <SettingsIcon fontSize="small" />,

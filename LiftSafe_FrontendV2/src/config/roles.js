@@ -4,6 +4,7 @@ export const MENU_ITEMS = [
   { key: 'solicitudes', text: 'Solicitudes', path: '/dashboard/solicitudes' },
   { key: 'ascensores', text: 'Ascensores', path: '/dashboard/ascensores' },
   { key: 'edificios', text: 'Edificios', path: '/dashboard/edificios' },
+  { key: 'misEdificios', text: 'Mis edificios', path: '/dashboard/mis-edificios' },
   { key: 'reportes', text: 'Reportes', path: '/dashboard/reportes' },
   { key: 'usuarios', text: 'Usuarios', path: '/dashboard/usuarios' },
   { key: 'auditoria', text: 'Auditoría', path: '/dashboard/auditoria' },
@@ -40,7 +41,7 @@ export const ROLE_PERMISSIONS = {
   // ya filtra correctamente qué inspecciones puede ver un Cliente (solo las
   // de sus propios ascensores), así que este era puramente un bloqueo del
   // lado del frontend.
-  Cliente: ['dashboard', 'inspecciones', 'solicitudes', 'reportes', 'configuracion', 'encuestas'],
+  Cliente: ['dashboard', 'misEdificios', 'inspecciones', 'solicitudes', 'reportes', 'configuracion', 'encuestas'],
 };
 
 // Acciones específicas (opcional, pero la dejas)

@@ -80,6 +80,17 @@ def listar_clientes(db: Session = Depends(get_db), user_data: tuple = Depends(ge
     ]
 
 
+@router.get("/mis-sedes")
+def mis_sedes(db: Session = Depends(get_db), user_data: tuple = Depends(get_current_user_role)):
+    """Edificios (sedes) del cliente que inició sesión, con su número de ascensores."""
+    rol, _, user_id = user_data
+    if rol != "Cliente":
+        raise HTTPException(status_code=403, detail="Solo para clientes")
+    sedes = sedes_del_cliente(db, user_id)
+    conteo = _conteo_ascensores(db, [s.id_sede for s in sedes])
+    return [sede_a_dict(s, conteo.get(s.id_sede, 0)) for s in sedes]
+
+
 @router.get("/{id_cliente}/sedes")
 def listar_sedes(id_cliente: int, db: Session = Depends(get_db), user_data: tuple = Depends(get_current_user_role)):
     rol, _, user_id = user_data
@@ -143,9 +154,12 @@ def editar_sede(id_sede: int, data: SedeUpdate, db: Session = Depends(get_db), u
 @router.get("/sedes/{id_sede}/ascensores")
 def listar_ascensores_de_sede(id_sede: int, db: Session = Depends(get_db), user_data: tuple = Depends(get_current_user_role)):
     """Ascensores de una sede (edificio) del cliente."""
-    rol, _, _ = user_data
-    _exigir_rol(rol, ROLES_LECTURA, "ver los ascensores de la sede")
-    if not db.query(Sede).filter(Sede.id_sede == id_sede).first():
+    rol, _, user_id = user_data
+    sede = db.query(Sede).filter(Sede.id_sede == id_sede).first()
+    # El cliente puede ver los ascensores de sus propios edificios
+    if not (rol == "Cliente" and sede and sede.id_cliente == user_id):
+        _exigir_rol(rol, ROLES_LECTURA, "ver los ascensores de la sede")
+    if not sede:
         raise HTTPException(status_code=404, detail="Sede no encontrada")
     ascensores = db.query(Ascensor).filter(Ascensor.id_sede == id_sede).order_by(Ascensor.codigo_interno).all()
     return [{

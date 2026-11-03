@@ -11,8 +11,8 @@ import { ascensorService } from '../services/ascensorService';
 import { ASCENSOR_VACIO, TIPOS_ASCENSOR, ascensorDesdeEdificio, validarAscensor } from '../utils/edificios';
 
 // Ascensores de un edificio del cliente: lista y formulario para agregar uno.
-export default function AscensoresEdificio({ sede, idCliente, onCambio }) {
-  const [abierto, setAbierto] = useState(false);
+export default function AscensoresEdificio({ sede, idCliente, onCambio, soloLectura = false, abiertoAlInicio = false }) {
+  const [abierto, setAbierto] = useState(abiertoAlInicio);
   const [ascensores, setAscensores] = useState(null);
   const [error, setError] = useState('');
   const [form, setForm] = useState(null); // null = formulario cerrado
@@ -83,7 +83,7 @@ export default function AscensoresEdificio({ sede, idCliente, onCambio }) {
             </>
           )}
 
-          {form ? (
+          {soloLectura ? null : form ? (
             <Box sx={{ mt: 1.5, p: 1.5, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
               <Typography variant="subtitle2" sx={{ mb: 1 }}>Nuevo ascensor en {sede.nombre}</Typography>
               <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.25 }}>
