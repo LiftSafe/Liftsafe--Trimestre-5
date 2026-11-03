@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
-  Alert, Box, Button, CircularProgress, Collapse, MenuItem, TextField, Typography,
+  Alert, Box, Button, Chip, CircularProgress, Collapse, MenuItem, Table, TableBody, TableCell,
+  TableHead, TableRow, TextField, Typography,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import ElevatorOutlinedIcon from '@mui/icons-material/ElevatorOutlined';
@@ -10,9 +11,54 @@ import { clienteService } from '../services/clienteService';
 import { ascensorService } from '../services/ascensorService';
 import { ASCENSOR_VACIO, TIPOS_ASCENSOR, ascensorDesdeEdificio, validarAscensor } from '../utils/edificios';
 
+// Color del chip según el tipo de ascensor
+const COLOR_TIPO = { Eléctrico: 'primary', Hidráulico: 'warning', Panorámico: 'info', Montacargas: 'secondary' };
+
+// Tabla ordenada de los ascensores de un edificio
+function TablaAscensores({ ascensores }) {
+  return (
+    <Box sx={{ overflowX: 'auto' }}>
+      <Table size="small" aria-label="Ascensores del edificio">
+        <TableHead>
+          <TableRow sx={{ '& th': { fontWeight: 700, fontSize: '0.75rem', color: 'text.secondary', whiteSpace: 'nowrap' } }}>
+            <TableCell>Código</TableCell>
+            <TableCell>Tipo</TableCell>
+            <TableCell>Marca y modelo</TableCell>
+            <TableCell align="center">Pisos</TableCell>
+            <TableCell>Capacidad</TableCell>
+            <TableCell>Ubicación</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {ascensores.map((a) => (
+            <TableRow key={a.id_ascensor} sx={{ '&:last-child td': { borderBottom: 0 }, '& td': { fontSize: '0.82rem' } }}>
+              <TableCell sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}>{a.codigo_interno}</TableCell>
+              <TableCell>
+                {a.tipo_ascensor
+                  ? <Chip size="small" variant="outlined" color={COLOR_TIPO[a.tipo_ascensor] || 'default'} label={a.tipo_ascensor} />
+                  : '—'}
+              </TableCell>
+              <TableCell>{[a.marca, a.modelo].filter(Boolean).join(' ') || '—'}</TableCell>
+              <TableCell align="center">{a.numero_pisos ?? '—'}</TableCell>
+              <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                {a.capacidad_kg ? `${a.capacidad_kg} kg` : '—'}
+                {a.capacidad_personas ? ` · ${a.capacidad_personas} pers.` : ''}
+              </TableCell>
+              <TableCell>{a.ubicacion_exacta || '—'}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </Box>
+  );
+}
+
 // Ascensores de un edificio del cliente: lista y formulario para agregar uno.
-export default function AscensoresEdificio({ sede, idCliente, onCambio, soloLectura = false, abiertoAlInicio = false }) {
-  const [abierto, setAbierto] = useState(abiertoAlInicio);
+// enTarjeta: se muestra siempre abierto (sin el botón "Ascensores (n)"), dentro de la tarjeta del edificio.
+export default function AscensoresEdificio({
+  sede, idCliente, onCambio, soloLectura = false, abiertoAlInicio = false, enTarjeta = false,
+}) {
+  const [abierto, setAbierto] = useState(abiertoAlInicio || enTarjeta);
   const [ascensores, setAscensores] = useState(null);
   const [error, setError] = useState('');
   const [form, setForm] = useState(null); // null = formulario cerrado
@@ -52,34 +98,30 @@ export default function AscensoresEdificio({ sede, idCliente, onCambio, soloLect
   const total = ascensores ? ascensores.length : sede.total_ascensores || 0;
 
   return (
-    <Box sx={{ pl: 1, pb: 1 }}>
-      <Button
-        size="small"
-        startIcon={<ElevatorOutlinedIcon />}
-        endIcon={abierto ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-        onClick={() => setAbierto((v) => !v)}
-        sx={{ textTransform: 'none' }}
-      >
-        Ascensores ({total})
-      </Button>
+    <Box sx={enTarjeta ? {} : { pl: 1, pb: 1 }}>
+      {!enTarjeta && (
+        <Button
+          size="small"
+          startIcon={<ElevatorOutlinedIcon />}
+          endIcon={abierto ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+          onClick={() => setAbierto((v) => !v)}
+          sx={{ textTransform: 'none' }}
+        >
+          Ascensores ({total})
+        </Button>
+      )}
       <Collapse in={abierto} unmountOnExit>
-        <Box sx={{ pl: 1.5, pt: 0.5 }}>
+        <Box sx={enTarjeta ? {} : { pl: 1.5, pt: 0.5 }}>
           {error && <Alert severity="error" sx={{ mb: 1 }}>{error}</Alert>}
           {!ascensores ? (
             <CircularProgress size={20} />
           ) : (
             <>
-              {!ascensores.length && (
-                <Typography variant="body2" color="text.secondary">Este edificio todavía no tiene ascensores.</Typography>
+              {!ascensores.length ? (
+                <Typography variant="body2" color="text.secondary" sx={{ py: 1 }}>Este edificio todavía no tiene ascensores.</Typography>
+              ) : (
+                <TablaAscensores ascensores={ascensores} />
               )}
-              {ascensores.map((a) => (
-                <Typography key={a.id_ascensor} variant="body2" sx={{ py: 0.25 }}>
-                  <strong>{a.codigo_interno}</strong>
-                  <Typography component="span" variant="body2" color="text.secondary">
-                    {'  ·  '}{[a.tipo_ascensor, `${a.marca} ${a.modelo}`, `${a.numero_pisos} pisos`, a.ubicacion_exacta].filter(Boolean).join(' · ')}
-                  </Typography>
-                </Typography>
-              ))}
             </>
           )}
 
@@ -107,7 +149,7 @@ export default function AscensoresEdificio({ sede, idCliente, onCambio, soloLect
               </Box>
             </Box>
           ) : (
-            <Button size="small" variant="outlined" startIcon={<AddIcon />} sx={{ mt: 1 }} onClick={() => setForm({ ...ASCENSOR_VACIO })}>
+            <Button size="small" variant="outlined" startIcon={<AddIcon />} sx={{ mt: 1.5 }} onClick={() => setForm({ ...ASCENSOR_VACIO })}>
               Agregar ascensor
             </Button>
           )}

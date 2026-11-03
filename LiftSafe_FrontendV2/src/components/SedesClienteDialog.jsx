@@ -1,8 +1,9 @@
 import { Fragment, useEffect, useState } from 'react';
 import {
-  Alert, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle,
+  Alert, Box, Button, Card, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle,
   IconButton, List, ListItem, ListItemText, TextField, Typography,
 } from '@mui/material';
+import BusinessIcon from '@mui/icons-material/Business';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
@@ -104,7 +105,7 @@ export default function SedesClienteDialog({ open, cliente, onClose, etiqueta = 
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={onClose} maxWidth={conAscensores ? 'md' : 'sm'} fullWidth>
       <DialogTitle fontWeight={700}>{t.titulo} {cliente?.name || 'cliente'}</DialogTitle>
       <DialogContent>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
@@ -135,10 +136,42 @@ export default function SedesClienteDialog({ open, cliente, onClose, etiqueta = 
                     <CloseIcon fontSize="small" />
                   </IconButton>
                 </ListItem>
+              ) : conAscensores ? (
+                // Asesor: cada edificio en su tarjeta, con la tabla de sus ascensores
+                <Card key={s.id_sede} variant="outlined" sx={{ mb: 2, borderRadius: 2 }}>
+                  <Box sx={{
+                    display: 'flex', alignItems: 'center', gap: 1.5, px: 2, py: 1.25,
+                    bgcolor: 'action.hover', borderBottom: '1px solid', borderColor: 'divider',
+                  }}
+                  >
+                    <BusinessIcon color="primary" />
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Typography fontWeight={700} noWrap>{s.nombre}</Typography>
+                      <Typography variant="caption" color="text.secondary" noWrap component="div">
+                        {[s.direccion, s.ciudad].filter(Boolean).join(' · ') || 'Sin dirección registrada'}
+                      </Typography>
+                    </Box>
+                    <Chip
+                      size="small"
+                      color={s.total_ascensores ? 'primary' : 'default'}
+                      variant="outlined"
+                      label={`${s.total_ascensores || 0} ${s.total_ascensores === 1 ? 'ascensor' : 'ascensores'}`}
+                    />
+                    <IconButton size="small" color="primary" onClick={() => setEditando({ ...s })} title={t.editar}>
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                    <IconButton size="small" color="error" onClick={() => eliminar(s)} title={t.eliminar}>
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </Box>
+                  <Box sx={{ px: 2, py: 1.5 }}>
+                    <AscensoresEdificio sede={s} idCliente={idCliente} onCambio={cargar} enTarjeta />
+                  </Box>
+                </Card>
               ) : (
                 <Fragment key={s.id_sede}>
                 <ListItem
-                  divider={!conAscensores}
+                  divider
                   disableGutters
                   secondaryAction={(
                     <>
@@ -156,11 +189,6 @@ export default function SedesClienteDialog({ open, cliente, onClose, etiqueta = 
                     secondary={[s.direccion, s.ciudad, `${s.total_ascensores || 0} ascensor(es)`].filter(Boolean).join(' · ')}
                   />
                 </ListItem>
-                {conAscensores && (
-                  <Box sx={{ borderBottom: '1px solid', borderColor: 'divider', mb: 0.5 }}>
-                    <AscensoresEdificio sede={s} idCliente={idCliente} onCambio={cargar} />
-                  </Box>
-                )}
                 </Fragment>
               )
             ))}

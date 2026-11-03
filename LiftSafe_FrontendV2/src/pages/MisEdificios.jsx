@@ -29,7 +29,7 @@ export default function MisEdificios() {
       ) : !edificios.length ? (
         <Alert severity="info">Todavía no tienes edificios registrados. Tu asesor los registra junto con sus ascensores.</Alert>
       ) : (
-        <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' } }}>
+        <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: '1fr' }}>
           {edificios.map((e) => (
             <Card key={e.id_sede}>
               <CardContent>
@@ -42,7 +42,7 @@ export default function MisEdificios() {
                     </Typography>
                   </Box>
                 </Box>
-                <AscensoresEdificio sede={e} soloLectura abiertoAlInicio />
+                <AscensoresEdificio sede={e} soloLectura enTarjeta />
               </CardContent>
             </Card>
           ))}

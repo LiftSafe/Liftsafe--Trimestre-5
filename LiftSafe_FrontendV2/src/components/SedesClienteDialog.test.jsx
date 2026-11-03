@@ -104,8 +104,11 @@ describe('SedesClienteDialog', () => {
     expect(screen.getByText('Edificios de Torres del Norte')).toBeInTheDocument()
     expect(screen.getAllByText('Agregar edificio').length).toBeGreaterThan(0)
     await screen.findByText('Sede Norte')
-    fireEvent.click(screen.getByText('Ascensores (2)'))
-    expect(await screen.findByText('ASC-005')).toBeInTheDocument()
+    // Cada edificio es una tarjeta con su contador y la tabla de ascensores ya abierta
+    expect(screen.getByText('2 ascensores')).toBeInTheDocument()
+    expect(screen.getByText('0 ascensores')).toBeInTheDocument()
+    expect(await screen.findAllByText('ASC-005')).not.toHaveLength(0)
+    expect(screen.getAllByText('Marca y modelo').length).toBeGreaterThan(0)
     expect(clienteService.listarAscensoresSede).toHaveBeenCalledWith(1)
   })
 })
