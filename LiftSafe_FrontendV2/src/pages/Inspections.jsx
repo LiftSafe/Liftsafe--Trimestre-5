@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
+import FilterListIcon from '@mui/icons-material/FilterList';
 import {
   Box, Card, CardContent, Button, Chip, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow,
@@ -24,6 +25,7 @@ import ChecklistInspeccion from '../components/ChecklistInspeccion';
 import { describirItems, itemsSinFotoObligatoria, primerItemSinCalificar, resumenChecklist } from '../utils/checklist';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { leerEstados, filtrarPorEstado } from '../utils/filtroEstado';
+import { FILTROS_VACIOS, contarFiltros, filtrarInspecciones, opcionesDe } from '../utils/filtrosInspecciones';
 import { ESTADO_PENDIENTE_FIRMA, ESTADO_PENDIENTE_REVISION } from '../utils/statusHelpers';
 import { useAuth } from '../context/AuthContext';
 import { apiClient } from '../services/apiClient';
@@ -360,12 +362,20 @@ export default function Inspections() {
   const location = useLocation();
   const navigate = useNavigate();
   const filtroEstados = leerEstados(location.search);
-  const inspeccionesVisibles = filtrarPorEstado(inspections, filtroEstados);
+  // RF-017: filtros por fecha, cliente, ubicación, técnico, tipo y estado
+  const [filtros, setFiltros] = useState(FILTROS_VACIOS);
+  const [verFiltros, setVerFiltros] = useState(false);
+  const inspeccionesVisibles = filtrarInspecciones(filtrarPorEstado(inspections, filtroEstados), filtros);
 
   const { search, setSearch, page, setPage, paginated, totalCount } = usePaginatedSearch(
     inspeccionesVisibles,
-    ['codigo_ascensor', 'elevator', 'marca', 'tipo_servicio', 'type', 'nombre_inspector', 'inspector', 'estado', 'status']
+    ['codigo_ascensor', 'elevator', 'marca', 'tipo_servicio', 'type', 'nombre_inspector', 'inspector', 'estado', 'status', 'nombre_cliente', 'ciudad', 'sede']
   );
+  const cambiarFiltro = (campo, valor) => {
+    setFiltros((f) => ({ ...f, [campo]: valor }));
+    setPage(0);
+  };
+  const totalFiltros = contarFiltros(filtros);
 
   const [openCreate, setOpenCreate] = useState(false);
   const [newInspection, setNewInspection] = useState({
@@ -1005,7 +1015,46 @@ export default function Inspections() {
       )}
 
       <Box sx={{ mb: 2 }}>
-        <SearchBar value={search} onChange={setSearch} placeholder="Buscar por ascensor, inspector o estado..." />
+        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+          <SearchBar value={search} onChange={setSearch} placeholder="Buscar por ascensor, cliente, inspector o estado..." />
+          <Button
+            variant={totalFiltros ? 'contained' : 'outlined'}
+            size="small"
+            startIcon={<FilterListIcon />}
+            onClick={() => setVerFiltros((v) => !v)}
+            aria-expanded={verFiltros}
+          >
+            Filtros{totalFiltros ? ` (${totalFiltros})` : ''}
+          </Button>
+          {totalFiltros > 0 && (
+            <Button size="small" onClick={() => { setFiltros(FILTROS_VACIOS); setPage(0); }}>Limpiar filtros</Button>
+          )}
+        </Box>
+        <Collapse in={verFiltros}>
+          <Box sx={{
+            mt: 1.5, p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper',
+            display: 'grid', gap: 1.5, gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: 'repeat(4, 1fr)' },
+          }}
+          >
+            <TextField size="small" type="date" label="Desde" value={filtros.desde}
+              onChange={(e) => cambiarFiltro('desde', e.target.value)} InputLabelProps={{ shrink: true }} />
+            <TextField size="small" type="date" label="Hasta" value={filtros.hasta}
+              onChange={(e) => cambiarFiltro('hasta', e.target.value)} InputLabelProps={{ shrink: true }} />
+            {[
+              { campo: 'cliente', label: 'Cliente', oculto: userRol === 'Cliente' },
+              { campo: 'inspector', label: 'Técnico', oculto: userRol === 'Inspector' },
+              { campo: 'ciudad', label: 'Ciudad' },
+              { campo: 'tipo', label: 'Tipo de inspección' },
+              { campo: 'estado', label: 'Estado' },
+            ].filter((f) => !f.oculto).map(({ campo, label }) => (
+              <TextField key={campo} select size="small" label={label} value={filtros[campo]}
+                onChange={(e) => cambiarFiltro(campo, e.target.value)}>
+                <MenuItem value="">Todos</MenuItem>
+                {opcionesDe(inspections, campo).map((v) => <MenuItem key={v} value={v}>{v}</MenuItem>)}
+              </TextField>
+            ))}
+          </Box>
+        </Collapse>
         {filtroEstados.length > 0 && (
           <Chip
             label={`Mostrando: ${filtroEstados.join(' / ')}`}

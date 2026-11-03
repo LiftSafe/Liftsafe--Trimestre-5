@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, Security
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, aliased
 from sqlalchemy import text
 from app.database import get_db
-from app.models.models import Inspeccion, Ascensor, Usuario, Informe, Notificacion
+from app.models.models import Inspeccion, Ascensor, Usuario, Informe, Notificacion, Solicitud, Programacion, Sede
 from app.schemas.schemas import InspeccionCreate, InspeccionUpdate, FirmaRequest, MessageResponse
 from app.controllers.inspeccion_controller import crear_inspeccion
 from app.controllers.foto_obligatoria_controller import exigir_fotos_no_aplica
@@ -37,81 +37,65 @@ def mis_inspecciones(
     credentials: HTTPAuthorizationCredentials = Security(security),
     db: Session = Depends(get_db)
 ):
+    """Inspecciones que ve cada rol, con los mismos campos para todos (RF-016/RF-017).
+
+    Administrador, Director Técnico y Coordinador ven todas; el Inspector, las
+    suyas; el Cliente, las de sus ascensores. Trae cliente, ubicación, tipo de
+    servicio y fechas para poder filtrar en la pantalla.
+    """
     rol, correo, user_id = get_current_user_role(credentials)
-
-    # ✅ FIX: al Coordinador (que sí tiene acceso al menú "Inspecciones" y al
-    # botón "Nueva inspección" en el frontend, ver roles.js) le faltaba estar
-    # aquí -> caía al "else" de abajo y siempre recibía 403 "Rol no
-    # autorizado" al abrir la pantalla. Su rol es "Programa inspecciones,
-    # asigna inspectores y revisa informes", así que debe ver todas las
-    # inspecciones igual que Administrador y Director Técnico.
-    if rol in ['Administrador', 'Director Técnico', 'Coordinador']:
-        result = db.execute(text(
-            "SELECT * FROM vista_resumen_inspecciones ORDER BY id_inspeccion DESC"
-        )).mappings().all()
-        return [dict(row) for row in result]
-
-    elif rol == 'Inspector':
-        # ✅ FIX: el diccionario que se devolvía no traía ningún campo de
-        # nombre de inspector ("nombre_inspector"/"inspector"), y esos son
-        # los campos que lee la tabla de Inspecciones.jsx -> la columna
-        # "Inspector" siempre mostraba "N/A" para este rol. Se agrega el
-        # join con Usuario para incluir el nombre.
-        result = (
-            db.query(Inspeccion, Ascensor.codigo_interno, Informe.id_informe, Usuario.nombre_completo)
-            .join(Ascensor, Inspeccion.id_ascensor == Ascensor.id_ascensor)
-            .join(Usuario, Inspeccion.id_inspector == Usuario.id_usuario)
-            .outerjoin(Informe, Informe.id_inspeccion == Inspeccion.id_inspeccion)
-            .filter(Inspeccion.id_inspector == user_id)
-            .order_by(Inspeccion.id_inspeccion.desc())
-            .all()
-        )
-        return [
-            {
-                "id_inspeccion": i.id_inspeccion,
-                "codigo_ascensor": codigo,
-                "nombre_inspector": nombre_inspector,
-                "fecha_inicio": i.fecha_inicio,
-                "fecha_fin": i.fecha_fin,
-                "estado": i.estado,
-                "observaciones_generales": i.observaciones_generales,
-                "firma_inspector": bool(i.firma_inspector),
-                "firma_cliente": bool(i.firma_cliente),
-                "id_informe": id_informe,
-            }
-            for i, codigo, id_informe, nombre_inspector in result
-        ]
-    
-    elif rol == 'Cliente':
-        # ✅ FIX: mismo problema que en la rama de Inspector -> tampoco
-        # traía el nombre del inspector asignado.
-        result = (
-            db.query(Inspeccion, Ascensor.codigo_interno, Informe.id_informe, Usuario.nombre_completo)
-            .join(Ascensor, Inspeccion.id_ascensor == Ascensor.id_ascensor)
-            .join(Usuario, Inspeccion.id_inspector == Usuario.id_usuario)
-            .outerjoin(Informe, Informe.id_inspeccion == Inspeccion.id_inspeccion)
-            .filter(Ascensor.id_cliente == user_id)
-            .order_by(Inspeccion.id_inspeccion.desc())
-            .all()
-        )
-        return [
-            {
-                "id_inspeccion": i.id_inspeccion,
-                "codigo_ascensor": codigo,
-                "nombre_inspector": nombre_inspector,
-                "fecha_inicio": i.fecha_inicio,
-                "fecha_fin": i.fecha_fin,
-                "estado": i.estado,
-                "observaciones_generales": i.observaciones_generales,
-                "firma_inspector": bool(i.firma_inspector),
-                "firma_cliente": bool(i.firma_cliente),
-                "id_informe": id_informe,
-            }
-            for i, codigo, id_informe, nombre_inspector in result
-        ]
-    
-    else:
+    if rol not in ['Administrador', 'Director Técnico', 'Coordinador', 'Inspector', 'Cliente']:
         raise HTTPException(status_code=403, detail="Rol no autorizado")
+
+    InspectorU = aliased(Usuario)
+    ClienteU = aliased(Usuario)
+    consulta = (
+        db.query(
+            Inspeccion, Ascensor, InspectorU.nombre_completo, ClienteU.nombre_completo,
+            Informe.id_informe, Informe.estado, Solicitud.tipo_servicio, Solicitud.prioridad,
+            Programacion.fecha_programada, Sede.nombre,
+        )
+        .join(Ascensor, Inspeccion.id_ascensor == Ascensor.id_ascensor)
+        .outerjoin(InspectorU, Inspeccion.id_inspector == InspectorU.id_usuario)
+        .outerjoin(ClienteU, Ascensor.id_cliente == ClienteU.id_usuario)
+        .outerjoin(Informe, Informe.id_inspeccion == Inspeccion.id_inspeccion)
+        .outerjoin(Solicitud, Inspeccion.id_solicitud == Solicitud.id_solicitud)
+        .outerjoin(Programacion, Inspeccion.id_programacion == Programacion.id_programacion)
+        .outerjoin(Sede, Ascensor.id_sede == Sede.id_sede)
+    )
+    if rol == 'Inspector':
+        consulta = consulta.filter(Inspeccion.id_inspector == user_id)
+    elif rol == 'Cliente':
+        consulta = consulta.filter(Ascensor.id_cliente == user_id)
+
+    filas = consulta.order_by(Inspeccion.id_inspeccion.desc()).all()
+    return [
+        {
+            "id_inspeccion": i.id_inspeccion,
+            "codigo_ascensor": a.codigo_interno,
+            "marca": a.marca,
+            "modelo": a.modelo,
+            "tipo_ascensor": a.tipo_ascensor,
+            "ciudad": a.ciudad,
+            "direccion": a.direccion_completa,
+            "sede": sede,
+            "nombre_inspector": inspector,
+            "nombre_cliente": cliente,
+            "tipo_servicio": tipo_servicio,
+            "prioridad": prioridad,
+            "fecha_programada": fecha_programada,
+            "fecha_inicio": i.fecha_inicio,
+            "fecha_fin": i.fecha_fin,
+            "estado": i.estado,
+            "estado_inspeccion": i.estado,  # compatibilidad con la vista anterior
+            "estado_informe": estado_informe,
+            "observaciones_generales": i.observaciones_generales,
+            "firma_inspector": bool(i.firma_inspector),
+            "firma_cliente": bool(i.firma_cliente),
+            "id_informe": id_informe,
+        }
+        for i, a, inspector, cliente, id_informe, estado_informe, tipo_servicio, prioridad, fecha_programada, sede in filas
+    ]
 
 # ============================================
 # 2. CREAR INSPECCIÓN
