@@ -42,8 +42,16 @@ export default function Reports() {
   // RF-023: quién puede aprobar/rechazar un informe generado (paso 7 del flujo)
   const isReviewer = ['Coordinador', 'Director Técnico', 'Administrador'].includes(user?.role);
 
-  const { data: docs = [], loading: loadingDocs, error: errorDocs, refetch } = useDashboardData(fetchInformes);
-  const { data: inspecciones = [], loading: loadingInsp, error: errorInsp } = useDashboardData(fetchInspecciones);
+  const { data: docs = [], loading: loadingDocs, error: errorDocs, refetch: refetchDocs } = useDashboardData(fetchInformes);
+  const { data: inspecciones = [], loading: loadingInsp, error: errorInsp, refetch: refetchInsp } = useDashboardData(fetchInspecciones);
+  // Después de aprobar, rechazar, enviar o eliminar se recargan las DOS listas
+  // (certificados e inspecciones): antes solo se recargaba la primera y las
+  // tarjetas y el filtro "Pendientes" seguían mostrando el estado viejo hasta
+  // recargar la página.
+  const refetch = () => {
+    refetchDocs();
+    refetchInsp();
+  };
 
   // Filtro elegido al hacer clic en una tarjeta de arriba (null = todos)
   // También puede llegar desde las tarjetas del inicio: /dashboard/reportes?filtro=pendientes
