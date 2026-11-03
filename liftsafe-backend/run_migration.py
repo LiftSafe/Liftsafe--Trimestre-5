@@ -138,6 +138,51 @@ def run():
             conn.exec_driver_sql(sentencia.rstrip(";").replace("%", "%%"))
         print("Auditoría protegida contra cambios y borrados.")
 
+        cifrar_datos_sensibles(conn)
+
+
+def tipo_columna(conn, tabla: str, columna: str) -> str:
+    return (conn.execute(text(
+        "SELECT COLUMN_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE()"
+        " AND TABLE_NAME = :t AND COLUMN_NAME = :c"), {"t": tabla, "c": columna}).scalar() or "").lower()
+
+
+def cifrar_datos_sensibles(conn):
+    """RNF-003: pasa contraseñas y firmas a AES-256-GCM (se puede correr varias veces)."""
+    from app.config import settings
+    from app.utils.cifrado import PREFIJO_TEXTO, cifrar_contrasena, cifrar_texto, es_formato_nuevo
+
+    # Espacio para el dato cifrado (la firma cifrada ocupa un tercio más)
+    if tipo_columna(conn, "usuario", "contrasena_encriptada") != "varbinary(512)":
+        conn.execute(text("ALTER TABLE usuario MODIFY contrasena_encriptada VARBINARY(512) NULL"))
+    for col in ("firma_inspector", "firma_cliente"):
+        if tipo_columna(conn, "inspeccion", col) != "mediumtext":
+            conn.execute(text(f"ALTER TABLE inspeccion MODIFY {col} MEDIUMTEXT NULL"))
+
+    filas = conn.execute(text(
+        "SELECT id_usuario, contrasena_encriptada AS c, AES_DECRYPT(contrasena_encriptada, :k) AS vieja"
+        " FROM usuario WHERE contrasena_encriptada IS NOT NULL"), {"k": settings.SECRET_KEY_MYSQL}).mappings().all()
+    n_claves = 0
+    for f in filas:
+        if es_formato_nuevo(f["c"]) or f["vieja"] is None:
+            continue
+        vieja = f["vieja"].decode("utf-8") if isinstance(f["vieja"], (bytes, bytearray)) else str(f["vieja"])
+        conn.execute(text("UPDATE usuario SET contrasena_encriptada = :c WHERE id_usuario = :id"),
+                     {"c": cifrar_contrasena(vieja), "id": f["id_usuario"]})
+        n_claves += 1
+
+    n_firmas = 0
+    for col in ("firma_inspector", "firma_cliente"):
+        filas = conn.execute(text(
+            f"SELECT id_inspeccion, {col} AS f FROM inspeccion WHERE {col} IS NOT NULL")).mappings().all()
+        for f in filas:
+            if str(f["f"]).startswith(PREFIJO_TEXTO):
+                continue
+            conn.execute(text(f"UPDATE inspeccion SET {col} = :f WHERE id_inspeccion = :id"),
+                         {"f": cifrar_texto(f["f"]), "id": f["id_inspeccion"]})
+            n_firmas += 1
+    print(f"Cifrado AES-256: {n_claves} contraseñas y {n_firmas} firmas convertidas.")
+
 
 if __name__ == "__main__":
     run()

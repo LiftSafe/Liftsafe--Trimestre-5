@@ -7,6 +7,7 @@ import string
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from sqlalchemy import text
+from app.utils.cifrado import cifrar_contrasena, contrasena_coincide
 from app.models.models import Usuario, Rol
 from app.schemas.schemas import UsuarioLogin
 from jose import jwt, JWTError
@@ -68,20 +69,14 @@ def verify_reset_code(correo: str, code: str) -> bool:
 
 # ============ HASHING / ENCRIPTACIÓN ============
 
-def hash_password(password: str) -> str:
-    """Devuelve contraseña en texto plano. MySQL la encripta vía AES_ENCRYPT."""
-    return password
+def hash_password(password: str) -> bytes:
+    """Devuelve la contraseña cifrada con AES-256 (RNF-003)."""
+    return cifrar_contrasena(password)
 
 def verify_password(plain_password: str, stored_password: str, db: Session = None, correo: str = None) -> bool:
-    """Verifica contraseña usando AES_DECRYPT de MySQL."""
+    """Verifica la contraseña (AES-256; acepta y migra el formato viejo)."""
     if db and correo:
-        result = db.execute(
-            text(f"SELECT AES_DECRYPT(contrasena_encriptada, '{settings.SECRET_KEY_MYSQL}') as pwd FROM usuario WHERE correo = :correo"),
-            {"correo": correo}
-        ).mappings().first()
-        if result and result["pwd"]:
-            decrypted = result["pwd"].decode('utf-8') if isinstance(result["pwd"], bytes) else result["pwd"]
-            return plain_password == decrypted
+        return contrasena_coincide(db, correo, plain_password)
     return False
 
 # ============ AUTENTICACIÓN ============
@@ -91,16 +86,8 @@ def authenticate_user(db: Session, correo: str, password: str):
     if not user:
         return None
     
-    result = db.execute(
-        text(f"SELECT AES_DECRYPT(contrasena_encriptada, '{settings.SECRET_KEY_MYSQL}') as pwd FROM usuario WHERE correo = :correo"),
-        {"correo": correo}
-    ).mappings().first()
-    
-    if result and result["pwd"]:
-        decrypted = result["pwd"].decode('utf-8') if isinstance(result["pwd"], bytes) else result["pwd"]
-        if password == decrypted:
-            return user
-    
+    if contrasena_coincide(db, correo, password):
+        return user
     return None
 
 # ============ TOKENS JWT ============

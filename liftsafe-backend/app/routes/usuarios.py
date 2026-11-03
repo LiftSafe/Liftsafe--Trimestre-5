@@ -3,6 +3,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from datetime import date as date_type
 from typing import Optional
+from app.utils.cifrado import cifrar_contrasena
 from app.database import get_db
 from app.models.models import Usuario, Rol, Programacion
 from app.schemas.schemas import UsuarioCreate, UsuarioUpdate, MessageResponse
@@ -47,25 +48,24 @@ def crear_usuario(
         raise HTTPException(status_code=400, detail="Rol no válido")
     exigir_rol_permitido(gestor, rol.nombre_rol)
 
-    # ✅ Insertar con AES_ENCRYPT directo
+    # RNF-003: la contraseña se guarda cifrada con AES-256
     db.execute(
         text("""
             INSERT INTO usuario (id_rol, nombre_completo, correo, contrasena_encriptada, 
                                telefono, tipo_documento, documento_identidad, nit, razon_social, estado)
-            VALUES (:id_rol, :nombre, :correo, AES_ENCRYPT(:contrasena, :aes_key),
+            VALUES (:id_rol, :nombre, :correo, :contrasena,
                     :telefono, :tipo_doc, :documento, :nit, :razon_social, 'activo')
         """),
         {
             "id_rol": user_data.id_rol,
             "nombre": user_data.nombre_completo,
             "correo": user_data.correo,
-            "contrasena": user_data.contrasena,
+            "contrasena": cifrar_contrasena(user_data.contrasena),
             "telefono": user_data.telefono,
             "tipo_doc": user_data.tipo_documento,
             "documento": user_data.documento_identidad,
             "nit": user_data.nit if user_data.tipo_documento == "NIT" else None,
             "razon_social": user_data.razon_social if user_data.tipo_documento == "NIT" else None,
-            "aes_key": settings.SECRET_KEY_MYSQL,
         }
     )
     db.commit()
@@ -248,11 +248,11 @@ def editar_usuario(
 
     db.commit()
 
-    # La contraseña se maneja aparte porque va encriptada con AES_ENCRYPT
+    # La contraseña se maneja aparte porque va cifrada con AES-256 (RNF-003)
     if user_data.contrasena:
         db.execute(
-            text("UPDATE usuario SET contrasena_encriptada = AES_ENCRYPT(:contrasena, :aes_key) WHERE id_usuario = :id"),
-            {"contrasena": user_data.contrasena, "id": user_id, "aes_key": settings.SECRET_KEY_MYSQL}
+            text("UPDATE usuario SET contrasena_encriptada = :contrasena WHERE id_usuario = :id"),
+            {"contrasena": cifrar_contrasena(user_data.contrasena), "id": user_id}
         )
         db.commit()
 

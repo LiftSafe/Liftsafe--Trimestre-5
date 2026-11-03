@@ -633,6 +633,7 @@ source = { editable = "." }
 dependencies = [
     { name = "aiosmtplib" },
     { name = "bcrypt" },
+    { name = "cryptography" },
     { name = "email-validator" },
     { name = "fastapi" },
     { name = "fastapi-mail" },
@@ -661,6 +662,7 @@ dev = [
 requires-dist = [
     { name = "aiosmtplib", specifier = "==5.1.2" },
     { name = "bcrypt", specifier = "==5.0.0" },
+    { name = "cryptography", specifier = "==50.0.2" },
     { name = "email-validator", specifier = "==2.3.0" },
     { name = "fastapi", specifier = "==0.141.1" },
     { name = "fastapi-mail", specifier = "==1.6.8" },
