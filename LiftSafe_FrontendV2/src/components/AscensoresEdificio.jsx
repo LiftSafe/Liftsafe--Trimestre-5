@@ -133,7 +133,7 @@ export default function AscensoresEdificio({
       )}
       <Collapse in={abierto} unmountOnExit>
         <Box sx={enTarjeta ? {} : { pl: 1.5, pt: 0.5 }}>
-          {error && <Alert severity="error" sx={{ mb: 1 }}>{error}</Alert>}
+          {error && !form && <Alert severity="error" sx={{ mb: 1 }}>{error}</Alert>}
           {!ascensores ? (
             <CircularProgress size={20} />
           ) : (
@@ -168,6 +168,7 @@ export default function AscensoresEdificio({
                 <TextField label="Capacidad (personas)" type="number" {...campo('capacidad_personas')} />
                 <TextField label="Ubicación en el edificio" placeholder="Ej: Torre A, ascensor 2" sx={{ gridColumn: '1 / -1' }} {...campo('ubicacion_exacta')} />
               </Box>
+              {error && <Alert severity="error" sx={{ mt: 1.5 }}>{error}</Alert>}
               <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end', mt: 1.5 }}>
                 <Button size="small" onClick={() => { setForm(null); setEditandoId(null); setError(''); }}>Cancelar</Button>
                 <Button size="small" variant="contained" onClick={guardar} disabled={guardando}>
