@@ -20,6 +20,7 @@ import Auditoria from './pages/Auditoria';
 import Settings from './pages/Settings';
 import Encuestas from './pages/Encuestas';
 import Productividad from './pages/Productividad';
+import ChecklistNorma from './pages/ChecklistNorma';
 import RoleRoute from './components/RoleRoute';
 
 // ============================================
@@ -64,6 +65,7 @@ const AppRoutes = () => {
         <Route path="configuracion" element={<RoleRoute permission="configuracion"><Settings /></RoleRoute>} />
         <Route path="encuestas" element={<RoleRoute permission="encuestas"><Encuestas /></RoleRoute>} />
         <Route path="productividad" element={<RoleRoute permission="productividad"><Productividad /></RoleRoute>} />
+        <Route path="lista-chequeo" element={<RoleRoute permission="checklistNorma"><ChecklistNorma /></RoleRoute>} />
       </Route>
       
       {/* Redirección por defecto */}

@@ -26,6 +26,7 @@ from app.routes import (
     notificaciones,
     encuestas,
     reportes,
+    checklist_admin,
 )
 
 app = FastAPI(
@@ -71,6 +72,7 @@ app.include_router(inspecciones.router)      # Valentina
 app.include_router(dashboard.router)         # Equipo
 app.include_router(fotografias.router)       # Valentina
 app.include_router(usuario_ascensor.router)  # Dayan - reactivado (no se encontró causa técnica para desactivarlo)
+app.include_router(checklist_admin.router)   # Luz - RNF-011 mantenimiento de la lista de chequeo
 app.include_router(checklist.router)         # Felipe
 app.include_router(observaciones.router)     # Felipe
 app.include_router(informes.router)          # Esteban

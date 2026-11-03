@@ -26,6 +26,10 @@ describe('roles: permisos de pantallas', () => {
     ['Coordinador', 'productividad', true], // RF-024
     ['Director Técnico', 'productividad', true],
     ['Inspector', 'productividad', false],
+    ['Administrador', 'checklistNorma', true], // RNF-011
+    ['Director Técnico', 'checklistNorma', true],
+    ['Coordinador', 'checklistNorma', false],
+    ['Inspector', 'checklistNorma', false],
   ])('canAccess(%s, %s) should be %s', (rol, pantalla, esperado) => {
     expect(canAccess(rol, pantalla)).toBe(esperado)
   })

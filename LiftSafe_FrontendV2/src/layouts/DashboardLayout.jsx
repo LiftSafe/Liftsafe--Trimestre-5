@@ -18,6 +18,7 @@ import NotificationsIcon from '@mui/icons-material/Notifications';
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import RateReviewIcon from '@mui/icons-material/RateReview';
 import InsightsIcon from '@mui/icons-material/Insights';
+import FactCheckOutlinedIcon from '@mui/icons-material/FactCheckOutlined';
 import Logo from '../components/Logo';
 import { useAuth } from '../context/AuthContext';
 import { getMenuForRole } from '../config/roles';
@@ -42,6 +43,7 @@ const ICONS = {
   configuracion: <SettingsIcon fontSize="small" />,
   encuestas: <RateReviewIcon fontSize="small" />,
   productividad: <InsightsIcon fontSize="small" />,
+  checklistNorma: <FactCheckOutlinedIcon fontSize="small" />,
 };
 
 // ✅ Pequeño "beep" de alarma generado con la Web Audio API -> no depende
