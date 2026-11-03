@@ -10,7 +10,7 @@ from app.controllers.informe_acceso_controller import (
 )
 from app.schemas.schemas import MessageResponse, InformeRevisionRequest
 from app.controllers.informe_controller import generar_pdf_informe
-from app.controllers.email_controller import send_encuesta_email
+from app.controllers.email_controller import send_encuesta_email, send_informe_email
 from datetime import datetime
 import os
 from jose import jwt, JWTError
@@ -32,6 +32,31 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Security(securi
         }
     except JWTError as e:
         raise HTTPException(status_code=401, detail=f"Token invalido: {str(e)}")
+
+async def enviar_informe_por_correo(db: Session, informe) -> bool:
+    """RF-014: manda el PDF al cliente (con copia al coordinador que lo
+    revisó). Si sale el correo, el informe queda 'Enviado'."""
+    insp = db.query(Inspeccion).filter(Inspeccion.id_inspeccion == informe.id_inspeccion).first()
+    asc = db.query(Ascensor).filter(Ascensor.id_ascensor == insp.id_ascensor).first() if insp else None
+    cliente = db.query(Usuario).filter(Usuario.id_usuario == asc.id_cliente).first() if asc else None
+    if not cliente or not cliente.correo:
+        return False
+    revisor = db.query(Usuario).filter(Usuario.id_usuario == informe.id_revisor).first() if informe.id_revisor else None
+    enviado = await send_informe_email(
+        [cliente.correo], cliente.nombre_completo, asc.codigo_interno, informe.numero_informe,
+        informe.ruta_pdf, copia=[revisor.correo] if revisor and revisor.correo != cliente.correo else None,
+    )
+    if enviado:
+        informe.estado = "Enviado"
+        db.add(Notificacion(
+            id_usuario_destino=cliente.id_usuario,
+            mensaje=f"Te enviamos a tu correo el informe {informe.numero_informe} del ascensor {asc.codigo_interno}.",
+            enlace="/dashboard/reportes",
+            leida=False,
+        ))
+        db.commit()
+    return enviado
+
 
 def finalizar_solicitud(db: Session, inspeccion) -> bool:
     """Marca como Finalizada la solicitud de la que salió la inspección."""
@@ -230,6 +255,8 @@ async def revisar_informe(
         # Finalizada (antes solo pasaba al "Enviar informe") y se habilita
         # la encuesta de satisfacción.
         finalizar_solicitud(db, insp)
+        # RF-014: el informe final aprobado se envía solo al cliente por correo
+        await enviar_informe_por_correo(db, informe)
         if insp:
             asc = db.query(Ascensor).filter(Ascensor.id_ascensor == insp.id_ascensor).first()
             cli = db.query(Usuario).filter(Usuario.id_usuario == asc.id_cliente).first() if asc else None
@@ -279,9 +306,12 @@ async def enviar_informe(
     if not informe:
         raise HTTPException(status_code=404, detail="Informe no encontrado")
 
-    if informe.estado != "Aprobado":
+    # "Enviado" también se acepta: el botón sirve para reenviar el correo
+    if informe.estado not in ("Aprobado", "Enviado"):
         raise HTTPException(status_code=400, detail="El informe debe estar aprobado antes de enviarse")
 
+    # RF-014: el PDF se manda por correo al cliente
+    correo_enviado = await enviar_informe_por_correo(db, informe)
     informe.estado = "Enviado"
     db.commit()
 
@@ -324,7 +354,9 @@ async def enviar_informe(
             "Cuéntanos cómo fue todo el proceso en la sección Encuestas.",
         )
 
-    return {"message": "Informe enviado correctamente"}
+    if correo_enviado:
+        return {"message": "Informe enviado por correo al cliente"}
+    return {"message": "Informe marcado como enviado, pero no se pudo mandar el correo (revisa la configuración del correo en el .env)"}
 
 # ============================================
 # 5. ELIMINAR INFORME (HEAD - CRUD completo)

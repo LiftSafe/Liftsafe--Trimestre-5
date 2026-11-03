@@ -885,10 +885,10 @@ export default function Inspections() {
     setEnviandoInforme(true);
     setInformeError('');
     try {
-      await informeService.enviar(informe.id_informe);
+      const res = await informeService.enviar(informe.id_informe);
       const id = selected?.id_inspeccion || selected?.id;
       await cargarInforme(id);
-      showMessage('Informe marcado como enviado', 'success');
+      showMessage(res?.message || 'Informe enviado', res?.message?.includes('no se pudo') ? 'warning' : 'success');
     } catch (err) {
       setInformeError(err.message || 'Error al enviar el informe');
     } finally {
@@ -1660,9 +1660,10 @@ export default function Inspections() {
                     Descargar PDF
                   </Button>
                 )}
-                {informe?.estado === 'Generado' && (
+                {/* RF-014: el informe aprobado se envía por correo (o se reenvía) */}
+                {['Aprobado', 'Enviado'].includes(informe?.estado) && userRol !== 'Inspector' && (
                   <Button variant="outlined" size="small" onClick={enviarInforme} disabled={enviandoInforme}>
-                    {enviandoInforme ? 'Enviando...' : 'Enviar informe'}
+                    {enviandoInforme ? 'Enviando...' : informe?.estado === 'Enviado' ? 'Reenviar por correo' : 'Enviar por correo'}
                   </Button>
                 )}
               </Box>

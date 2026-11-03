@@ -156,12 +156,13 @@ export default function Reports() {
         showMessage('No se pudo generar el informe de esta inspección.', 'warning');
         return;
       }
-      if (inf.estado !== 'Aprobado') {
+      if (!['Aprobado', 'Enviado'].includes(inf.estado)) {
         showMessage(`El informe debe estar "Aprobado" para enviarlo (estado actual: ${inf.estado}).`, 'warning');
         return;
       }
-      await informeService.enviar(inf.id_informe);
-      showMessage('Informe enviado correctamente', 'success');
+      // RF-014: el servidor manda el PDF por correo al cliente (o lo reenvía)
+      const res = await informeService.enviar(inf.id_informe);
+      showMessage(res?.message || 'Informe enviado correctamente', res?.message?.includes('no se pudo') ? 'warning' : 'success');
       if (refetch) refetch();
     } catch (err) {
       showMessage(err.message || 'Error al enviar el informe', 'error');

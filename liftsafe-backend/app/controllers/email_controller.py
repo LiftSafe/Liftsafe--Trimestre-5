@@ -87,3 +87,40 @@ async def send_encuesta_email(email: str, nombre_cliente: str, codigo_ascensor: 
         # de correo (credenciales vencidas, sin internet, etc.) no debe
         # tumbar el finalizar la inspección completa.
         return False
+
+
+async def send_informe_email(destinatarios: list, nombre_cliente: str, codigo_ascensor: str,
+                             numero_informe: str, ruta_pdf: str, copia: list | None = None) -> bool:
+    """RF-014: envía el informe final en PDF (adjunto) al cliente, con copia
+    al coordinador que lo aprobó. Devuelve False si el correo no sale (sin
+    credenciales, sin internet...) para no tumbar la aprobación."""
+    import os
+    destinatarios = [d for d in destinatarios if d]
+    if not destinatarios:
+        return False
+    if not ruta_pdf or not os.path.exists(ruta_pdf):
+        logger.error(f"❌ No se encontró el PDF del informe {numero_informe}: {ruta_pdf}")
+        return False
+    try:
+        message = MessageSchema(
+            subject=f"Informe de inspección {numero_informe} - ascensor {codigo_ascensor} - LiftSafe",
+            recipients=destinatarios,
+            cc=[c for c in (copia or []) if c],
+            body=f"""
+            <div style="font-family: Arial, sans-serif; max-width: 520px; margin: 0 auto; padding: 24px; background: #f9f9f9; border-radius: 8px;">
+                <h2 style="color: #1a1a2e; margin-bottom: 8px;">Informe de inspección aprobado</h2>
+                <p style="color: #555;">Hola {nombre_cliente}, adjuntamos el informe <strong>{numero_informe}</strong> de la inspección del ascensor <strong>{codigo_ascensor}</strong>, revisado y aprobado por nuestro equipo técnico.</p>
+                <p style="color: #555;">También puedes consultarlo y descargarlo en LiftSafe, en la sección <strong>Reportes</strong>.</p>
+                <p style="color: #888; font-size: 13px;">Gracias por confiar en LiftSafe.</p>
+            </div>
+            """,
+            subtype="html",
+            attachments=[ruta_pdf],
+        )
+        fm = FastMail(conf)
+        await fm.send_message(message)
+        logger.info(f"✅ Informe {numero_informe} enviado por correo a {destinatarios}")
+        return True
+    except Exception as e:
+        logger.error(f"❌ Error enviando el informe {numero_informe} por correo: {str(e)}")
+        return False
