@@ -1,0 +1,32 @@
+{
+  "name": "liftsafe-api-semana04",
+  "version": "1.0.0",
+  "private": true,
+  "description": "LiftSafe — API de ascensores con validación (Zod), errores (AppError) y logging (Winston + Morgan)",
+  "type": "commonjs",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "cross-env NODE_ENV=production node dist/server.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "packageManager": "pnpm@9.15.9",
+  "dependencies": {
+    "cross-env": "7.0.3",
+    "express": "4.21.2",
+    "morgan": "1.10.0",
+    "winston": "3.17.0",
+    "zod": "3.24.1"
+  },
+  "devDependencies": {
+    "@types/express": "4.17.21",
+    "@types/morgan": "1.9.9",
+    "@types/node": "22.10.5",
+    "@types/supertest": "6.0.2",
+    "supertest": "7.0.0",
+    "tsx": "4.19.2",
+    "typescript": "5.7.3",
+    "vitest": "2.1.8"
+  }
+}
