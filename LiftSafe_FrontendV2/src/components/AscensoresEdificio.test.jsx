@@ -80,4 +80,11 @@ describe('AscensoresEdificio', () => {
     expect(await screen.findByText('ASC-007')).toBeInTheDocument()
     expect(screen.queryByTitle('Editar ascensor ASC-007')).not.toBeInTheDocument()
   })
+
+  it('should keep a type that is not in the list when editing', async () => {
+    clienteService.listarAscensoresSede.mockResolvedValue([{ id_ascensor: 9, codigo_interno: 'ASC-099', marca: 'Otis', modelo: 'Gen2', numero_serie: 'S', tipo_ascensor: 'Pasajeros', capacidad_kg: 750, numero_pisos: 8 }])
+    render(<AscensoresEdificio sede={sede} idCliente={9} enTarjeta />)
+    fireEvent.click(await screen.findByTitle('Editar ascensor ASC-099'))
+    expect(screen.getByLabelText('Tipo')).toHaveTextContent('Pasajeros')
+  })
 })

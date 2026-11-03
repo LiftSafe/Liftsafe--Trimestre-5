@@ -158,7 +158,7 @@ export default function AscensoresEdificio({
               <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.25 }}>
                 <TextField label="Código interno *" placeholder="Ej: ASC-120" {...campo('codigo_interno')} />
                 <TextField select label="Tipo" {...campo('tipo_ascensor')}>
-                  {TIPOS_ASCENSOR.map((t) => <MenuItem key={t} value={t}>{t}</MenuItem>)}
+                  {[...new Set([...TIPOS_ASCENSOR, form.tipo_ascensor].filter(Boolean))].map((t) => <MenuItem key={t} value={t}>{t}</MenuItem>)}
                 </TextField>
                 <TextField label="Marca *" {...campo('marca')} />
                 <TextField label="Modelo *" {...campo('modelo')} />
