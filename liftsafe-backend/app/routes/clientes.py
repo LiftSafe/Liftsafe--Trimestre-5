@@ -167,6 +167,7 @@ def listar_ascensores_de_sede(id_sede: int, db: Session = Depends(get_db), user_
         "codigo_interno": a.codigo_interno,
         "marca": a.marca,
         "modelo": a.modelo,
+        "numero_serie": a.numero_serie,
         "tipo_ascensor": a.tipo_ascensor,
         "capacidad_kg": a.capacidad_kg,
         "capacidad_personas": a.capacidad_personas,

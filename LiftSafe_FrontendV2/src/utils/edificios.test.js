@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { ASCENSOR_VACIO, ascensorDesdeEdificio, validarAscensor } from './edificios'
+import { ASCENSOR_VACIO, ascensorDesdeEdificio, datosEdicionAscensor, formDesdeAscensor, validarAscensor } from './edificios'
 
 const lleno = { ...ASCENSOR_VACIO, codigo_interno: ' ASC-100 ', marca: 'Otis', modelo: 'Gen2', numero_serie: 'S1', capacidad_kg: '630', numero_pisos: '8' }
 
@@ -26,5 +26,17 @@ describe('ascensorDesdeEdificio', () => {
   it('should fill address and city when the building has none', () => {
     const datos = ascensorDesdeEdificio({ ...lleno, capacidad_personas: '8', ubicacion_exacta: 'Torre B' }, { id_sede: 1, nombre: 'Edificio Sol' }, 2)
     expect(datos).toMatchObject({ capacidad_personas: 8, ubicacion_exacta: 'Torre B', direccion_completa: 'Edificio Sol', ciudad: 'Sin ciudad' })
+  })
+})
+
+describe('editar un ascensor', () => {
+  it('should fill the form from an elevator and build the update data', () => {
+    const form = formDesdeAscensor({ codigo_interno: '111211', marca: 'OTIS', modelo: 'GEN2', numero_serie: null, tipo_ascensor: 'Hidráulico', capacidad_kg: 630, capacidad_personas: null, numero_pisos: 6, ubicacion_exacta: 'TORRE 1' })
+    expect(form).toMatchObject({ codigo_interno: '111211', numero_serie: '', capacidad_kg: '630', capacidad_personas: '', numero_pisos: '6' })
+    expect(formDesdeAscensor({}).tipo_ascensor).toBe('Eléctrico')
+    expect(datosEdicionAscensor({ ...form, codigo_interno: ' ASC-150 ' })).toEqual({
+      codigo_interno: 'ASC-150', marca: 'OTIS', modelo: 'GEN2', numero_serie: '', tipo_ascensor: 'Hidráulico',
+      capacidad_kg: 630, capacidad_personas: null, numero_pisos: 6, ubicacion_exacta: 'TORRE 1',
+    })
   })
 })

@@ -50,3 +50,34 @@ export function ascensorDesdeEdificio(form, sede, idCliente) {
     estado: 'Activo',
   };
 }
+
+// Formulario lleno con los datos de un ascensor existente (para editarlo)
+export function formDesdeAscensor(a) {
+  const texto = (v) => (v === null || v === undefined ? '' : String(v));
+  return {
+    codigo_interno: texto(a.codigo_interno),
+    marca: texto(a.marca),
+    modelo: texto(a.modelo),
+    numero_serie: texto(a.numero_serie),
+    tipo_ascensor: a.tipo_ascensor || 'Eléctrico',
+    capacidad_kg: texto(a.capacidad_kg),
+    capacidad_personas: texto(a.capacidad_personas),
+    numero_pisos: texto(a.numero_pisos),
+    ubicacion_exacta: texto(a.ubicacion_exacta),
+  };
+}
+
+// Datos que espera PUT /ascensores/{id}: solo los campos del formulario
+export function datosEdicionAscensor(form) {
+  return {
+    codigo_interno: form.codigo_interno.trim(),
+    marca: form.marca.trim(),
+    modelo: form.modelo.trim(),
+    numero_serie: form.numero_serie.trim(),
+    tipo_ascensor: form.tipo_ascensor,
+    capacidad_kg: Number(form.capacidad_kg),
+    capacidad_personas: form.capacidad_personas ? Number(form.capacidad_personas) : null,
+    numero_pisos: Number(form.numero_pisos),
+    ubicacion_exacta: form.ubicacion_exacta.trim(),
+  };
+}
