@@ -302,7 +302,10 @@ class Observacion(Base):
     __tablename__ = "observacion"
     
     id_observacion = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    id_informe = Column(Integer, ForeignKey("informe.id_informe"), nullable=False)
+    # RF-008: la observación se registra durante la inspección; al generar el
+    # informe queda también ligada a él (igual que las fotos).
+    id_informe = Column(Integer, ForeignKey("informe.id_informe"), nullable=True)
+    id_inspeccion = Column(Integer, ForeignKey("inspeccion.id_inspeccion"), nullable=True)
     tipo_observacion = Column(String(255), nullable=False)
     descripcion = Column(Text, nullable=False)
     nivel_riesgo = Column(String(255), nullable=False)

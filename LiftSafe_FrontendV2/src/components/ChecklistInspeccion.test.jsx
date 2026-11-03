@@ -161,4 +161,22 @@ describe('ChecklistInspeccion', () => {
     fireEvent.click(grupo.querySelector('button[value="Cumple"]'))
     expect(onCalificar).not.toHaveBeenCalled()
   })
+
+  it('should add an observation to a graded item', async () => {
+    const onObservacion = vi.fn().mockResolvedValue()
+    render(<ChecklistInspeccion categorias={categorias} detalles={{ 10: { resultado: 'No Cumple' } }} onCalificar={vi.fn()} onQuitar={vi.fn()} onObservacion={onObservacion} />)
+    // Solo los ítems calificados permiten observación
+    expect(screen.getAllByText('Agregar observación')).toHaveLength(1)
+    fireEvent.click(screen.getByText('Agregar observación'))
+    fireEvent.change(screen.getByLabelText('Observación del ítem'), { target: { value: 'Puerta sin señal' } })
+    fireEvent.click(screen.getByText('Guardar observación'))
+    await vi.waitFor(() => expect(onObservacion).toHaveBeenCalledWith(categorias[0].items[0], 'Puerta sin señal'))
+  })
+
+  it('should show a saved observation read only when it cannot be edited', () => {
+    render(<ChecklistInspeccion categorias={categorias} detalles={{ 10: { resultado: 'Cumple', observacion: 'Todo en orden' } }} onCalificar={vi.fn()} onQuitar={vi.fn()} />)
+    expect(screen.getByText('Todo en orden')).toBeInTheDocument()
+    expect(screen.queryByTitle('Editar observación')).not.toBeInTheDocument()
+    expect(screen.queryByText('Agregar observación')).not.toBeInTheDocument()
+  })
 })

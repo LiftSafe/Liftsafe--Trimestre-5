@@ -890,3 +890,10 @@ INSERT IGNORE INTO `checklist_item` (`id_categoria`, `codigo_item`, `descripcion
 INSERT IGNORE INTO `checklist_item` (`id_categoria`, `codigo_item`, `descripcion`, `criterio_cumplimiento`, `nivel_criticidad`, `obligatorio`, `orden_visualizacion`, `activo`) SELECT `id_categoria`, 'NTC-6.11-05', 'Rótulo de la empresa de mantenimiento y teléfono de emergencia en sitio', NULL, 'Leve', 1, 5, 1 FROM `checklist_categoria` WHERE `nombre_categoria` = '6.11 Mantenimiento, identificación y rótulos';
 UPDATE `checklist_categoria` SET `activo` = 0 WHERE `norma_referencia` IS NULL OR `norma_referencia` NOT LIKE 'NTC 5926-1:2012 num. 6.%';
 UPDATE `checklist_categoria` SET `activo` = 1 WHERE `norma_referencia` LIKE 'NTC 5926-1:2012 num. 6.%';
+
+-- RF-008: observaciones ligadas a la inspección
+ALTER TABLE `observacion` MODIFY `id_informe` int(11) NULL;
+ALTER TABLE `observacion` ADD COLUMN `id_inspeccion` int(11) NULL AFTER `id_informe`;
+ALTER TABLE `observacion` ADD KEY `idx_observacion_inspeccion` (`id_inspeccion`);
+ALTER TABLE `observacion` ADD CONSTRAINT `fk_observacion_inspeccion` FOREIGN KEY (`id_inspeccion`) REFERENCES `inspeccion` (`id_inspeccion`) ON DELETE CASCADE;
+UPDATE `observacion` o JOIN `informe` i ON i.id_informe = o.id_informe SET o.id_inspeccion = i.id_inspeccion WHERE o.id_inspeccion IS NULL;

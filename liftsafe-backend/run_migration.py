@@ -98,6 +98,23 @@ def run():
         else:
             print("Columna fotografia.id_inspeccion ya existe.")
 
+        # RF-008: observaciones durante la inspección (antes exigían el informe)
+        if not column_exists(conn, "id_inspeccion", "observacion"):
+            conn.execute(text("ALTER TABLE observacion MODIFY id_informe INT NULL"))
+            conn.execute(text("ALTER TABLE observacion ADD COLUMN id_inspeccion INT NULL AFTER id_informe"))
+            conn.execute(text("ALTER TABLE observacion ADD KEY idx_observacion_inspeccion (id_inspeccion)"))
+            conn.execute(text(
+                "ALTER TABLE observacion ADD CONSTRAINT fk_observacion_inspeccion FOREIGN KEY (id_inspeccion)"
+                " REFERENCES inspeccion (id_inspeccion) ON DELETE CASCADE"
+            ))
+            conn.execute(text(
+                "UPDATE observacion o JOIN informe i ON i.id_informe = o.id_informe"
+                " SET o.id_inspeccion = i.id_inspeccion WHERE o.id_inspeccion IS NULL"
+            ))
+            print("Columna observacion.id_inspeccion agregada.")
+        else:
+            print("Columna observacion.id_inspeccion ya existe.")
+
         # Checklist según la NTC 5926-1:2012 (idempotente: no duplica nada)
         sql = (Path(__file__).parent / "migrations" / "checklist_ntc5926.sql").read_text(encoding="utf-8")
         sentencias = [l for l in sql.splitlines() if l.strip() and not l.startswith("--")]

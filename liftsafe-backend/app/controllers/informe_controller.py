@@ -216,7 +216,8 @@ def _fotos_item(rutas, lado=17 * mm, maximo=2, base_url=None):
     return t
 
 
-def construir_pdf(pdf_path, inspeccion, detalles, informe=None, fotos_por_item=None, base_url_fotos=None):
+def construir_pdf(pdf_path, inspeccion, detalles, informe=None, fotos_por_item=None, base_url_fotos=None,
+                  observaciones=None):
     """Dibuja el PDF. Recibe objetos ya cargados (modelos o equivalentes).
     `fotos_por_item`: {id_item: [rutas de imagen]} para mostrar la evidencia
     fotográfica al lado de cada ítem del checklist."""
@@ -351,7 +352,9 @@ def construir_pdf(pdf_path, inspeccion, detalles, informe=None, fotos_por_item=N
     bloques = []
     if getattr(inspeccion, "observaciones_generales", None):
         bloques.append(Paragraph(_txt(inspeccion.observaciones_generales), EST["texto"]))
-    for o in (getattr(informe, "observaciones", None) or []):
+    # Observaciones técnicas: las de la inspección (RF-008) o, si no se pasan, las del informe
+    lista_obs = observaciones if observaciones is not None else (getattr(informe, "observaciones", None) or [])
+    for o in lista_obs:
         riesgo = f" (riesgo {_txt(o.nivel_riesgo)})" if getattr(o, "nivel_riesgo", None) else ""
         bloques.append(Paragraph(f"• <b>{_txt(o.tipo_observacion)}{riesgo}:</b> {_txt(o.descripcion)}", EST["texto"]))
     if getattr(informe, "conclusion_general", None):
@@ -387,7 +390,7 @@ def construir_pdf(pdf_path, inspeccion, detalles, informe=None, fotos_por_item=N
 def generar_pdf_informe(db: Session, id_inspeccion: int):
     from sqlalchemy import or_
 
-    from app.models.models import DetalleChecklist, Fotografia, Informe, Inspeccion
+    from app.models.models import DetalleChecklist, Fotografia, Informe, Inspeccion, Observacion
 
     inspeccion = db.query(Inspeccion).filter(Inspeccion.id_inspeccion == id_inspeccion).first()
     if not inspeccion:
@@ -409,8 +412,15 @@ def generar_pdf_informe(db: Session, id_inspeccion: int):
 
     from app.config import settings
 
+    # Observaciones registradas durante la inspección o agregadas al informe
+    cond_obs = Observacion.id_inspeccion == id_inspeccion
+    if informe:
+        cond_obs = or_(cond_obs, Observacion.id_informe == informe.id_informe)
+    observaciones = db.query(Observacion).filter(cond_obs).order_by(Observacion.id_observacion).all()
+
     construir_pdf(pdf_path, inspeccion, detalles, informe, fotos_por_item,
-                  base_url_fotos=getattr(settings, "API_PUBLIC_URL", None) or "http://localhost:8000")
+                  base_url_fotos=getattr(settings, "API_PUBLIC_URL", None) or "http://localhost:8000",
+                  observaciones=observaciones)
 
     with open(pdf_path, "rb") as f:
         hash_documento = hashlib.sha256(f.read()).hexdigest()

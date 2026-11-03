@@ -378,7 +378,8 @@ class ChecklistCategoriaResponse(BaseModel):
 # ESQUEMAS DE OBSERVACIONES (FELIPE)
 # ==========================================
 class ObservacionBase(BaseModel):
-    id_informe: int
+    id_informe: Optional[int] = None
+    id_inspeccion: Optional[int] = None
     tipo_observacion: str
     descripcion: str
     nivel_riesgo: str

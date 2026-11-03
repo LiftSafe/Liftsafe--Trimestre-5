@@ -573,7 +573,7 @@ export default function Inspections() {
       setCategorias(cats || []);
       const mapa = {};
       (existentes || []).forEach((d) => {
-        mapa[d.id_item] = { id_detalle: d.id_detalle, resultado: d.resultado };
+        mapa[d.id_item] = { id_detalle: d.id_detalle, resultado: d.resultado, observacion: d.observacion || '' };
       });
       setDetalles(mapa);
     } catch (err) {
@@ -583,15 +583,16 @@ export default function Inspections() {
     }
   }
 
-  async function cargarObservaciones(idInforme) {
+  // RF-008: las observaciones se registran durante la inspección (no hace
+  // falta que exista el informe)
+  async function cargarObservaciones(idInspeccion) {
     setObsError('');
-    if (!idInforme) {
+    if (!idInspeccion) {
       setObservaciones([]);
-      setObsError('Esta inspección todavía no tiene un informe generado, así que no se pueden registrar observaciones.');
       return;
     }
     try {
-      const obs = await observacionService.listarPorInforme(idInforme);
+      const obs = await observacionService.listarPorInspeccion(idInspeccion);
       setObservaciones(obs || []);
     } catch (err) {
       setObservaciones([]);
@@ -658,7 +659,7 @@ export default function Inspections() {
 
       await Promise.all([
         cargarChecklist(id),
-        cargarObservaciones(detalle.id_informe),
+        cargarObservaciones(id),
         cargarInforme(id),
       ]);
     } catch (err) {
@@ -701,6 +702,8 @@ export default function Inspections() {
   // RF-011: una inspección cerrada ya no se edita (checklist ni fotos)
   const inspeccionCerrada = ['Finalizada', 'Completada', 'Aprobada', 'Cancelada', ESTADO_PENDIENTE_FIRMA, ESTADO_PENDIENTE_REVISION]
     .includes(selected?.estado);
+  // RF-008: el inspector registra observaciones mientras la inspección está abierta
+  const puedeEditarObservaciones = userRol === 'Inspector' && !inspeccionCerrada;
   const clienteEsperaRevision = userRol === 'Cliente' && !['Finalizada', 'Aprobada'].includes(selected?.estado);
 
   const recargarFotos = async () => {
@@ -895,13 +898,30 @@ export default function Inspections() {
       });
       setDetalles((prev) => ({
         ...prev,
-        [item.id_item]: { id_detalle: guardado.id_detalle, resultado: guardado.resultado },
+        [item.id_item]: { id_detalle: guardado.id_detalle, resultado: guardado.resultado, observacion: guardado.observacion || '' },
       }));
     } catch (err) {
       setChecklistError(err.message || 'No se pudo guardar la calificación');
     } finally {
       setSavingItem(null);
     }
+  }
+
+  // RF-008: observación técnica de un ítem del checklist
+  async function guardarObservacionItem(item, texto) {
+    const actual = detalles[item.id_item];
+    if (!actual?.resultado) return;
+    const idInspeccion = selected?.id_inspeccion || selected?.id;
+    const guardado = await checklistService.calificar({
+      id_inspeccion: idInspeccion,
+      id_item: item.id_item,
+      resultado: actual.resultado,
+      observacion: texto.trim() || null,
+    });
+    setDetalles((prev) => ({
+      ...prev,
+      [item.id_item]: { ...prev[item.id_item], id_detalle: guardado.id_detalle, observacion: guardado.observacion || '' },
+    }));
   }
 
   async function eliminarCalificacion(item) {
@@ -927,12 +947,13 @@ export default function Inspections() {
     if (!nuevaObs.descripcion.trim()) return;
     setCreandoObs(true);
     try {
+      const idInspeccion = selected?.id_inspeccion || selected?.id;
       await observacionService.crear({
-        id_informe: selected.id_informe,
+        id_inspeccion: idInspeccion,
         ...nuevaObs,
       });
       setNuevaObs({ tipo_observacion: 'Preventiva', descripcion: '', nivel_riesgo: 'Bajo', requiere_atencion_inmediata: false });
-      await cargarObservaciones(selected.id_informe);
+      await cargarObservaciones(idInspeccion);
     } catch (err) {
       setObsError(err.message || 'No se pudo crear la observación');
     } finally {
@@ -943,7 +964,7 @@ export default function Inspections() {
   async function eliminarObservacion(idObservacion) {
     try {
       await observacionService.eliminar(idObservacion);
-      await cargarObservaciones(selected.id_informe);
+      await cargarObservaciones(selected?.id_inspeccion || selected?.id);
     } catch (err) {
       setObsError(err.message || 'No se pudo eliminar la observación');
     }
@@ -1393,6 +1414,7 @@ export default function Inspections() {
                   onEliminarFoto={(foto) => eliminarFoto(foto.id_foto)}
                   urlFoto={(foto) => `${API_BASE_URL}/${foto.ruta_archivo.replace(/\\/g, '/')}`}
                   onCalificar={calificarItem}
+                  onObservacion={userRol === 'Inspector' && !inspeccionCerrada ? guardarObservacionItem : null}
                   onQuitar={eliminarCalificacion}
                 />
               )}
@@ -1419,13 +1441,18 @@ export default function Inspections() {
                     </Typography>
                     <Typography variant="body2">{obs.descripcion}</Typography>
                   </Box>
-                  <IconButton size="small" onClick={() => eliminarObservacion(obs.id_observacion)} title="Eliminar observación">
-                    <DeleteIcon fontSize="small" />
-                  </IconButton>
+                  {puedeEditarObservaciones && (
+                    <IconButton size="small" onClick={() => eliminarObservacion(obs.id_observacion)} title="Eliminar observación">
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  )}
                 </Box>
               ))}
 
-              {selected?.id_informe && (
+              {!observaciones.length && !obsError && (
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Sin observaciones técnicas.</Typography>
+              )}
+              {puedeEditarObservaciones && (
                 <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
                   <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>Agregar observación</Typography>
                   <Box sx={{ display: 'flex', gap: 1, mb: 1, flexWrap: 'wrap' }}>
@@ -1463,11 +1490,7 @@ export default function Inspections() {
                   </Button>
                 </Box>
               )}
-              {!selected?.id_informe && (
-                <Typography variant="caption" color="text.secondary">
-                  Se podrán agregar observaciones cuando esta inspección tenga un informe generado.
-                </Typography>
-              )}
+
 
               <Divider sx={{ my: 2 }} />
 

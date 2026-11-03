@@ -60,8 +60,11 @@ def calificar_item(
 
     if existente:
         existente.resultado = data.resultado
-        existente.observacion = data.observacion
-        existente.accion_requerida = data.accion_requerida
+        # Al recalificar sin mandar la observación, se conserva la que tenía
+        if "observacion" in data.model_fields_set:
+            existente.observacion = data.observacion
+        if "accion_requerida" in data.model_fields_set:
+            existente.accion_requerida = data.accion_requerida
         db.commit()
         db.refresh(existente)
         return existente

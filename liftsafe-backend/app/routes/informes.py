@@ -3,7 +3,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from typing import List
 from app.database import get_db
-from app.models.models import Informe, Inspeccion, Usuario, Ascensor, Notificacion, Encuesta, Solicitud, Fotografia
+from app.models.models import Informe, Inspeccion, Usuario, Ascensor, Notificacion, Encuesta, Solicitud, Fotografia, Observacion
 from app.controllers.foto_obligatoria_controller import exigir_fotos_no_aplica
 from app.controllers.informe_acceso_controller import (
     ROL_CLIENTE, cliente_puede_descargar, es_inspeccion_del_cliente, informe_para_usuario,
@@ -114,6 +114,10 @@ def generar_informe(
     db.query(Fotografia).filter(
         Fotografia.id_inspeccion == id_inspeccion, Fotografia.id_informe.is_(None)
     ).update({Fotografia.id_informe: informe_actual.id_informe}, synchronize_session=False)
+    # RF-008: las observaciones registradas durante la inspección también
+    db.query(Observacion).filter(
+        Observacion.id_inspeccion == id_inspeccion, Observacion.id_informe.is_(None)
+    ).update({Observacion.id_informe: informe_actual.id_informe}, synchronize_session=False)
     db.commit()
 
     # FIX: nadie se enteraba de que un informe ya estaba listo para

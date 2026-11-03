@@ -1,6 +1,6 @@
 import { useImperativeHandle, useMemo, useRef, useState } from 'react';
 import {
-  Box, Button, Chip, CircularProgress, IconButton, LinearProgress, Pagination, ToggleButton, ToggleButtonGroup, Typography,
+  Box, Button, Chip, CircularProgress, IconButton, LinearProgress, Pagination, TextField, ToggleButton, ToggleButtonGroup, Typography,
 } from '@mui/material';
 import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
@@ -8,6 +8,8 @@ import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
 import CancelRoundedIcon from '@mui/icons-material/CancelRounded';
 import RemoveCircleRoundedIcon from '@mui/icons-material/RemoveCircleRounded';
 import PhotoCameraOutlinedIcon from '@mui/icons-material/PhotoCameraOutlined';
+import NotesOutlinedIcon from '@mui/icons-material/NotesOutlined';
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { brand } from '../theme/colors';
@@ -120,10 +122,67 @@ function FotosItem({ item, fotos, puedeSubir, onSubir, onEliminar, urlFoto, obli
   );
 }
 
+// RF-008: observación técnica de un ítem (qué se encontró, por qué no cumple...)
+function ObservacionItem({ item, texto, onGuardar }) {
+  const [editando, setEditando] = useState(false);
+  const [valor, setValor] = useState('');
+  const [guardando, setGuardando] = useState(false);
+
+  const abrir = () => { setValor(texto || ''); setEditando(true); };
+  const guardar = async () => {
+    setGuardando(true);
+    try {
+      await onGuardar(item, valor);
+      setEditando(false);
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  if (editando) {
+    return (
+      <Box sx={{ mt: 1 }}>
+        <TextField
+          fullWidth size="small" multiline minRows={2} autoFocus
+          label="Observación del ítem"
+          placeholder="Ej: el contacto de la puerta del piso 3 no corta la marcha"
+          value={valor}
+          onChange={(e) => setValor(e.target.value)}
+        />
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mt: 0.75 }}>
+          <Button size="small" onClick={() => setEditando(false)} sx={{ textTransform: 'none' }}>Cancelar</Button>
+          <Button size="small" variant="contained" onClick={guardar} disabled={guardando} sx={{ textTransform: 'none' }}>
+            {guardando ? 'Guardando...' : 'Guardar observación'}
+          </Button>
+        </Box>
+      </Box>
+    );
+  }
+  if (texto) {
+    return (
+      <Box sx={{ mt: 1, display: 'flex', gap: 1, alignItems: 'flex-start', p: 1, borderRadius: 2, bgcolor: brand.surface, border: '1px solid', borderColor: brand.grayLight }}>
+        <NotesOutlinedIcon sx={{ fontSize: 18, color: brand.silverDark, mt: 0.2 }} />
+        <Typography variant="body2" sx={{ flex: 1, fontSize: '0.82rem', color: brand.navy, whiteSpace: 'pre-wrap' }}>{texto}</Typography>
+        {onGuardar && (
+          <IconButton size="small" onClick={abrir} title="Editar observación"><EditOutlinedIcon sx={{ fontSize: 16 }} /></IconButton>
+        )}
+      </Box>
+    );
+  }
+  if (!onGuardar) return null;
+  return (
+    <Button size="small" startIcon={<NotesOutlinedIcon />} onClick={abrir}
+      sx={{ mt: 0.75, textTransform: 'none', fontWeight: 600, fontSize: '0.8rem', color: brand.silverDark }}>
+      Agregar observación
+    </Button>
+  );
+}
+
 export default function ChecklistInspeccion({
   categorias = [], detalles = {}, savingItem, onCalificar, onQuitar,
   fotos = [], puedeSubirFotos = false, onSubirFoto, onEliminarFoto, urlFoto = () => '',
   bloqueado = false, // RF-011: inspección cerrada o rol que solo consulta
+  onObservacion = null, // RF-008: guarda la observación de un ítem (null = solo lectura)
   ref,
 }) {
   const [filtro, setFiltro] = useState('todos');
@@ -313,6 +372,9 @@ export default function ChecklistInspeccion({
                     urlFoto={urlFoto}
                     obligatoria={resultado === RESULTADO_FOTO_OBLIGATORIA}
                   />
+                  {resultado && (
+                    <ObservacionItem item={item} texto={detalles[item.id_item]?.observacion || ''} onGuardar={onObservacion} />
+                  )}
                 </Box>
               </Box>
             ))}
