@@ -14,6 +14,7 @@ from app.schemas.schemas import (
 )
 from app.controllers.checklist_controller import categorias_visibles
 from app.controllers.cierre_inspeccion_controller import exigir_inspeccion_abierta
+from app.utils.auditoria import auditar_cambio, registrar_auditoria
 
 router = APIRouter(prefix="/checklist", tags=["Checklist"])
 
@@ -59,12 +60,19 @@ def calificar_item(
     ).first()
 
     if existente:
+        antes = {"id_inspeccion": existente.id_inspeccion, "id_item": existente.id_item,
+                 "resultado": existente.resultado, "observacion": existente.observacion}
         existente.resultado = data.resultado
         # Al recalificar sin mandar la observación, se conserva la que tenía
         if "observacion" in data.model_fields_set:
             existente.observacion = data.observacion
         if "accion_requerida" in data.model_fields_set:
             existente.accion_requerida = data.accion_requerida
+        # RNF-012: queda en el log el valor anterior de la calificación/observación
+        auditar_cambio(db, user_id, "detalle_checklist", existente.id_detalle, antes, {
+            "id_inspeccion": existente.id_inspeccion, "id_item": existente.id_item,
+            "resultado": existente.resultado, "observacion": existente.observacion,
+        })
         db.commit()
         db.refresh(existente)
         return existente
@@ -77,6 +85,11 @@ def calificar_item(
         accion_requerida=data.accion_requerida,
     )
     db.add(nuevo)
+    db.flush()
+    registrar_auditoria(db, user_id, "detalle_checklist", "CREATE", nuevo.id_detalle, None, {
+        "id_inspeccion": nuevo.id_inspeccion, "id_item": nuevo.id_item,
+        "resultado": nuevo.resultado, "observacion": nuevo.observacion,
+    }, commit=False)
     db.commit()
     db.refresh(nuevo)
     return nuevo
@@ -179,6 +192,10 @@ def eliminar_detalle_checklist(
         raise HTTPException(status_code=403, detail="No tienes permiso para eliminar este registro")
     exigir_inspeccion_abierta(inspeccion)
 
+    registrar_auditoria(db, user_id, "detalle_checklist", "DELETE", detalle.id_detalle, {
+        "id_inspeccion": detalle.id_inspeccion, "id_item": detalle.id_item,
+        "resultado": detalle.resultado, "observacion": detalle.observacion,
+    }, None, commit=False)
     db.delete(detalle)
     db.commit()
     return {"message": "Calificación de checklist eliminada"}

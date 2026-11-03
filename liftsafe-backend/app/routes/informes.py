@@ -5,6 +5,7 @@ from typing import List
 from app.database import get_db
 from app.models.models import Informe, Inspeccion, Usuario, Ascensor, Notificacion, Encuesta, Solicitud, Fotografia, Observacion
 from app.controllers.foto_obligatoria_controller import exigir_fotos_no_aplica
+from app.utils.auditoria import registrar_auditoria
 from app.controllers.informe_acceso_controller import (
     ROL_CLIENTE, cliente_puede_descargar, es_inspeccion_del_cliente, informe_para_usuario,
 )
@@ -225,6 +226,11 @@ async def revisar_informe(
     if data.decision == "Rechazado" and not (data.observaciones_revision or "").strip():
         raise HTTPException(status_code=400, detail="Escribe el motivo del rechazo para orientar al inspector")
 
+    # RNF-012: la decisión del revisor queda en el log
+    registrar_auditoria(db, current_user["user_id"], "informe", data.decision.upper()[:20], informe.id_informe,
+                        {"estado": informe.estado},
+                        {"estado": data.decision, "observaciones_revision": data.observaciones_revision,
+                         "id_inspeccion": informe.id_inspeccion}, commit=False)
     informe.fecha_revision = datetime.now()
     informe.id_revisor = current_user["user_id"]
     informe.observaciones_revision = data.observaciones_revision
@@ -274,6 +280,8 @@ async def revisar_informe(
     # Rechazado: la inspección vuelve al inspector para que la corrija
     # y la finalice otra vez (al aprobarla después, el informe se regenera).
     if data.decision == "Rechazado" and inspeccion_rel:
+        registrar_auditoria(db, current_user["user_id"], "inspeccion", "UPDATE", inspeccion_rel.id_inspeccion,
+                            {"estado": inspeccion_rel.estado}, {"estado": "En Progreso"}, commit=False)
         inspeccion_rel.estado = "En Progreso"
         db.commit()
     if inspeccion_rel and inspeccion_rel.id_inspector:

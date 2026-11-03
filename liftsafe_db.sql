@@ -897,3 +897,10 @@ ALTER TABLE `observacion` ADD COLUMN `id_inspeccion` int(11) NULL AFTER `id_info
 ALTER TABLE `observacion` ADD KEY `idx_observacion_inspeccion` (`id_inspeccion`);
 ALTER TABLE `observacion` ADD CONSTRAINT `fk_observacion_inspeccion` FOREIGN KEY (`id_inspeccion`) REFERENCES `inspeccion` (`id_inspeccion`) ON DELETE CASCADE;
 UPDATE `observacion` o JOIN `informe` i ON i.id_informe = o.id_informe SET o.id_inspeccion = i.id_inspeccion WHERE o.id_inspeccion IS NULL;
+
+-- RNF-012: el log de auditoría es inmutable (no se puede modificar ni borrar).
+-- Se puede ejecutar varias veces.
+DROP TRIGGER IF EXISTS `auditoria_no_modificar`;
+CREATE TRIGGER `auditoria_no_modificar` BEFORE UPDATE ON `auditoria` FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'El log de auditoria es inmutable: no se puede modificar';
+DROP TRIGGER IF EXISTS `auditoria_no_borrar`;
+CREATE TRIGGER `auditoria_no_borrar` BEFORE DELETE ON `auditoria` FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'El log de auditoria es inmutable: no se puede borrar';

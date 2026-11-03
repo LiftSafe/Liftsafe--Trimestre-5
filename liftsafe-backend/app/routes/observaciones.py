@@ -8,6 +8,7 @@ from app.config import settings
 from sqlalchemy import or_
 from app.models.models import Observacion, Informe, Inspeccion
 from app.controllers.cierre_inspeccion_controller import exigir_inspeccion_abierta
+from app.utils.auditoria import registrar_auditoria
 from app.schemas.schemas import (
     ObservacionCreate,
     ObservacionUpdate,
@@ -70,6 +71,11 @@ def crear_observacion(
         fecha_limite_recomendada=data.fecha_limite_recomendada,
     )
     db.add(nueva)
+    db.flush()
+    registrar_auditoria(db, user_id, "observacion", "CREATE", nueva.id_observacion, None, {
+        "id_inspeccion": nueva.id_inspeccion, "tipo_observacion": nueva.tipo_observacion,
+        "nivel_riesgo": nueva.nivel_riesgo, "descripcion": nueva.descripcion,
+    }, commit=False)
     db.commit()
     db.refresh(nueva)
     return nueva
@@ -148,6 +154,10 @@ def eliminar_observacion(
         raise HTTPException(status_code=403, detail="Solo el inspector de la inspección puede eliminar la observación")
     exigir_inspeccion_abierta(inspeccion)
 
+    registrar_auditoria(db, user_id, "observacion", "DELETE", observacion.id_observacion, {
+        "id_inspeccion": id_insp, "tipo_observacion": observacion.tipo_observacion,
+        "nivel_riesgo": observacion.nivel_riesgo, "descripcion": observacion.descripcion,
+    }, None, commit=False)
     db.delete(observacion)
     db.commit()
     return {"message": "Observación eliminada"}

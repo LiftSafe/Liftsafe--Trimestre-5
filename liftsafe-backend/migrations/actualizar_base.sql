@@ -209,5 +209,12 @@ UPDATE `observacion` o JOIN `informe` i ON i.id_informe = o.id_informe
    SET o.id_inspeccion = i.id_inspeccion
  WHERE o.id_inspeccion IS NULL;
 
+-- 10) RNF-012: el log de auditoría es inmutable (no se puede modificar ni borrar).
+-- Se puede ejecutar varias veces.
+DROP TRIGGER IF EXISTS `auditoria_no_modificar`;
+CREATE TRIGGER `auditoria_no_modificar` BEFORE UPDATE ON `auditoria` FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'El log de auditoria es inmutable: no se puede modificar';
+DROP TRIGGER IF EXISTS `auditoria_no_borrar`;
+CREATE TRIGGER `auditoria_no_borrar` BEFORE DELETE ON `auditoria` FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'El log de auditoria es inmutable: no se puede borrar';
+
 -- Listo: la base queda igual a la de liftsafe_db.sql actual.
 SELECT 'Base de datos actualizada correctamente' AS resultado;

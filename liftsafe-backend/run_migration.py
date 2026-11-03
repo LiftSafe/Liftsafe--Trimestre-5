@@ -132,6 +132,12 @@ def run():
         )).rowcount
         print(f"Solicitudes finalizadas por inspección terminada: {n}")
 
+        # RNF-012: el log de auditoría es inmutable (triggers que impiden modificar o borrar)
+        sql = (Path(__file__).parent / "migrations" / "auditoria_inmutable.sql").read_text(encoding="utf-8")
+        for sentencia in [l for l in sql.splitlines() if l.strip() and not l.startswith("--")]:
+            conn.exec_driver_sql(sentencia.rstrip(";").replace("%", "%%"))
+        print("Auditoría protegida contra cambios y borrados.")
+
 
 if __name__ == "__main__":
     run()

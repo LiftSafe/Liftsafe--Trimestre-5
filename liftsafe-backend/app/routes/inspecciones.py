@@ -7,7 +7,8 @@ from app.models.models import Inspeccion, Ascensor, Usuario, Informe, Notificaci
 from app.schemas.schemas import InspeccionCreate, InspeccionUpdate, FirmaRequest, MessageResponse
 from app.controllers.inspeccion_controller import crear_inspeccion
 from app.controllers.foto_obligatoria_controller import exigir_fotos_no_aplica
-from app.controllers.cierre_inspeccion_controller import exigir_checklist_completo
+from app.controllers.cierre_inspeccion_controller import esta_cerrada, exigir_checklist_completo
+from app.utils.auditoria import auditar_cambio, registrar_auditoria
 from app.utils.auth_deps import get_current_user_role, ADMIN_ROL_ID, COORDINADOR_ROL_ID
 from app.config import settings
 from jose import jwt, JWTError
@@ -208,7 +209,16 @@ def actualizar_inspeccion(
     # Si es inspector, solo puede editar sus propias inspecciones
     if rol == 'Inspector' and inspeccion.id_inspector != user_id:
         raise HTTPException(status_code=403, detail="No autorizado para editar esta inspección")
-    
+    if rol == 'Inspector':
+        # RF-011: cerrada no se edita; el estado se cambia con "Marcar como finalizada"
+        if esta_cerrada(inspeccion.estado):
+            raise HTTPException(status_code=400, detail="La inspección ya fue cerrada: no se puede modificar")
+        if data.estado is not None and data.estado != inspeccion.estado:
+            raise HTTPException(status_code=400, detail="Para terminar la inspección usa 'Marcar como finalizada'")
+
+    antes = {"estado": inspeccion.estado, "observaciones_generales": inspeccion.observaciones_generales,
+             "fecha_fin": inspeccion.fecha_fin, "firma_inspector": bool(inspeccion.firma_inspector),
+             "firma_cliente": bool(inspeccion.firma_cliente)}
     if data.estado is not None:
         inspeccion.estado = data.estado
     if data.observaciones_generales is not None:
@@ -221,7 +231,13 @@ def actualizar_inspeccion(
     if data.firma_cliente is not None:
         inspeccion.firma_cliente = data.firma_cliente
         inspeccion.fecha_firma_cliente = datetime.now()
-    
+
+    # RNF-012: queda en el log qué cambió y su valor anterior
+    auditar_cambio(db, user_id, "inspeccion", inspeccion.id_inspeccion, antes, {
+        "estado": inspeccion.estado, "observaciones_generales": inspeccion.observaciones_generales,
+        "fecha_fin": inspeccion.fecha_fin, "firma_inspector": bool(inspeccion.firma_inspector),
+        "firma_cliente": bool(inspeccion.firma_cliente),
+    })
     db.commit()
     db.refresh(inspeccion)
     return {"message": "Inspección actualizada exitosamente"}
@@ -275,6 +291,8 @@ def firmar_inspector(
     
     inspeccion.firma_inspector = data.firma
     inspeccion.fecha_firma_inspector = datetime.now()
+    registrar_auditoria(db, user_id, "inspeccion", "FIRMA", inspeccion.id_inspeccion,
+                        {"firma_inspector": False}, {"firma_inspector": True}, commit=False)
     db.commit()
     db.refresh(inspeccion)
     
@@ -309,8 +327,12 @@ async def firmar_cliente(
     inspeccion.firma_cliente = data.firma
     inspeccion.fecha_firma_cliente = datetime.now()
     pasa_a_revision = inspeccion.estado == PENDIENTE_FIRMA_CLIENTE
+    estado_antes = inspeccion.estado
     if pasa_a_revision:
         inspeccion.estado = PENDIENTE_REVISION
+    registrar_auditoria(db, user_id, "inspeccion", "FIRMA", inspeccion.id_inspeccion,
+                        {"firma_cliente": False, "estado": estado_antes},
+                        {"firma_cliente": True, "estado": inspeccion.estado}, commit=False)
     db.commit()
     db.refresh(inspeccion)
 
@@ -394,6 +416,12 @@ async def actualizar_estado(
     
     if rol not in ['Administrador', 'Coordinador'] and inspeccion.id_inspector != user_id:
         raise HTTPException(status_code=403, detail="No tienes permiso para actualizar esta inspección")
+    # El inspector solo puede terminar su inspección (o seguir trabajándola);
+    # aprobar, cancelar, etc. es del coordinador
+    if rol == 'Inspector' and estado not in ('Finalizada', 'En Progreso'):
+        raise HTTPException(status_code=403, detail="El inspector solo puede finalizar la inspección")
+    if rol == 'Inspector' and esta_cerrada(inspeccion.estado):
+        raise HTTPException(status_code=400, detail="La inspección ya fue cerrada")
     
     estados_validos = ['Programada', 'En Progreso', 'Completada', 'Cancelada', 'Finalizada', 'Aprobada', PENDIENTE_FIRMA_CLIENTE, PENDIENTE_REVISION]
     if estado not in estados_validos:
@@ -416,7 +444,8 @@ async def actualizar_estado(
     termina_inspector = estado == PENDIENTE_FIRMA_CLIENTE and inspeccion.estado != PENDIENTE_FIRMA_CLIENTE
     lista_para_revision = estado == PENDIENTE_REVISION and inspeccion.estado != PENDIENTE_REVISION
 
-
+    auditar_cambio(db, user_id, "inspeccion", inspeccion.id_inspeccion,
+                   {"estado": inspeccion.estado}, {"estado": estado})
     inspeccion.estado = estado
     if estado in ['Completada', 'Finalizada', 'Aprobada', PENDIENTE_FIRMA_CLIENTE, PENDIENTE_REVISION]:
         inspeccion.fecha_fin = datetime.now()
