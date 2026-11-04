@@ -38,6 +38,7 @@ import PageHeader from '../components/PageHeader';
 import SearchBar from '../components/SearchBar';
 import ListPagination from '../components/ListPagination';
 import ConfirmDialog from '../components/ConfirmDialog';
+import CancelarVisitaDialog from '../components/CancelarVisitaDialog';
 import { usePaginatedSearch } from '../hooks/usePaginatedSearch';
 import { useAuth } from '../context/AuthContext';
 import { solicitudService } from '../services/solicitudService';
@@ -98,6 +99,7 @@ export default function Solicitudes() {
   const [submitLoading, setSubmitLoading] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState({ open: false, onConfirm: null, message: '' });
   const closeConfirm = () => setConfirmDialog((c) => ({ ...c, open: false }));
+  const [visitaACancelar, setVisitaACancelar] = useState(null);
 
   // ✅ Asignar inspector directamente desde Solicitudes (antes solo existía
   // en el dashboard de Inicio del Coordinador). Mismo flujo/endpoint
@@ -616,6 +618,18 @@ export default function Solicitudes() {
                             Cancelar
                           </Button>
                         )}
+                        {/* Cancelar visita ya programada (Coordinador/Admin) */}
+                        {(esCoordinador || esAdmin) && s.estado === 'Programada' && (
+                          <Button
+                            size="small"
+                            color="warning"
+                            startIcon={<CancelIcon />}
+                            onClick={() => setVisitaACancelar(s)}
+                            sx={{ mr: 1 }}
+                          >
+                            Cancelar visita
+                          </Button>
+                        )}
                         {/* Eliminar (solo admin) */}
                         {esAdmin && (
                           <Button
@@ -848,6 +862,14 @@ export default function Solicitudes() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {visitaACancelar && (
+        <CancelarVisitaDialog
+          solicitud={visitaACancelar}
+          onClose={() => setVisitaACancelar(null)}
+          onCancelada={async () => { setVisitaACancelar(null); await cargarDatos(); }}
+        />
+      )}
 
       <ConfirmDialog
         open={confirmDialog.open}

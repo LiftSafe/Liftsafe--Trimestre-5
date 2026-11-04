@@ -231,24 +231,33 @@ def reasignar_inspector(
 # ============================================
 # 4. CANCELAR PROGRAMACIÓN (Coordinador)
 # ============================================
-@router.put("/{id}/cancelar")
-def cancelar_programacion(
-    id: int,
-    motivo: str = Body(..., embed=True),
-    db: Session = Depends(get_db),
-    current_user: dict = Depends(require_coordinador)
-):
-    programacion = db.query(Programacion).filter(Programacion.id_programacion == id).first()
-    if not programacion:
-        raise HTTPException(status_code=404, detail="Programación no encontrada")
+INSPECCION_SIN_EMPEZAR = ("Programada",)
+
+
+def _cancelar_programacion(db: Session, programacion: Programacion, motivo: str, cancelar_solicitud: bool = False):
+    """Cancela la visita, su inspección (si no ha empezado) y avisa al inspector y al cliente.
+    La solicitud vuelve a Pendiente para reprogramarla, o queda Cancelada si así se pide."""
+    motivo = (motivo or "").strip()
+    if not motivo:
+        raise HTTPException(status_code=400, detail="Escribe el motivo de la cancelación")
+    if programacion.estado == "Cancelada":
+        raise HTTPException(status_code=400, detail="Esta visita ya estaba cancelada")
+
+    inspeccion = db.query(Inspeccion).filter(Inspeccion.id_programacion == programacion.id_programacion).first()
+    if inspeccion and inspeccion.estado not in INSPECCION_SIN_EMPEZAR:
+        raise HTTPException(
+            status_code=400,
+            detail=f"No se puede cancelar: la inspección ya está en estado \"{inspeccion.estado}\"",
+        )
 
     programacion.estado = "Cancelada"
     programacion.motivo_cancelacion = motivo
+    if inspeccion:
+        inspeccion.estado = "Cancelada"
 
-    # Devolver la solicitud a estado Pendiente para reprogramación
     solicitud = db.query(Solicitud).filter(Solicitud.id_solicitud == programacion.id_solicitud).first()
     if solicitud:
-        solicitud.estado = "Pendiente"
+        solicitud.estado = "Cancelada" if cancelar_solicitud else "Pendiente"
 
     # FIX: al cancelar una programación no se avisaba ni al inspector que
     # tenía asignada esa inspección, ni al cliente que la había pedido.
@@ -260,15 +269,49 @@ def cancelar_programacion(
             leida=False,
         ))
     if solicitud and solicitud.id_cliente:
+        siguiente = "La solicitud quedó cancelada." if cancelar_solicitud else "Se volverá a programar."
         db.add(Notificacion(
             id_usuario_destino=solicitud.id_cliente,
-            mensaje=f"Tu inspección programada (solicitud #{programacion.id_solicitud}) fue cancelada. Motivo: {motivo}",
+            mensaje=f"Tu inspección programada (solicitud #{programacion.id_solicitud}) fue cancelada. Motivo: {motivo}. {siguiente}",
             enlace="/dashboard/solicitudes",
             leida=False,
         ))
-
     db.commit()
+
+
+@router.put("/{id}/cancelar")
+def cancelar_programacion(
+    id: int,
+    motivo: str = Body(..., embed=True),
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_coordinador)
+):
+    programacion = db.query(Programacion).filter(Programacion.id_programacion == id).first()
+    if not programacion:
+        raise HTTPException(status_code=404, detail="Programación no encontrada")
+    _cancelar_programacion(db, programacion, motivo)
     return {"message": "Programación cancelada correctamente"}
+
+
+# Cancelar la visita desde la lista de Solicitudes (allí no se conoce el id de la programación)
+@router.put("/solicitud/{id_solicitud}/cancelar")
+def cancelar_visita_de_solicitud(
+    id_solicitud: int,
+    motivo: str = Body(...),
+    cancelar_solicitud: bool = Body(False),
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_coordinador)
+):
+    programacion = (
+        db.query(Programacion)
+        .filter(Programacion.id_solicitud == id_solicitud, Programacion.estado != "Cancelada")
+        .order_by(Programacion.id_programacion.desc())
+        .first()
+    )
+    if not programacion:
+        raise HTTPException(status_code=404, detail="La solicitud no tiene una visita programada")
+    _cancelar_programacion(db, programacion, motivo, cancelar_solicitud)
+    return {"message": "Visita cancelada correctamente"}
 
 # ============================================
 # 5. ELIMINAR PROGRAMACIÓN (HEAD - CRUD completo)
