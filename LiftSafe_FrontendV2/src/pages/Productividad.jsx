@@ -12,6 +12,19 @@ import PageHeader from '../components/PageHeader';
 import StatCard from '../components/StatCard';
 import { reporteService } from '../services/reporteService';
 import { fechaHaceDias, productividadACsv } from '../utils/productividad';
+import { rutaProductividad } from '../utils/filtroProductividad';
+import { Link as RouterLink } from 'react-router-dom';
+
+// Número de la tabla que lleva a la lista de esas inspecciones (si es 0, solo se muestra)
+function Cifra({ valor, to, etiqueta }) {
+  if (!valor) return <>{valor}</>;
+  return (
+    <Typography component={RouterLink} to={to} variant="body2" aria-label={etiqueta}
+      sx={{ color: 'primary.main', fontWeight: 600, textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
+      {valor}
+    </Typography>
+  );
+}
 
 const pct = (v) => (v === null || v === undefined ? '—' : `${v} %`);
 const horas = (v) => (v === null || v === undefined ? '—' : `${v} h`);
@@ -46,6 +59,7 @@ export default function Productividad() {
   };
 
   const total = datos?.total;
+  const ruta = (grupo, r) => rutaProductividad({ grupo, desde: datos?.desde, hasta: datos?.hasta, idInspector: r?.id_inspector, inspector: r?.inspector });
   return (
     <Box>
       <PageHeader
@@ -70,10 +84,10 @@ export default function Productividad() {
         <>
           {cargando && <LinearProgress sx={{ mb: 1 }} />}
           <Box sx={{ display: 'grid', gap: 2, mb: 3, gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: 'repeat(4, 1fr)' } }}>
-              <StatCard title="Inspecciones asignadas" value={total.asignadas} subtitle={`${total.en_curso} en curso`} icon={<AssignmentIcon />} />
-              <StatCard title="Terminadas" value={total.terminadas} subtitle={`Cumplimiento ${pct(total.tasa_cumplimiento)}`} icon={<AssignmentTurnedInIcon />} accent="#1E8E5A" />
-              <StatCard title="Tasa de aprobación" value={pct(total.tasa_aprobacion)} subtitle={`${total.aprobadas} aprobados · ${total.rechazadas} rechazados`} icon={<VerifiedIcon />} accent="#7B1FA2" />
-              <StatCard title="Tiempo promedio" value={horas(total.horas_promedio)} subtitle="por inspección terminada" icon={<ScheduleIcon />} accent="#C77700" />
+              <StatCard to={ruta('asignadas')} title="Inspecciones asignadas" value={total.asignadas} subtitle={`${total.en_curso} en curso`} icon={<AssignmentIcon />} />
+              <StatCard to={ruta('terminadas')} title="Terminadas" value={total.terminadas} subtitle={`Cumplimiento ${pct(total.tasa_cumplimiento)}`} icon={<AssignmentTurnedInIcon />} accent="#1E8E5A" />
+              <StatCard to={ruta('revisadas')} title="Tasa de aprobación" value={pct(total.tasa_aprobacion)} subtitle={`${total.aprobadas} aprobados · ${total.rechazadas} rechazados`} icon={<VerifiedIcon />} accent="#7B1FA2" />
+              <StatCard to={ruta('terminadas')} title="Tiempo promedio" value={horas(total.horas_promedio)} subtitle="por inspección terminada" icon={<ScheduleIcon />} accent="#C77700" />
           </Box>
 
           <Card>
@@ -100,12 +114,17 @@ export default function Productividad() {
                     <TableBody>
                       {datos.inspectores.map((r) => (
                         <TableRow key={r.id_inspector} hover>
-                          <TableCell sx={{ fontWeight: 600 }}>{r.inspector}</TableCell>
-                          <TableCell align="center">{r.asignadas}</TableCell>
-                          <TableCell align="center">{r.terminadas}</TableCell>
-                          <TableCell align="center">{r.en_curso}</TableCell>
-                          <TableCell align="center">{r.aprobadas}</TableCell>
-                          <TableCell align="center">{r.rechazadas}</TableCell>
+                          <TableCell sx={{ fontWeight: 600 }}>
+                            <Typography component={RouterLink} to={ruta('asignadas', r)} variant="body2"
+                              sx={{ color: 'inherit', fontWeight: 600, textDecoration: 'none', '&:hover': { textDecoration: 'underline', color: 'primary.main' } }}>
+                              {r.inspector}
+                            </Typography>
+                          </TableCell>
+                          <TableCell align="center"><Cifra valor={r.asignadas} to={ruta('asignadas', r)} etiqueta={`Ver las ${r.asignadas} inspecciones asignadas a ${r.inspector}`} /></TableCell>
+                          <TableCell align="center"><Cifra valor={r.terminadas} to={ruta('terminadas', r)} etiqueta={`Ver las ${r.terminadas} inspecciones terminadas de ${r.inspector}`} /></TableCell>
+                          <TableCell align="center"><Cifra valor={r.en_curso} to={ruta('en_curso', r)} etiqueta={`Ver las ${r.en_curso} inspecciones en curso de ${r.inspector}`} /></TableCell>
+                          <TableCell align="center"><Cifra valor={r.aprobadas} to={ruta('aprobadas', r)} etiqueta={`Ver los ${r.aprobadas} informes aprobados de ${r.inspector}`} /></TableCell>
+                          <TableCell align="center"><Cifra valor={r.rechazadas} to={ruta('rechazadas', r)} etiqueta={`Ver los ${r.rechazadas} informes rechazados de ${r.inspector}`} /></TableCell>
                           <TableCell>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                               <LinearProgress variant="determinate" value={r.tasa_cumplimiento} sx={{ flex: 1, height: 6, borderRadius: 3 }} aria-label={`Cumplimiento de ${r.inspector}`} />

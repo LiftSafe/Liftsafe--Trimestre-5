@@ -26,6 +26,7 @@ import { describirItems, itemsSinFotoObligatoria, primerItemSinCalificar, resume
 import { useLocation, useNavigate } from 'react-router-dom';
 import { leerEstados, filtrarPorEstado } from '../utils/filtroEstado';
 import { FILTROS_VACIOS, contarFiltros, filtrarInspecciones, opcionesDe } from '../utils/filtrosInspecciones';
+import { leerFiltroProductividad, filtrarPorProductividad, etiquetaProductividad } from '../utils/filtroProductividad';
 import { ESTADO_PENDIENTE_FIRMA, ESTADO_PENDIENTE_REVISION } from '../utils/statusHelpers';
 import { useAuth } from '../context/AuthContext';
 import { apiClient } from '../services/apiClient';
@@ -365,7 +366,9 @@ export default function Inspections() {
   // RF-017: filtros por fecha, cliente, ubicación, técnico, tipo y estado
   const [filtros, setFiltros] = useState(FILTROS_VACIOS);
   const [verFiltros, setVerFiltros] = useState(false);
-  const inspeccionesVisibles = filtrarInspecciones(filtrarPorEstado(inspections, filtroEstados), filtros);
+  // Clic en una tarjeta o un número del reporte de Productividad (?prod=...)
+  const filtroProd = leerFiltroProductividad(location.search);
+  const inspeccionesVisibles = filtrarInspecciones(filtrarPorProductividad(filtrarPorEstado(inspections, filtroEstados), filtroProd), filtros);
 
   const { search, setSearch, page, setPage, paginated, totalCount } = usePaginatedSearch(
     inspeccionesVisibles,
@@ -1055,6 +1058,15 @@ export default function Inspections() {
             ))}
           </Box>
         </Collapse>
+        {filtroProd && (
+          <Chip
+            label={`${etiquetaProductividad(filtroProd)} (${inspeccionesVisibles.length})`}
+            onDelete={() => navigate('/dashboard/inspecciones')}
+            color="primary"
+            variant="outlined"
+            sx={{ ml: 1.5, mt: 0.5 }}
+          />
+        )}
         {filtroEstados.length > 0 && (
           <Chip
             label={`Mostrando: ${filtroEstados.join(' / ')}`}

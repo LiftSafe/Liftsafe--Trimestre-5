@@ -55,7 +55,7 @@ def mis_inspecciones(
     # ni las firmas): con 5.000 inspecciones la lista pasa de ~0,9 s a ~0,1 s.
     consulta = (
         db.query(
-            Inspeccion.id_inspeccion, Ascensor.codigo_interno, Ascensor.marca, Ascensor.modelo,
+            Inspeccion.id_inspeccion, Inspeccion.id_inspector, Ascensor.codigo_interno, Ascensor.marca, Ascensor.modelo,
             Ascensor.tipo_ascensor, Ascensor.ciudad, Ascensor.direccion_completa, Sede.nombre,
             InspectorU.nombre_completo, ClienteU.nombre_completo, Solicitud.tipo_servicio,
             Solicitud.prioridad, Programacion.fecha_programada, Inspeccion.fecha_inicio,
@@ -81,6 +81,7 @@ def mis_inspecciones(
     return JSONResponse([
         {
             "id_inspeccion": id_,
+            "id_inspector": id_insp,
             "codigo_ascensor": codigo,
             "marca": marca,
             "modelo": modelo,
@@ -103,7 +104,7 @@ def mis_inspecciones(
             "firma_cliente": bool(firma_c),
             "id_informe": id_informe,
         }
-        for (id_, codigo, marca, modelo, tipo, ciudad, direccion, sede, inspector, cliente, tipo_servicio,
+        for (id_, id_insp, codigo, marca, modelo, tipo, ciudad, direccion, sede, inspector, cliente, tipo_servicio,
              prioridad, fecha_programada, fecha_inicio, fecha_fin, estado, estado_informe, observaciones,
              firma_i, firma_c, id_informe) in filas
     ])
