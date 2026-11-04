@@ -4,7 +4,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import Productividad from './Productividad'
 import { reporteService } from '../services/reporteService'
 
-vi.mock('../services/reporteService', () => ({ reporteService: { productividad: vi.fn() } }))
+vi.mock('../services/reporteService', () => ({ reporteService: { productividad: vi.fn(), productividadExcel: vi.fn() } }))
 
 const datos = {
   desde: '2026-10-04', hasta: '2026-11-03',
@@ -39,5 +39,18 @@ describe('Productividad (RF-024)', () => {
     reporteService.productividad.mockRejectedValue(new Error('Solo el Coordinador o el Director Técnico pueden ver este reporte'))
     render(<MemoryRouter><Productividad /></MemoryRouter>)
     expect(await screen.findByText(/Solo el Coordinador/)).toBeInTheDocument()
+  })
+
+  it('should download the Excel made by the server', async () => {
+    reporteService.productividad.mockResolvedValue(datos)
+    reporteService.productividadExcel.mockResolvedValue({ blob: new Blob(['x']), nombre: 'Productividad_LiftSafe.xlsx' })
+    URL.createObjectURL = vi.fn(() => 'blob:x')
+    URL.revokeObjectURL = vi.fn()
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    render(<MemoryRouter><Productividad /></MemoryRouter>)
+    fireEvent.click(await screen.findByRole('button', { name: /Descargar Excel/ }))
+    await vi.waitFor(() => expect(click).toHaveBeenCalled())
+    expect(reporteService.productividadExcel).toHaveBeenCalledWith(datos.desde, datos.hasta)
+    click.mockRestore()
   })
 })

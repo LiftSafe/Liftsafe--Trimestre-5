@@ -11,7 +11,7 @@ import DownloadIcon from '@mui/icons-material/Download';
 import PageHeader from '../components/PageHeader';
 import StatCard from '../components/StatCard';
 import { reporteService } from '../services/reporteService';
-import { fechaHaceDias, productividadACsv } from '../utils/productividad';
+import { fechaHaceDias } from '../utils/productividad';
 import { rutaProductividad } from '../utils/filtroProductividad';
 import { Link as RouterLink } from 'react-router-dom';
 
@@ -48,14 +48,22 @@ export default function Productividad() {
 
   const cambiar = (setter) => (e) => { setCargando(true); setter(e.target.value); };
 
-  const descargar = () => {
-    const blob = new Blob([productividadACsv(datos)], { type: 'text/csv;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `productividad_${datos.desde}_a_${datos.hasta}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+  const [descargando, setDescargando] = useState(false);
+  const descargar = async () => {
+    setDescargando(true);
+    try {
+      const { blob, nombre } = await reporteService.productividadExcel(datos?.desde || desde, datos?.hasta || hasta);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = nombre;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      setError(e.message || 'No se pudo generar el Excel');
+    } finally {
+      setDescargando(false);
+    }
   };
 
   const total = datos?.total;
@@ -72,8 +80,8 @@ export default function Productividad() {
         <TextField size="small" type="date" label="Desde" value={desde} onChange={cambiar(setDesde)} InputLabelProps={{ shrink: true }} />
         <TextField size="small" type="date" label="Hasta" value={hasta} onChange={cambiar(setHasta)} InputLabelProps={{ shrink: true }} />
         <Box sx={{ flex: 1 }} />
-        <Button variant="outlined" startIcon={<DownloadIcon />} onClick={descargar} disabled={!datos?.inspectores?.length}>
-          Descargar Excel (CSV)
+        <Button variant="outlined" startIcon={<DownloadIcon />} onClick={descargar} disabled={!datos?.inspectores?.length || descargando}>
+          {descargando ? 'Generando Excel…' : 'Descargar Excel'}
         </Button>
       </Box>
 
