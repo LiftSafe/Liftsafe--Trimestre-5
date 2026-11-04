@@ -58,9 +58,16 @@ const TIPOS_SERVICIO = [
 
 const PRIORIDADES = ['Baja', 'Media', 'Alta', 'Crítica'];
 
+// Solicitudes ya asignadas que aún no terminan: cuentan en la tarjeta "Programadas"
+const EN_CURSO = ['Programada', 'En Progreso', 'Pendiente firma cliente', 'Pendiente revisión'];
+
 const ESTADOS = {
   'Pendiente': 'warning',
   'Programada': 'info',
+  // La inspección de la solicitud ya empezó (el backend muestra en qué va)
+  'En Progreso': 'warning',
+  'Pendiente firma cliente': 'warning',
+  'Pendiente revisión': 'secondary',
   'Aprobada': 'success',
   'Finalizada': 'success',
   'Cancelada': 'error'
@@ -401,7 +408,7 @@ export default function Solicitudes() {
   // Estadísticas
   const total = solicitudes.length;
   const pendientes = solicitudes.filter(s => s.estado === 'Pendiente').length;
-  const programadas = solicitudes.filter(s => s.estado === 'Programada').length;
+  const programadas = solicitudes.filter(s => EN_CURSO.includes(s.estado)).length;
   const finalizadas = solicitudes.filter(s => s.estado === 'Finalizada' || s.estado === 'Aprobada').length;
 
   if (loading) {
@@ -457,7 +464,7 @@ export default function Solicitudes() {
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <Paper
-            onClick={() => { setFiltroEstados(['Programada']); setPage(0); }}
+            onClick={() => { setFiltroEstados(EN_CURSO); setPage(0); }}
             role="button"
             title="Ver en la tabla"
             sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2, cursor: 'pointer' }}

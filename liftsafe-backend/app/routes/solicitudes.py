@@ -5,6 +5,7 @@ from datetime import datetime, date
 from app.database import get_db
 from app.models.models import Solicitud, Ascensor, Usuario, Notificacion
 from app.schemas.schemas import SolicitudCreate, SolicitudUpdate, SolicitudResponse
+from app.controllers.estado_solicitud_controller import estado_visible
 from app.utils.auth_deps import get_current_user_role, require_admin, ADMIN_ROL_ID, COORDINADOR_ROL_ID
 
 router = APIRouter(prefix="/solicitudes", tags=["Solicitudes"])
@@ -24,7 +25,8 @@ def _serializar_solicitud(s: Solicitud) -> dict:
         "prioridad": s.prioridad,
         "fecha_solicitud": s.fecha_solicitud,
         "fecha_deseada": s.fecha_deseada,
-        "estado": s.estado,
+        # Si la inspección ya empezó, se muestra en qué va (En Progreso, Pendiente revisión...)
+        "estado": estado_visible(s.estado, s.inspecciones),
         "observaciones": s.observaciones,
         "fecha_registro": s.fecha_registro,
         "ascensor": {
@@ -45,7 +47,8 @@ def _serializar_solicitud(s: Solicitud) -> dict:
 
 
 def _con_relaciones(query):
-    return query.options(joinedload(Solicitud.ascensor), joinedload(Solicitud.cliente))
+    return query.options(joinedload(Solicitud.ascensor), joinedload(Solicitud.cliente),
+                         joinedload(Solicitud.inspecciones))
 
 
 # 1. Crear solicitud (solo Cliente)
