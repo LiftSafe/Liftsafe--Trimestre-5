@@ -5,7 +5,7 @@ from datetime import datetime, date
 from app.database import get_db
 from app.models.models import Solicitud, Ascensor, Usuario, Notificacion
 from app.schemas.schemas import SolicitudCreate, SolicitudUpdate, SolicitudResponse
-from app.controllers.estado_solicitud_controller import estado_visible
+from app.controllers.estado_solicitud_controller import estado_visible, estados_ultima_inspeccion
 from app.utils.auth_deps import get_current_user_role, require_admin, ADMIN_ROL_ID, COORDINADOR_ROL_ID
 
 router = APIRouter(prefix="/solicitudes", tags=["Solicitudes"])
@@ -16,7 +16,7 @@ router = APIRouter(prefix="/solicitudes", tags=["Solicitudes"])
 # ya se corrigió en usuario_ascensor.py). Antes esos campos no existían
 # siquiera en el modelo, así que siempre llegaban en None y el frontend
 # mostraba "N/A" en Ascensor y Cliente. Se serializa manualmente a dict.
-def _serializar_solicitud(s: Solicitud) -> dict:
+def _serializar_solicitud(s: Solicitud, estado_inspeccion: str | None = None) -> dict:
     return {
         "id_solicitud": s.id_solicitud,
         "id_cliente": s.id_cliente,
@@ -26,7 +26,7 @@ def _serializar_solicitud(s: Solicitud) -> dict:
         "fecha_solicitud": s.fecha_solicitud,
         "fecha_deseada": s.fecha_deseada,
         # Si la inspección ya empezó, se muestra en qué va (En Progreso, Pendiente revisión...)
-        "estado": estado_visible(s.estado, s.inspecciones),
+        "estado": estado_visible(s.estado, estado_inspeccion),
         "observaciones": s.observaciones,
         "fecha_registro": s.fecha_registro,
         "ascensor": {
@@ -47,8 +47,12 @@ def _serializar_solicitud(s: Solicitud) -> dict:
 
 
 def _con_relaciones(query):
-    return query.options(joinedload(Solicitud.ascensor), joinedload(Solicitud.cliente),
-                         joinedload(Solicitud.inspecciones))
+    return query.options(joinedload(Solicitud.ascensor), joinedload(Solicitud.cliente))
+
+
+def _serializar_con_estado(db: Session, solicitudes: list) -> list:
+    estados = estados_ultima_inspeccion(db, [s.id_solicitud for s in solicitudes])
+    return [_serializar_solicitud(s, estados.get(s.id_solicitud)) for s in solicitudes]
 
 
 # 1. Crear solicitud (solo Cliente)
@@ -132,7 +136,7 @@ def listar_solicitudes(
     if rol == "Cliente":
         query = query.filter(Solicitud.id_cliente == user_id)
     solicitudes = query.order_by(Solicitud.id_solicitud.desc()).all()
-    return [_serializar_solicitud(s) for s in solicitudes]
+    return _serializar_con_estado(db, solicitudes)
 
 # 3. Obtener una solicitud por ID
 @router.get("/{id}", response_model=dict)
@@ -150,7 +154,7 @@ def obtener_solicitud(
     # Validar permiso
     if rol == "Cliente" and solicitud.id_cliente != user_id:
         raise HTTPException(status_code=403, detail="No tienes permiso para ver esta solicitud")
-    return _serializar_solicitud(solicitud)
+    return _serializar_con_estado(db, [solicitud])[0]
 
 # 4. Modificar solicitud
 @router.put("/{id}", response_model=dict)
@@ -197,7 +201,7 @@ def modificar_solicitud(
         db.commit()
 
     solicitud = _con_relaciones(db.query(Solicitud)).filter(Solicitud.id_solicitud == id).first()
-    return _serializar_solicitud(solicitud)
+    return _serializar_con_estado(db, [solicitud])[0]
 
 # 5. Eliminar solicitud (solo Administrador)
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
