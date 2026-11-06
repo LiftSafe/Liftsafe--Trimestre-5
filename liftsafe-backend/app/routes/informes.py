@@ -329,6 +329,7 @@ async def revisar_informe(
 @router.put("/{id}/enviar", response_model=MessageResponse)
 async def enviar_informe(
     id: int,
+    background: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
@@ -342,11 +343,10 @@ async def enviar_informe(
     if informe.estado not in ("Aprobado", "Enviado"):
         raise HTTPException(status_code=400, detail="El informe debe estar aprobado antes de enviarse")
 
-    # RF-014: el PDF se manda por correo al cliente
-    correo_enviado = await enviar_informe_por_correo(db, informe)
     informe.estado = "Enviado"
     db.commit()
 
+    correo_encuesta = None
     # FIX: el cliente no se enteraba de que su informe ya estaba disponible.
     inspeccion_rel = db.query(Inspeccion).filter(
         Inspeccion.id_inspeccion == informe.id_inspeccion
@@ -380,15 +380,19 @@ async def enviar_informe(
         # cuando de verdad se completa todo el proceso. Si por algún motivo
         # ya existiera una encuesta para esta inspección, no se duplica.
         # Normalmente la encuesta ya se creó al aprobar; si no, se crea aquí.
-        await crear_encuesta_si_falta(
+        creada = await crear_encuesta_si_falta(
             db, inspeccion_rel, ascensor_rel, cliente_rel,
             f"Ya tienes el informe completo del ascensor {ascensor_rel.codigo_interno}. "
             "Cuéntanos cómo fue todo el proceso en la sección Encuestas.",
+            enviar_correo=False,
         )
+        if creada and cliente_rel.correo:
+            correo_encuesta = (cliente_rel.correo, cliente_rel.nombre_completo, ascensor_rel.codigo_interno)
 
-    if correo_enviado:
-        return {"message": "Informe enviado por correo al cliente"}
-    return {"message": "Informe marcado como enviado, pero no se pudo mandar el correo (revisa la configuración del correo en el .env)"}
+    # RF-014: el PDF (y la encuesta, si es nueva) se mandan por correo en
+    # segundo plano para no hacer esperar al usuario mientras responde el SMTP.
+    background.add_task(correos_al_aprobar, informe.id_informe, correo_encuesta)
+    return {"message": "El informe se está enviando por correo al cliente"}
 
 # ============================================
 # 5. ELIMINAR INFORME (HEAD - CRUD completo)
