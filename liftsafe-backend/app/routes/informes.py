@@ -1,8 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, Security
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Security
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from typing import List
-from app.database import get_db
+from app.database import SessionLocal, get_db
 from app.models.models import Informe, Inspeccion, Usuario, Ascensor, Notificacion, Encuesta, Solicitud, Fotografia, Observacion
 from app.controllers.foto_obligatoria_controller import exigir_fotos_no_aplica
 from app.utils.auditoria import registrar_auditoria
@@ -71,9 +71,9 @@ def finalizar_solicitud(db: Session, inspeccion) -> bool:
     return True
 
 
-async def crear_encuesta_si_falta(db: Session, inspeccion, ascensor, cliente, mensaje: str) -> bool:
+async def crear_encuesta_si_falta(db: Session, inspeccion, ascensor, cliente, mensaje: str, enviar_correo: bool = True) -> bool:
     """Crea la encuesta de satisfacción de la inspección (una sola vez),
-    avisa al cliente en la campanita y le manda el correo."""
+    avisa al cliente en la campanita y le manda el correo (si enviar_correo)."""
     if not (inspeccion and ascensor and cliente):
         return False
     if db.query(Encuesta).filter(Encuesta.id_inspeccion == inspeccion.id_inspeccion).first():
@@ -86,11 +86,29 @@ async def crear_encuesta_si_falta(db: Session, inspeccion, ascensor, cliente, me
         leida=False,
     ))
     db.commit()
+    if not enviar_correo:
+        return True
     try:
         await send_encuesta_email(cliente.correo, cliente.nombre_completo, ascensor.codigo_interno)
     except Exception as e:
         print(f"⚠️ No se pudo enviar el correo de encuesta: {e}")
     return True
+
+async def correos_al_aprobar(id_informe: int, correo_encuesta: tuple | None) -> None:
+    """Se ejecuta DESPUÉS de responder: enviar correos por SMTP tarda varios
+    segundos y antes hacía esperar al coordinador para ver el nuevo estado.
+    Usa su propia sesión porque la de la petición ya se cerró."""
+    db = SessionLocal()
+    try:
+        informe = db.query(Informe).filter(Informe.id_informe == id_informe).first()
+        if informe:
+            await enviar_informe_por_correo(db, informe)
+        if correo_encuesta:
+            await send_encuesta_email(*correo_encuesta)
+    except Exception as e:
+        print(f"⚠️ No se pudieron enviar los correos del informe {id_informe}: {e}")
+    finally:
+        db.close()
 
 # ============================================
 # 1. GENERAR INFORME PDF (ESTEBAN)
@@ -206,6 +224,7 @@ def obtener_informe_por_inspeccion(
 async def revisar_informe(
     id: int,
     data: InformeRevisionRequest,
+    background: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
@@ -261,16 +280,21 @@ async def revisar_informe(
         # Finalizada (antes solo pasaba al "Enviar informe") y se habilita
         # la encuesta de satisfacción.
         finalizar_solicitud(db, insp)
-        # RF-014: el informe final aprobado se envía solo al cliente por correo
-        await enviar_informe_por_correo(db, informe)
+        correo_encuesta = None
         if insp:
             asc = db.query(Ascensor).filter(Ascensor.id_ascensor == insp.id_ascensor).first()
             cli = db.query(Usuario).filter(Usuario.id_usuario == asc.id_cliente).first() if asc else None
-            await crear_encuesta_si_falta(
+            creada = await crear_encuesta_si_falta(
                 db, insp, asc, cli,
                 f"La inspección del ascensor {asc.codigo_interno if asc else ''} terminó. "
                 "Cuéntanos cómo fue todo el proceso en la sección Encuestas.",
+                enviar_correo=False,
             )
+            if creada and cli.correo:
+                correo_encuesta = (cli.correo, cli.nombre_completo, asc.codigo_interno)
+        # RF-014: el informe aprobado y la encuesta se envían por correo en
+        # segundo plano, así el nuevo estado se ve al instante.
+        background.add_task(correos_al_aprobar, informe.id_informe, correo_encuesta)
 
     # FIX: el inspector que hizo la inspección no se enteraba de si su
     # informe había sido aprobado o rechazado.
