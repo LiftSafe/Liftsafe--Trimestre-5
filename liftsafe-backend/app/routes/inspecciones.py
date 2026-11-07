@@ -4,6 +4,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session, aliased
 from sqlalchemy import text
 from app.database import get_db
+from app.controllers.productividad_controller import rechazos_por_inspeccion
 from app.models.models import Inspeccion, Ascensor, Usuario, Informe, Notificacion, Solicitud, Programacion, Sede
 from app.schemas.schemas import InspeccionCreate, InspeccionUpdate, FirmaRequest, MessageResponse
 from app.controllers.inspeccion_controller import crear_inspeccion
@@ -76,6 +77,7 @@ def mis_inspecciones(
         consulta = consulta.filter(Ascensor.id_cliente == user_id)
 
     filas = consulta.order_by(Inspeccion.id_inspeccion.desc()).all()
+    rechazos = rechazos_por_inspeccion(db)
     fecha = lambda v: v.isoformat() if v is not None else None
     # JSONResponse directo: los datos ya son texto/números (evita jsonable_encoder fila por fila)
     return JSONResponse([
@@ -103,6 +105,8 @@ def mis_inspecciones(
             "firma_inspector": bool(firma_i),
             "firma_cliente": bool(firma_c),
             "id_informe": id_informe,
+            # Veces que se rechazó su informe (sigue contando aunque luego se aprobara)
+            "rechazos": rechazos.get(id_, 0),
         }
         for (id_, id_insp, codigo, marca, modelo, tipo, ciudad, direccion, sede, inspector, cliente, tipo_servicio,
              prioridad, fecha_programada, fecha_inicio, fecha_fin, estado, estado_informe, observaciones,

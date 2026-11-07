@@ -5,14 +5,17 @@
 
 export const ESTADOS_TERMINADA = ['Pendiente firma cliente', 'Pendiente revisión', 'Finalizada', 'Aprobada', 'Completada'];
 const INFORME_APROBADO = ['Aprobado', 'Enviado'];
+// Le rechazaron el informe alguna vez (el backend lo saca del log de auditoría)
+const fueRechazada = (i) => (i.rechazos || 0) > 0 || i.estado_informe === 'Rechazado';
 
 export const GRUPOS = {
   asignadas: { nombre: 'Asignadas', cumple: () => true },
   terminadas: { nombre: 'Terminadas', cumple: (i) => ESTADOS_TERMINADA.includes(i.estado) },
   en_curso: { nombre: 'En curso', cumple: (i) => !ESTADOS_TERMINADA.includes(i.estado) && i.estado !== 'Cancelada' },
   aprobadas: { nombre: 'Aprobadas', cumple: (i) => INFORME_APROBADO.includes(i.estado_informe) },
-  rechazadas: { nombre: 'Rechazadas', cumple: (i) => i.estado_informe === 'Rechazado' },
-  revisadas: { nombre: 'Informes revisados', cumple: (i) => INFORME_APROBADO.includes(i.estado_informe) || i.estado_informe === 'Rechazado' },
+  // Rechazada alguna vez (aunque después se corrigiera y aprobara)
+  rechazadas: { nombre: 'Rechazadas', cumple: (i) => fueRechazada(i) },
+  revisadas: { nombre: 'Informes revisados', cumple: (i) => INFORME_APROBADO.includes(i.estado_informe) || fueRechazada(i) },
 };
 
 // Ruta a la lista: /dashboard/inspecciones?prod=terminadas&desde=…&hasta=…&insp=4&inspNombre=…

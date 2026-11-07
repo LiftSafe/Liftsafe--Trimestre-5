@@ -5,6 +5,27 @@ ESTADOS_TERMINADA = {"Pendiente firma cliente", "Pendiente revisión", "Finaliza
 ESTADOS_INFORME_APROBADO = {"Aprobado", "Enviado"}
 
 
+def rechazos_por_inspeccion(db) -> dict:
+    """Cuántas veces se rechazó el informe de cada inspección. Sale del log de
+    auditoría (RNF-012) porque, cuando el inspector corrige y el informe se
+    vuelve a generar y aprobar, su estado actual ya no dice que fue rechazado."""
+    from sqlalchemy import func
+    from app.models.models import Auditoria, Informe
+    filas = (
+        db.query(Informe.id_inspeccion, func.count(Auditoria.id_auditoria))
+        .join(Auditoria, Auditoria.id_registro == Informe.id_informe)
+        .filter(Auditoria.tabla_afectada == "informe", Auditoria.operacion == "RECHAZADO")
+        .group_by(Informe.id_inspeccion)
+        .all()
+    )
+    return {id_inspeccion: veces for id_inspeccion, veces in filas}
+
+
+def fue_rechazada(fila) -> bool:
+    """La inspección tuvo al menos un informe rechazado (aunque luego se aprobara)."""
+    return (fila.get("rechazos") or 0) > 0 or fila.get("estado_informe") == "Rechazado"
+
+
 def _horas(fila) -> float | None:
     """Duración de una inspección terminada, en horas."""
     if fila.get("duracion_minutos"):
@@ -17,7 +38,9 @@ def _horas(fila) -> float | None:
 
 def calcular_productividad(filas: list) -> dict:
     """filas: dicts con id_inspector, inspector, estado, estado_informe,
-    fecha_inicio, fecha_fin y duracion_minutos (una por inspección)."""
+    rechazos, fecha_inicio, fecha_fin y duracion_minutos (una por inspección).
+    "rechazadas" cuenta las inspecciones a las que les rechazaron el informe
+    alguna vez, aunque después se corrigieran y aprobaran."""
     por_inspector = {}
     for f in filas:
         r = por_inspector.setdefault(f["id_inspector"], {
@@ -38,7 +61,7 @@ def calcular_productividad(filas: list) -> dict:
             r["en_curso"] += 1
         if f.get("estado_informe") in ESTADOS_INFORME_APROBADO:
             r["aprobadas"] += 1
-        elif f.get("estado_informe") == "Rechazado":
+        if fue_rechazada(f):
             r["rechazadas"] += 1
 
     def cerrar(r):

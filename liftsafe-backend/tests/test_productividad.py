@@ -39,3 +39,14 @@ def test_sin_datos():
     assert datos["total"]["asignadas"] == 0
     assert datos["total"]["horas_promedio"] is None
     assert datos["total"]["tasa_aprobacion"] is None
+
+
+def test_cuenta_como_rechazada_aunque_luego_se_aprobara():
+    from app.controllers.productividad_controller import calcular_productividad
+    filas = [
+        {"id_inspector": 1, "inspector": "Ana", "estado": "Finalizada", "estado_informe": "Aprobado", "rechazos": 1},
+        {"id_inspector": 1, "inspector": "Ana", "estado": "Finalizada", "estado_informe": "Aprobado", "rechazos": 0},
+        {"id_inspector": 1, "inspector": "Ana", "estado": "En Progreso", "estado_informe": "Rechazado"},
+    ]
+    ana = calcular_productividad(filas)["inspectores"][0]
+    assert (ana["aprobadas"], ana["rechazadas"], ana["tasa_aprobacion"]) == (2, 2, 50)

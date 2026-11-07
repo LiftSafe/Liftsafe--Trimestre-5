@@ -31,6 +31,12 @@ describe('filtroProductividad (RF-024 → lista)', () => {
     expect(ids({ grupo: 'asignadas', desde: '', hasta: '', idInspector: null })).toHaveLength(6)
   })
 
+  it('cuenta como rechazada la que luego se corrigió y aprobó', () => {
+    const corregida = [{ id_inspeccion: 9, id_inspector: 4, fecha_inicio: '2026-10-02T09:00:00', estado: 'Finalizada', estado_informe: 'Aprobado', rechazos: 1 }]
+    expect(filtrarPorProductividad(corregida, { grupo: 'rechazadas', desde: '', hasta: '', idInspector: null })).toHaveLength(1)
+    expect(filtrarPorProductividad(corregida, { grupo: 'aprobadas', desde: '', hasta: '', idInspector: null })).toHaveLength(1)
+  })
+
   it('etiqueta legible', () => {
     expect(etiquetaProductividad({ grupo: 'en_curso', desde: '2026-10-01', hasta: '2026-10-31', inspector: 'Andrés' }))
       .toBe('Productividad: En curso · Andrés · 01/10/2026 a 31/10/2026')

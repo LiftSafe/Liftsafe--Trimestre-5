@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
-from app.controllers.productividad_controller import calcular_productividad
+from app.controllers.productividad_controller import calcular_productividad, rechazos_por_inspeccion
 from app.database import get_db
 from app.models.models import Informe, Inspeccion, Usuario
 from app.utils.auth_deps import get_current_user
@@ -63,9 +63,11 @@ def _datos_productividad(desde, hasta, current_user, db):
                 Inspeccion.fecha_inicio <= datetime.combine(hasta, time.max))
         .all()
     )
+    rechazos = rechazos_por_inspeccion(db)
     datos = calcular_productividad([
         {
             "id_inspector": i.id_inspector, "inspector": nombre, "estado": i.estado, "estado_informe": estado_inf,
+            "rechazos": rechazos.get(i.id_inspeccion, 0),
             "fecha_inicio": i.fecha_inicio, "fecha_fin": i.fecha_fin, "duracion_minutos": i.duracion_minutos,
         }
         for i, nombre, estado_inf in filas
