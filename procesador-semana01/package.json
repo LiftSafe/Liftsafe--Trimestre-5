@@ -1,0 +1,21 @@
+{
+  "name": "liftsafe-procesador-semana01",
+  "version": "1.0.0",
+  "private": true,
+  "description": "LiftSafe — CLI que lee el catálogo de ascensores (JSON), lo filtra por categoría y genera un reporte",
+  "type": "commonjs",
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "packageManager": "pnpm@9.15.9",
+  "devDependencies": {
+    "@types/node": "22.10.5",
+    "tsx": "4.19.2",
+    "typescript": "5.7.3",
+    "vitest": "2.1.8"
+  }
+}

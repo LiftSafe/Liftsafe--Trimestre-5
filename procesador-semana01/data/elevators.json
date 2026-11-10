@@ -1,0 +1,14 @@
+[
+  { "id": 1, "internalCode": "ASC-001", "brand": "Otis", "model": "Gen2", "category": "Eléctrico", "building": "Torre Central", "city": "Bogotá", "floors": 10, "capacityKg": 630, "inspectionCost": 850000, "active": true },
+  { "id": 2, "internalCode": "ASC-002", "brand": "Schindler", "model": "3300", "category": "Eléctrico", "building": "Edificio Andino", "city": "Bogotá", "floors": 15, "capacityKg": 800, "inspectionCost": 920000, "active": true },
+  { "id": 3, "internalCode": "ASC-003", "brand": "ThyssenKrupp", "model": "Synergy", "category": "Hidráulico", "building": "Clínica del Norte", "city": "Medellín", "floors": 4, "capacityKg": 450, "inspectionCost": 610000, "active": false },
+  { "id": 4, "internalCode": "ASC-004", "brand": "Kone", "model": "MonoSpace 500", "category": "Eléctrico", "building": "Centro Empresarial 93", "city": "Bogotá", "floors": 22, "capacityKg": 1000, "inspectionCost": 1150000, "active": true },
+  { "id": 5, "internalCode": "MON-001", "brand": "Otis", "model": "Gen2 Freight", "category": "Montacargas", "building": "Bodega Logística Sur", "city": "Cali", "floors": 3, "capacityKg": 2500, "inspectionCost": 1320000, "active": true },
+  { "id": 6, "internalCode": "MON-002", "brand": "Mitsubishi", "model": "Freight F2", "category": "Montacargas", "building": "Plaza de Mercado Norte", "city": "Barranquilla", "floors": 2, "capacityKg": 2000, "inspectionCost": 1180000, "active": false },
+  { "id": 7, "internalCode": "PAN-001", "brand": "Schindler", "model": "7000 Panorama", "category": "Panorámico", "building": "Centro Comercial Andino", "city": "Bogotá", "floors": 6, "capacityKg": 1050, "inspectionCost": 1450000, "active": true },
+  { "id": 8, "internalCode": "PAN-002", "brand": "Kone", "model": "Panorama 3000", "category": "Panorámico", "building": "Hotel Mirador", "city": "Cartagena", "floors": 12, "capacityKg": 900, "inspectionCost": 1390000, "active": true },
+  { "id": 9, "internalCode": "HID-002", "brand": "Orona", "model": "3G 1010", "category": "Hidráulico", "building": "Conjunto Los Pinos", "city": "Bucaramanga", "floors": 5, "capacityKg": 320, "inspectionCost": 540000, "active": true },
+  { "id": 10, "internalCode": "SIL-001", "brand": "Otis", "model": "Stair Lift S1", "category": "Salvaescaleras", "building": "Colegio San José", "city": "Pereira", "floors": 2, "capacityKg": 150, "inspectionCost": 380000, "active": true },
+  { "id": 11, "internalCode": "SIL-002", "brand": "Thyssenkrupp", "model": "Flow X", "category": "Salvaescaleras", "building": "Biblioteca Municipal", "city": "Manizales", "floors": 2, "capacityKg": 140, "inspectionCost": 365000, "active": false },
+  { "id": 12, "internalCode": "ASC-005", "brand": "Hyundai", "model": "LUXEN", "category": "Eléctrico", "building": "Torre Sigma", "city": "Medellín", "floors": 30, "capacityKg": 1350, "inspectionCost": 1580000, "active": true }
+]
