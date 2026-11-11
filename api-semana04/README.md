@@ -111,3 +111,15 @@ El puerto se cambia con la variable `PORT`.
   3. `GET /:id` con id inexistente → 404
   4. `GET /ruta-inexistente` → 404 en JSON (no HTML)
   5. Logs visibles en la consola donde corre `pnpm dev`
+
+## Capturas
+
+Peticiones reales hechas contra la API corriendo con `pnpm dev` (puerto 3000). Son las mismas peticiones de la carpeta **Capturas del entregable** de la colección de Postman.
+
+| # | Caso | Captura |
+|---|---|---|
+| 1 | `POST` con body inválido → 400 con `issues[]` | ![POST inválido](docs/capturas/1-post-body-invalido-400.png) |
+| 2 | `GET /:id` con id no numérico → 400 | ![id no numérico](docs/capturas/2-id-no-numerico-400.png) |
+| 3 | `GET /:id` con id inexistente → 404 | ![id inexistente](docs/capturas/3-id-inexistente-404.png) |
+| 4 | `GET /ruta-inexistente` → 404 en JSON | ![ruta inexistente](docs/capturas/4-ruta-inexistente-404.png) |
+| 5 | Logs en consola (Winston + Morgan, con el `warn` de cada `AppError`) | ![logs](docs/capturas/5-logs-consola.png) |
