@@ -291,10 +291,11 @@ def test_registro_correcto_guarda_al_cliente_y_confirma(client, db):
     db.commit.assert_called_once()  # SPY
 
 
-def test_registro_con_correo_repetido_responde_400_y_no_guarda(client, db):
+def test_registro_con_correo_repetido_responde_409_y_no_guarda(client, db):
+    # Desde la semana 4 un duplicado es 409 Conflict (hallazgo 6), no 400
     db.query.return_value.filter.return_value.first.return_value = object()
     respuesta = client.post("/auth/register", json=REGISTRO)
-    assert respuesta.status_code == 400
+    assert respuesta.status_code == 409
     assert respuesta.json()["detail"] == "El correo ya está registrado"
     db.commit.assert_not_called()
 
