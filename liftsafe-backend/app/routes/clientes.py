@@ -105,7 +105,7 @@ def crear_sede(id_cliente: int, data: SedeCreate, db: Session = Depends(get_db),
         .first()
     )
     if repetida:
-        raise HTTPException(status_code=400, detail="Este cliente ya tiene una sede con ese nombre")
+        raise HTTPException(status_code=409, detail="Este cliente ya tiene una sede con ese nombre")
     sede = Sede(
         id_cliente=id_cliente,
         nombre=nombre,
@@ -149,7 +149,7 @@ def eliminar_sede(id_sede: int, db: Session = Depends(get_db), user_data: tuple 
     en_uso = db.query(Ascensor).filter(Ascensor.id_sede == id_sede).count()
     if en_uso:
         raise HTTPException(
-            status_code=400,
+            status_code=409,
             detail=f"No se puede eliminar: la sede tiene {en_uso} ascensor(es). Muévelos a otra sede primero.",
         )
     db.delete(sede)

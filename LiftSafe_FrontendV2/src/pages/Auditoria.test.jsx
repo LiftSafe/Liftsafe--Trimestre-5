@@ -1,88 +1,97 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { renderWithProviders } from '../test/renderWithProviders'
 import Auditoria from './Auditoria'
 import { auditoriaService } from '../services/auditoriaService'
 
-const auth = { user: { role: 'Administrador' } }
-vi.mock('../context/AuthContext', () => ({ useAuth: () => auth }))
+let sesion
+vi.mock('../context/AuthContext', () => ({ useAuth: () => sesion }))
 vi.mock('../services/auditoriaService', () => ({
   auditoriaService: { listar: vi.fn(), filtrarPorTabla: vi.fn() },
 }))
 
-const registro = (extra = {}) => ({
-  id_auditoria: 1,
-  fecha_evento: '2026-11-10T10:00:00',
-  usuario_nombre: 'Ana',
-  tabla_afectada: 'usuario',
-  operacion: 'INSERT',
-  id_registro: 5,
-  ...extra,
+const admin = { user: { role: 'Administrador', name: 'Admin' }, isAuthenticated: true }
+
+const registro = (id, usuario, tabla, operacion) => ({
+  id_auditoria: id,
+  fecha_evento: '2026-10-01T10:00:00',
+  usuario_nombre: usuario,
+  tabla_afectada: tabla,
+  operacion,
+  id_registro: id,
 })
 
-beforeEach(() => {
-  auth.user = { role: 'Administrador' }
-  auditoriaService.listar.mockReset().mockResolvedValue([])
-  auditoriaService.filtrarPorTabla.mockReset().mockResolvedValue([])
-})
-
-describe('<Auditoria />', () => {
-  it('should deny access to anyone who is not an administrator', async () => {
-    auth.user = { role: 'Cliente' }
-    render(<Auditoria />)
-    expect(await screen.findByText('No tienes permisos para ver esta página')).toBeInTheDocument()
+describe('Auditoria', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    sesion = admin
   })
 
-  it('should list the audit records with user, operation and affected row', async () => {
-    auditoriaService.listar.mockResolvedValue([registro()])
-    render(<Auditoria />)
+  it('muestra los registros de auditoría que devuelve la API', async () => {
+    auditoriaService.listar.mockResolvedValue([
+      registro(1, 'Ana Pérez', 'usuario', 'INSERT'),
+      registro(2, 'Luis Gómez', 'edificios', 'UPDATE'),
+    ])
 
-    expect(await screen.findByText('Ana')).toBeInTheDocument()
-    expect(screen.getByText('INSERT')).toBeInTheDocument()
-    expect(screen.getByText('usuario #5')).toBeInTheDocument()
+    renderWithProviders(<Auditoria />)
+
+    expect(await screen.findByRole('cell', { name: 'Ana Pérez' })).toBeInTheDocument()
+    expect(screen.getByRole('cell', { name: 'Luis Gómez' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Auditoría del sistema' })).toBeInTheDocument()
   })
 
-  it('should show "Sistema" and a dash when the record has no user or id', async () => {
-    auditoriaService.listar.mockResolvedValue([registro({ usuario_nombre: null, id_registro: null })])
-    render(<Auditoria />)
+  it('muestra un mensaje cuando no hay registros', async () => {
+    auditoriaService.listar.mockResolvedValue([])
 
-    expect(await screen.findByText('Sistema')).toBeInTheDocument()
-    expect(screen.getByText('usuario #—')).toBeInTheDocument()
-  })
+    renderWithProviders(<Auditoria />)
 
-  it('should tell the admin when there are no records', async () => {
-    render(<Auditoria />)
     expect(await screen.findByText('No hay registros de auditoría todavía')).toBeInTheDocument()
   })
 
-  it('should show the error when the audit cannot be loaded', async () => {
-    auditoriaService.listar.mockRejectedValue(new Error('Fallo del servidor'))
-    render(<Auditoria />)
-    expect(await screen.findByText('Fallo del servidor')).toBeInTheDocument()
+  it('muestra el error cuando la API falla', async () => {
+    auditoriaService.listar.mockRejectedValue(new Error('Servidor no disponible'))
+
+    renderWithProviders(<Auditoria />)
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Servidor no disponible')
+    expect(screen.queryByRole('cell', { name: 'Ana Pérez' })).not.toBeInTheDocument()
   })
 
-  it('should filter by table through the backend', async () => {
+  it('bloquea la página a quien no es Administrador', () => {
+    sesion = { user: { role: 'Inspector' }, isAuthenticated: true }
+
+    renderWithProviders(<Auditoria />)
+
+    expect(screen.getByRole('alert')).toHaveTextContent('No tienes permisos para ver esta página')
+    expect(screen.queryByRole('table')).not.toBeInTheDocument()
+  })
+
+  it('filtra la tabla al escribir en el buscador', async () => {
     const user = userEvent.setup()
-    render(<Auditoria />)
-
-    await user.click(await screen.findByRole('combobox', { name: /Filtrar por tabla/ }))
-    await user.click(await screen.findByRole('option', { name: 'ascensor' }))
-
-    await waitFor(() => expect(auditoriaService.filtrarPorTabla).toHaveBeenCalledWith('ascensor'))
-  })
-
-  it('should filter the loaded records with the search box', async () => {
     auditoriaService.listar.mockResolvedValue([
-      registro({ id_auditoria: 1, usuario_nombre: 'Ana' }),
-      registro({ id_auditoria: 2, usuario_nombre: 'Luis' }),
+      registro(1, 'Ana Pérez', 'usuario', 'INSERT'),
+      registro(2, 'Luis Gómez', 'edificios', 'UPDATE'),
     ])
+    renderWithProviders(<Auditoria />)
+    await screen.findByRole('cell', { name: 'Ana Pérez' })
+
+    await user.type(screen.getByRole('textbox', { name: 'Buscar en la auditoría' }), 'Luis')
+
+    expect(screen.getByRole('cell', { name: 'Luis Gómez' })).toBeInTheDocument()
+    expect(screen.queryByRole('cell', { name: 'Ana Pérez' })).not.toBeInTheDocument()
+  })
+
+  it('pide a la API solo los registros de la tabla elegida en el filtro', async () => {
     const user = userEvent.setup()
-    render(<Auditoria />)
+    auditoriaService.listar.mockResolvedValue([])
+    auditoriaService.filtrarPorTabla.mockResolvedValue([registro(3, 'Ana Pérez', 'usuario', 'DELETE')])
+    renderWithProviders(<Auditoria />)
+    await screen.findByText('No hay registros de auditoría todavía')
 
-    await screen.findByText('Ana')
-    await user.type(screen.getByPlaceholderText(/Buscar por usuario/), 'Luis')
+    await user.click(screen.getByRole('combobox', { name: 'Filtrar por tabla' }))
+    await user.click(within(screen.getByRole('listbox')).getByRole('option', { name: 'usuario' }))
 
-    expect(screen.getByText('Luis')).toBeInTheDocument()
-    expect(screen.queryByText('Ana')).not.toBeInTheDocument()
+    expect(auditoriaService.filtrarPorTabla).toHaveBeenCalledWith('usuario')
+    expect(await screen.findByRole('cell', { name: 'DELETE' })).toBeInTheDocument()
   })
 })

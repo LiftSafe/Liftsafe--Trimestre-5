@@ -36,12 +36,11 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: './src/test/setup.js',
-    // CAMBIO 1: más tiempo por test, para que no fallen de forma intermitente
-    // cuando el computador va lento con muchos archivos corriendo en paralelo
-    testTimeout: 20000,
     // MUI trae imports de carpeta que Node no resuelve solo; Vitest debe procesarlos
     server: { deps: { inline: [/@mui/] } },
     include: ['src/**/*.{test,spec}.{js,jsx}'],
+    // Los formularios de MUI escritos tecla por tecla tardan más con la cobertura activa
+    testTimeout: 20000,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html', 'lcov'],
@@ -54,9 +53,9 @@ export default defineConfig({
         'src/assets/**', // imágenes
         'src/data/**', // datos de demostración (mock), no es lógica
       ],
-      // CAMBIO 2: umbral = cobertura real de la semana 5 (redondeada hacia abajo).
+      // Umbral = línea base de la semana 1 (redondeada hacia abajo).
       // Desde hoy solo puede subir. Si baja, "npm test" falla.
-      thresholds: { lines: 39, branches: 29, functions: 43, statements: 39 },
+      thresholds: { lines: 54, branches: 45, functions: 57, statements: 54 }, // semana 5: 54.12% real
     },
   },
 })
