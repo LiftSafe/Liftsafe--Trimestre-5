@@ -93,7 +93,7 @@ export default function Login() {
             fullWidth 
             size="small" 
             label="Correo electrónico" 
-            type="email"
+            type="text"
             value={email} 
             onChange={(e) => setEmail(sinEspacios(e.target.value))} 
             required

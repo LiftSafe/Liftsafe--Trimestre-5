@@ -107,7 +107,7 @@ const data = await resetPasswordWithCodeRequest(email, code, password);
           {error && <Alert severity="error" sx={{ mb: 1.5 }}>{error}</Alert>}
           {message && <Alert severity="success" sx={{ mb: 1.5 }}>{message}</Alert>}
           <TextField
-            fullWidth size="small" label="Correo electrónico" type="email"
+            fullWidth size="small" label="Correo electrónico" type="text"
             value={email} onChange={(e) => setEmail(sinEspacios(e.target.value))} required
             sx={fieldSx}
             slotProps={{ input: {

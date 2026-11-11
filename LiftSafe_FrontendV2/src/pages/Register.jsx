@@ -148,7 +148,7 @@ export default function Register() {
             size="small" 
             label="Correo electrónico" 
             name="email" 
-            type="email" 
+            type="text"
             value={form.email} 
             onChange={handleChange} 
             sx={fieldSx}

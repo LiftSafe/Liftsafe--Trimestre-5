@@ -337,7 +337,7 @@ export default function UsersPage() {
           {formError && <Alert severity="error" sx={{ mb: 2 }}>{formError}</Alert>}
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
             <TextField label="Nombre completo" name="name" value={form.name} onChange={handleChange} fullWidth />
-            <TextField label="Correo electrónico" name="email" type="email" value={form.email} onChange={handleChange} fullWidth />
+            <TextField label="Correo electrónico" name="email" type="text" value={form.email} onChange={handleChange} fullWidth />
             <TextField select label="Rol" name="role" value={form.role} onChange={handleChange} fullWidth disabled={esAsesor}>
               {rolesCreables.map((r) => <MenuItem key={r} value={r}>{r}</MenuItem>)}
             </TextField>
@@ -371,7 +371,7 @@ export default function UsersPage() {
           {editError && <Alert severity="error" sx={{ mb: 2 }}>{editError}</Alert>}
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
             <TextField label="Nombre completo" name="name" value={editForm.name} onChange={handleEditChange} fullWidth />
-            <TextField label="Correo electrónico" name="email" type="email" value={editForm.email} onChange={handleEditChange} fullWidth />
+            <TextField label="Correo electrónico" name="email" type="text" value={editForm.email} onChange={handleEditChange} fullWidth />
             <TextField select label="Rol" name="role" value={editForm.role} onChange={handleEditChange} fullWidth disabled={esAsesor}>
               {rolesCreables.map((r) => <MenuItem key={r} value={r}>{r}</MenuItem>)}
             </TextField>
