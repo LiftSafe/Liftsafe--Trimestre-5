@@ -77,8 +77,7 @@ async def send_encuesta_email(email: str, nombre_cliente: str, codigo_ascensor: 
             """,
             subtype="html"
         )
-        fm = FastMail(conf)
-        await fm.send_message(message)
+        await _enviar(message)
         logger.info(f"✅ Email de encuesta enviado a {email}")
         return True
 
