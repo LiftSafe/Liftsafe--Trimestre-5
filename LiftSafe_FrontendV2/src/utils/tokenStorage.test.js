@@ -1,3 +1,5 @@
+// Semana 2 · Revisado por Luz (Front): tokenStorage guarda y lee el token y el usuario en
+// sessionStorage, devuelve null si no hay o si el JSON está dañado y limpia las claves viejas.
 import { beforeEach, describe, expect, it } from 'vitest'
 import {
   clearAuthStorage,

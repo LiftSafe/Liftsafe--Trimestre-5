@@ -1,3 +1,5 @@
+// Semana 4 · Revisado por Luz (API): API Express de ascensores: 400 con issues[] (Zod), id no
+// numérico, paginación y JSON inválidos; 404 por id o ruta inexistente, CRUD y 409.
 import request from 'supertest';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { app } from '../src/app';

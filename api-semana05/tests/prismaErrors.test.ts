@@ -1,3 +1,5 @@
+// Semana 5 · Revisado por Luz (BD): traducción de errores de Prisma a AppError: P2025 → 404,
+// P2002 → 409, P2003 → 400; cualquier otro error sigue al errorHandler como 500.
 import { Prisma } from '@prisma/client';
 import { describe, expect, it } from 'vitest';
 import { AppError } from '../src/errors/AppError';
