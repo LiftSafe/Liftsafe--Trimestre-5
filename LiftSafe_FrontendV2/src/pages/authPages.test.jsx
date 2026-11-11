@@ -59,6 +59,18 @@ describe('<Login />', () => {
     expect(auth.login).toHaveBeenCalledWith('ana@x.com', 'Abcdefg1')
   })
 
+  it('should not let the email keep spaces, even pasted ones', async () => {
+    auth.login.mockResolvedValue({ success: true })
+    montar(<Login />, '/login')
+
+    escribir(/^Correo electrónico/, '  juan.perez@elevatec.com ')
+    escribir(/^Contraseña/, 'Abcdefg1')
+    enviar()
+
+    expect(screen.getByLabelText(/^Correo electrónico/)).toHaveValue('juan.perez@elevatec.com')
+    await waitFor(() => expect(auth.login).toHaveBeenCalledWith('juan.perez@elevatec.com', 'Abcdefg1'))
+  })
+
   it('should return to the page the user was trying to open', async () => {
     auth.login.mockResolvedValue({ success: true })
     montar(<Login />, '/login', { from: { pathname: '/dashboard/reportes' } })

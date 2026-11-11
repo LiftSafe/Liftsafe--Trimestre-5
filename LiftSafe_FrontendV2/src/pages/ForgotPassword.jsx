@@ -9,6 +9,7 @@ import PasswordRequirements from '../components/PasswordRequirements';
 import { brand } from '../theme/colors';
 import { recoverPasswordRequest, resetPasswordWithCodeRequest } from '../services/authService';
 import { isPasswordValid } from '../utils/passwordValidation';
+import { sinEspacios } from '../utils/correo';
 
 const fieldSx = {
   '& .MuiOutlinedInput-root': {
@@ -107,7 +108,7 @@ const data = await resetPasswordWithCodeRequest(email, code, password);
           {message && <Alert severity="success" sx={{ mb: 1.5 }}>{message}</Alert>}
           <TextField
             fullWidth size="small" label="Correo electrónico" type="email"
-            value={email} onChange={(e) => setEmail(e.target.value)} required
+            value={email} onChange={(e) => setEmail(sinEspacios(e.target.value))} required
             sx={fieldSx}
             slotProps={{ input: {
               startAdornment: <InputAdornment position="start"><EmailOutlinedIcon sx={{ color: brand.accent, fontSize: 20 }} /></InputAdornment>

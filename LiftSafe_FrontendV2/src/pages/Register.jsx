@@ -23,6 +23,7 @@ import { useAuth } from '../context/AuthContext';
 import { brand } from '../theme/colors';
 import { ADULT_DOCUMENT_TYPES } from '../config/api';
 import { isPasswordValid } from '../utils/passwordValidation';
+import { sinEspacios } from '../utils/correo';
 
 const fieldSx = {
   '& .MuiOutlinedInput-root': {
@@ -57,7 +58,8 @@ export default function Register() {
   });
   const [error, setError] = useState('');
 
-  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+  // El correo se guarda sin espacios mientras se escribe
+  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.name === 'email' ? sinEspacios(e.target.value) : e.target.value });
 
   const handleSubmit = async (e) => {
     e.preventDefault();

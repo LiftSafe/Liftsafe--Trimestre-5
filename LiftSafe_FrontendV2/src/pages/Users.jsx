@@ -26,6 +26,7 @@ import { createUserRequest, updateUserRequest, eliminarUsuario } from '../servic
 import { useAuth } from '../context/AuthContext';
 import { ADMIN_CREATABLE_ROLES, ADULT_DOCUMENT_TYPES } from '../config/api';
 import { isPasswordValid } from '../utils/passwordValidation';
+import { sinEspacios } from '../utils/correo';
 
 const emptyForm = {
   name: '',
@@ -120,7 +121,9 @@ export default function UsersPage() {
     setSnackbar({ ...snackbar, open: false });
   };
 
-  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+  // El correo se guarda sin espacios mientras se escribe
+  const valorCampo = (e) => (e.target.name === 'email' ? sinEspacios(e.target.value) : e.target.value);
+  const handleChange = (e) => setForm({ ...form, [e.target.name]: valorCampo(e) });
 
   const handleCreate = async () => {
     if (!form.name || !form.email || !form.document || !form.password) {
@@ -150,7 +153,7 @@ export default function UsersPage() {
     }
   };
   // ✅ EDITAR USUARIO (Felipe - RF-002)
-  const handleEditChange = (e) => setEditForm({ ...editForm, [e.target.name]: e.target.value });
+  const handleEditChange = (e) => setEditForm({ ...editForm, [e.target.name]: valorCampo(e) });
 
   const handleEditClick = (u) => {
     setEditingUserId(u.id);

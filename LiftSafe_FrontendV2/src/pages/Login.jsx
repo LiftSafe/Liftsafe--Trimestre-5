@@ -9,6 +9,7 @@ import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import AuthLayout from '../layouts/AuthLayout';
 import { useAuth } from '../context/AuthContext';
 import { brand } from '../theme/colors';
+import { sinEspacios } from '../utils/correo';
 
 const fieldSx = {
   '& .MuiOutlinedInput-root': {
@@ -94,7 +95,7 @@ export default function Login() {
             label="Correo electrónico" 
             type="email"
             value={email} 
-            onChange={(e) => setEmail(e.target.value)} 
+            onChange={(e) => setEmail(sinEspacios(e.target.value))} 
             required
             autoComplete="email"
             sx={fieldSx}
