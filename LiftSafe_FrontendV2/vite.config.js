@@ -39,7 +39,9 @@ export default defineConfig({
     // MUI trae imports de carpeta que Node no resuelve solo; Vitest debe procesarlos
     server: { deps: { inline: [/@mui/] } },
     include: ['src/**/*.{test,spec}.{js,jsx}'],
-    coverage: {
+     // Los formularios de MUI escritos tecla por tecla tardan más con la cobertura activa
+      testTimeout: 15000,
+      coverage: {
       provider: 'v8',
       reporter: ['text', 'html', 'lcov'],
       // Medir TODOS los archivos de src (incluso los que aún no tienen test)
@@ -53,7 +55,7 @@ export default defineConfig({
       ],
       // Umbral = línea base de la semana 1 (redondeada hacia abajo).
       // Desde hoy solo puede subir. Si baja, "npm test" falla.
-      thresholds: { lines: 33, branches: 21, functions: 35, statements: 33 },
+      thresholds: { lines: 41, branches: 31, functions: 44, statements: 41 },
     },
   },
 })
