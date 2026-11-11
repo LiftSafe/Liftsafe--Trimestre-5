@@ -40,7 +40,7 @@ export default defineConfig({
     server: { deps: { inline: [/@mui/] } },
     include: ['src/**/*.{test,spec}.{js,jsx}'],
     // Los formularios de MUI escritos tecla por tecla tardan más con la cobertura activa
-    testTimeout: 15000,
+    testTimeout: 20000,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html', 'lcov'],
@@ -55,7 +55,7 @@ export default defineConfig({
       ],
       // Umbral = línea base de la semana 1 (redondeada hacia abajo).
       // Desde hoy solo puede subir. Si baja, "npm test" falla.
-      thresholds: { lines: 54, branches: 45, functions: 56, statements: 53 }, // semana 4: 54.12% real
+      thresholds: { lines: 54, branches: 45, functions: 57, statements: 54 }, // semana 5: 54.12% real
     },
   },
 })
