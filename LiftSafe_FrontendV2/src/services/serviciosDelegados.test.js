@@ -72,9 +72,16 @@ describe('servicios que delegan en apiClient', () => {
     expect(JSON.parse(llamada().cuerpo)).toMatchObject({ decision: 'Rechazado' })
   })
 
-  it('should encode the reason when cancelling a scheduling', async () => {
+  it('should send the reason in the body when cancelling a scheduling', async () => {
     await programacionService.cancelar(3, 'lluvia & viento')
-    expect(llamada().ruta).toBe('/programacion/3/cancelar?motivo=lluvia%20%26%20viento')
+    expect(llamada().ruta).toBe('/programacion/3/cancelar')
+    expect(JSON.parse(llamada().cuerpo)).toEqual({ motivo: 'lluvia & viento' })
+  })
+
+  it('should cancel the visit of a request', async () => {
+    await programacionService.cancelarVisita(12, 'lluvia', true)
+    expect(llamada().ruta).toBe('/programacion/solicitud/12/cancelar')
+    expect(JSON.parse(llamada().cuerpo)).toEqual({ motivo: 'lluvia', cancelar_solicitud: true })
   })
 
   it('should upload a photo as FormData and skip the description when it is empty', async () => {

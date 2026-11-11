@@ -18,8 +18,9 @@ from app.utils.auth_deps import get_current_user_role
 
 router = APIRouter(prefix="/clientes", tags=["Clientes y sedes"])
 
-ROLES_LECTURA = {"Administrador", "Director Técnico", "Coordinador"}
-ROLES_ESCRITURA = {"Administrador"}
+# El Asesor crea los clientes y registra sus sedes
+ROLES_LECTURA = {"Administrador", "Director Técnico", "Coordinador", "Asesor"}
+ROLES_ESCRITURA = {"Administrador", "Asesor"}
 
 
 def _exigir_rol(rol: str, permitidos: set, accion: str):
@@ -77,6 +78,17 @@ def listar_clientes(db: Session = Depends(get_db), user_data: tuple = Depends(ge
         }
         for c in clientes
     ]
+
+
+@router.get("/mis-sedes")
+def mis_sedes(db: Session = Depends(get_db), user_data: tuple = Depends(get_current_user_role)):
+    """Edificios (sedes) del cliente que inició sesión, con su número de ascensores."""
+    rol, _, user_id = user_data
+    if rol != "Cliente":
+        raise HTTPException(status_code=403, detail="Solo para clientes")
+    sedes = sedes_del_cliente(db, user_id)
+    conteo = _conteo_ascensores(db, [s.id_sede for s in sedes])
+    return [sede_a_dict(s, conteo.get(s.id_sede, 0)) for s in sedes]
 
 
 @router.get("/{id_cliente}/sedes")
@@ -137,6 +149,32 @@ def editar_sede(id_sede: int, data: SedeUpdate, db: Session = Depends(get_db), u
     db.commit()
     db.refresh(sede)
     return sede_a_dict(sede)
+
+
+@router.get("/sedes/{id_sede}/ascensores")
+def listar_ascensores_de_sede(id_sede: int, db: Session = Depends(get_db), user_data: tuple = Depends(get_current_user_role)):
+    """Ascensores de una sede (edificio) del cliente."""
+    rol, _, user_id = user_data
+    sede = db.query(Sede).filter(Sede.id_sede == id_sede).first()
+    # El cliente puede ver los ascensores de sus propios edificios
+    if not (rol == "Cliente" and sede and sede.id_cliente == user_id):
+        _exigir_rol(rol, ROLES_LECTURA, "ver los ascensores de la sede")
+    if not sede:
+        raise HTTPException(status_code=404, detail="Sede no encontrada")
+    ascensores = db.query(Ascensor).filter(Ascensor.id_sede == id_sede).order_by(Ascensor.codigo_interno).all()
+    return [{
+        "id_ascensor": a.id_ascensor,
+        "codigo_interno": a.codigo_interno,
+        "marca": a.marca,
+        "modelo": a.modelo,
+        "numero_serie": a.numero_serie,
+        "tipo_ascensor": a.tipo_ascensor,
+        "capacidad_kg": a.capacidad_kg,
+        "capacidad_personas": a.capacidad_personas,
+        "numero_pisos": a.numero_pisos,
+        "ubicacion_exacta": a.ubicacion_exacta,
+        "estado": a.estado,
+    } for a in ascensores]
 
 
 @router.delete("/sedes/{id_sede}")

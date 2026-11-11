@@ -1,11 +1,16 @@
+from fastapi.responses import JSONResponse
 from fastapi import APIRouter, Depends, HTTPException, Request, Security
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, aliased
 from sqlalchemy import text
 from app.database import get_db
-from app.models.models import Inspeccion, Ascensor, Usuario, Informe, Notificacion
+from app.controllers.productividad_controller import rechazos_por_inspeccion
+from app.models.models import Inspeccion, Ascensor, Usuario, Informe, Notificacion, Solicitud, Programacion, Sede
 from app.schemas.schemas import InspeccionCreate, InspeccionUpdate, FirmaRequest, MessageResponse
 from app.controllers.inspeccion_controller import crear_inspeccion
+from app.controllers.foto_obligatoria_controller import exigir_fotos_no_aplica
+from app.controllers.cierre_inspeccion_controller import esta_cerrada, exigir_checklist_completo
+from app.utils.auditoria import auditar_cambio, registrar_auditoria
 from app.utils.auth_deps import get_current_user_role, ADMIN_ROL_ID, COORDINADOR_ROL_ID
 from app.config import settings
 from jose import jwt, JWTError
@@ -35,81 +40,78 @@ def mis_inspecciones(
     credentials: HTTPAuthorizationCredentials = Security(security),
     db: Session = Depends(get_db)
 ):
+    """Inspecciones que ve cada rol, con los mismos campos para todos (RF-016/RF-017).
+
+    Administrador, Director Técnico y Coordinador ven todas; el Inspector, las
+    suyas; el Cliente, las de sus ascensores. Trae cliente, ubicación, tipo de
+    servicio y fechas para poder filtrar en la pantalla.
+    """
     rol, correo, user_id = get_current_user_role(credentials)
-
-    # ✅ FIX: al Coordinador (que sí tiene acceso al menú "Inspecciones" y al
-    # botón "Nueva inspección" en el frontend, ver roles.js) le faltaba estar
-    # aquí -> caía al "else" de abajo y siempre recibía 403 "Rol no
-    # autorizado" al abrir la pantalla. Su rol es "Programa inspecciones,
-    # asigna inspectores y revisa informes", así que debe ver todas las
-    # inspecciones igual que Administrador y Director Técnico.
-    if rol in ['Administrador', 'Director Técnico', 'Coordinador']:
-        result = db.execute(text(
-            "SELECT * FROM vista_resumen_inspecciones ORDER BY id_inspeccion DESC"
-        )).mappings().all()
-        return [dict(row) for row in result]
-
-    elif rol == 'Inspector':
-        # ✅ FIX: el diccionario que se devolvía no traía ningún campo de
-        # nombre de inspector ("nombre_inspector"/"inspector"), y esos son
-        # los campos que lee la tabla de Inspecciones.jsx -> la columna
-        # "Inspector" siempre mostraba "N/A" para este rol. Se agrega el
-        # join con Usuario para incluir el nombre.
-        result = (
-            db.query(Inspeccion, Ascensor.codigo_interno, Informe.id_informe, Usuario.nombre_completo)
-            .join(Ascensor, Inspeccion.id_ascensor == Ascensor.id_ascensor)
-            .join(Usuario, Inspeccion.id_inspector == Usuario.id_usuario)
-            .outerjoin(Informe, Informe.id_inspeccion == Inspeccion.id_inspeccion)
-            .filter(Inspeccion.id_inspector == user_id)
-            .order_by(Inspeccion.id_inspeccion.desc())
-            .all()
-        )
-        return [
-            {
-                "id_inspeccion": i.id_inspeccion,
-                "codigo_ascensor": codigo,
-                "nombre_inspector": nombre_inspector,
-                "fecha_inicio": i.fecha_inicio,
-                "fecha_fin": i.fecha_fin,
-                "estado": i.estado,
-                "observaciones_generales": i.observaciones_generales,
-                "firma_inspector": bool(i.firma_inspector),
-                "firma_cliente": bool(i.firma_cliente),
-                "id_informe": id_informe,
-            }
-            for i, codigo, id_informe, nombre_inspector in result
-        ]
-    
-    elif rol == 'Cliente':
-        # ✅ FIX: mismo problema que en la rama de Inspector -> tampoco
-        # traía el nombre del inspector asignado.
-        result = (
-            db.query(Inspeccion, Ascensor.codigo_interno, Informe.id_informe, Usuario.nombre_completo)
-            .join(Ascensor, Inspeccion.id_ascensor == Ascensor.id_ascensor)
-            .join(Usuario, Inspeccion.id_inspector == Usuario.id_usuario)
-            .outerjoin(Informe, Informe.id_inspeccion == Inspeccion.id_inspeccion)
-            .filter(Ascensor.id_cliente == user_id)
-            .order_by(Inspeccion.id_inspeccion.desc())
-            .all()
-        )
-        return [
-            {
-                "id_inspeccion": i.id_inspeccion,
-                "codigo_ascensor": codigo,
-                "nombre_inspector": nombre_inspector,
-                "fecha_inicio": i.fecha_inicio,
-                "fecha_fin": i.fecha_fin,
-                "estado": i.estado,
-                "observaciones_generales": i.observaciones_generales,
-                "firma_inspector": bool(i.firma_inspector),
-                "firma_cliente": bool(i.firma_cliente),
-                "id_informe": id_informe,
-            }
-            for i, codigo, id_informe, nombre_inspector in result
-        ]
-    
-    else:
+    if rol not in ['Administrador', 'Director Técnico', 'Coordinador', 'Inspector', 'Cliente']:
         raise HTTPException(status_code=403, detail="Rol no autorizado")
+
+    InspectorU = aliased(Usuario)
+    ClienteU = aliased(Usuario)
+    # RNF-001/RNF-007: solo las columnas que se muestran (no objetos completos
+    # ni las firmas): con 5.000 inspecciones la lista pasa de ~0,9 s a ~0,1 s.
+    consulta = (
+        db.query(
+            Inspeccion.id_inspeccion, Inspeccion.id_inspector, Ascensor.codigo_interno, Ascensor.marca, Ascensor.modelo,
+            Ascensor.tipo_ascensor, Ascensor.ciudad, Ascensor.direccion_completa, Sede.nombre,
+            InspectorU.nombre_completo, ClienteU.nombre_completo, Solicitud.tipo_servicio,
+            Solicitud.prioridad, Programacion.fecha_programada, Inspeccion.fecha_inicio,
+            Inspeccion.fecha_fin, Inspeccion.estado, Informe.estado, Inspeccion.observaciones_generales,
+            Inspeccion.firma_inspector.isnot(None), Inspeccion.firma_cliente.isnot(None), Informe.id_informe,
+        )
+        .join(Ascensor, Inspeccion.id_ascensor == Ascensor.id_ascensor)
+        .outerjoin(InspectorU, Inspeccion.id_inspector == InspectorU.id_usuario)
+        .outerjoin(ClienteU, Ascensor.id_cliente == ClienteU.id_usuario)
+        .outerjoin(Informe, Informe.id_inspeccion == Inspeccion.id_inspeccion)
+        .outerjoin(Solicitud, Inspeccion.id_solicitud == Solicitud.id_solicitud)
+        .outerjoin(Programacion, Inspeccion.id_programacion == Programacion.id_programacion)
+        .outerjoin(Sede, Ascensor.id_sede == Sede.id_sede)
+    )
+    if rol == 'Inspector':
+        consulta = consulta.filter(Inspeccion.id_inspector == user_id)
+    elif rol == 'Cliente':
+        consulta = consulta.filter(Ascensor.id_cliente == user_id)
+
+    filas = consulta.order_by(Inspeccion.id_inspeccion.desc()).all()
+    rechazos = rechazos_por_inspeccion(db)
+    fecha = lambda v: v.isoformat() if v is not None else None
+    # JSONResponse directo: los datos ya son texto/números (evita jsonable_encoder fila por fila)
+    return JSONResponse([
+        {
+            "id_inspeccion": id_,
+            "id_inspector": id_insp,
+            "codigo_ascensor": codigo,
+            "marca": marca,
+            "modelo": modelo,
+            "tipo_ascensor": tipo,
+            "ciudad": ciudad,
+            "direccion": direccion,
+            "sede": sede,
+            "nombre_inspector": inspector,
+            "nombre_cliente": cliente,
+            "tipo_servicio": tipo_servicio,
+            "prioridad": prioridad,
+            "fecha_programada": fecha(fecha_programada),
+            "fecha_inicio": fecha(fecha_inicio),
+            "fecha_fin": fecha(fecha_fin),
+            "estado": estado,
+            "estado_inspeccion": estado,  # compatibilidad con la vista anterior
+            "estado_informe": estado_informe,
+            "observaciones_generales": observaciones,
+            "firma_inspector": bool(firma_i),
+            "firma_cliente": bool(firma_c),
+            "id_informe": id_informe,
+            # Veces que se rechazó su informe (sigue contando aunque luego se aprobara)
+            "rechazos": rechazos.get(id_, 0),
+        }
+        for (id_, id_insp, codigo, marca, modelo, tipo, ciudad, direccion, sede, inspector, cliente, tipo_servicio,
+             prioridad, fecha_programada, fecha_inicio, fecha_fin, estado, estado_informe, observaciones,
+             firma_i, firma_c, id_informe) in filas
+    ])
 
 # ============================================
 # 2. CREAR INSPECCIÓN
@@ -222,7 +224,16 @@ def actualizar_inspeccion(
     # Si es inspector, solo puede editar sus propias inspecciones
     if rol == 'Inspector' and inspeccion.id_inspector != user_id:
         raise HTTPException(status_code=403, detail="No autorizado para editar esta inspección")
-    
+    if rol == 'Inspector':
+        # RF-011: cerrada no se edita; el estado se cambia con "Marcar como finalizada"
+        if esta_cerrada(inspeccion.estado):
+            raise HTTPException(status_code=400, detail="La inspección ya fue cerrada: no se puede modificar")
+        if data.estado is not None and data.estado != inspeccion.estado:
+            raise HTTPException(status_code=400, detail="Para terminar la inspección usa 'Marcar como finalizada'")
+
+    antes = {"estado": inspeccion.estado, "observaciones_generales": inspeccion.observaciones_generales,
+             "fecha_fin": inspeccion.fecha_fin, "firma_inspector": bool(inspeccion.firma_inspector),
+             "firma_cliente": bool(inspeccion.firma_cliente)}
     if data.estado is not None:
         inspeccion.estado = data.estado
     if data.observaciones_generales is not None:
@@ -235,7 +246,13 @@ def actualizar_inspeccion(
     if data.firma_cliente is not None:
         inspeccion.firma_cliente = data.firma_cliente
         inspeccion.fecha_firma_cliente = datetime.now()
-    
+
+    # RNF-012: queda en el log qué cambió y su valor anterior
+    auditar_cambio(db, user_id, "inspeccion", inspeccion.id_inspeccion, antes, {
+        "estado": inspeccion.estado, "observaciones_generales": inspeccion.observaciones_generales,
+        "fecha_fin": inspeccion.fecha_fin, "firma_inspector": bool(inspeccion.firma_inspector),
+        "firma_cliente": bool(inspeccion.firma_cliente),
+    })
     db.commit()
     db.refresh(inspeccion)
     return {"message": "Inspección actualizada exitosamente"}
@@ -289,6 +306,8 @@ def firmar_inspector(
     
     inspeccion.firma_inspector = data.firma
     inspeccion.fecha_firma_inspector = datetime.now()
+    registrar_auditoria(db, user_id, "inspeccion", "FIRMA", inspeccion.id_inspeccion,
+                        {"firma_inspector": False}, {"firma_inspector": True}, commit=False)
     db.commit()
     db.refresh(inspeccion)
     
@@ -323,8 +342,12 @@ async def firmar_cliente(
     inspeccion.firma_cliente = data.firma
     inspeccion.fecha_firma_cliente = datetime.now()
     pasa_a_revision = inspeccion.estado == PENDIENTE_FIRMA_CLIENTE
+    estado_antes = inspeccion.estado
     if pasa_a_revision:
         inspeccion.estado = PENDIENTE_REVISION
+    registrar_auditoria(db, user_id, "inspeccion", "FIRMA", inspeccion.id_inspeccion,
+                        {"firma_cliente": False, "estado": estado_antes},
+                        {"firma_cliente": True, "estado": inspeccion.estado}, commit=False)
     db.commit()
     db.refresh(inspeccion)
 
@@ -408,6 +431,12 @@ async def actualizar_estado(
     
     if rol not in ['Administrador', 'Coordinador'] and inspeccion.id_inspector != user_id:
         raise HTTPException(status_code=403, detail="No tienes permiso para actualizar esta inspección")
+    # El inspector solo puede terminar su inspección (o seguir trabajándola);
+    # aprobar, cancelar, etc. es del coordinador
+    if rol == 'Inspector' and estado not in ('Finalizada', 'En Progreso'):
+        raise HTTPException(status_code=403, detail="El inspector solo puede finalizar la inspección")
+    if rol == 'Inspector' and esta_cerrada(inspeccion.estado):
+        raise HTTPException(status_code=400, detail="La inspección ya fue cerrada")
     
     estados_validos = ['Programada', 'En Progreso', 'Completada', 'Cancelada', 'Finalizada', 'Aprobada', PENDIENTE_FIRMA_CLIENTE, PENDIENTE_REVISION]
     if estado not in estados_validos:
@@ -420,12 +449,18 @@ async def actualizar_estado(
     # sin firma del cliente -> "Pendiente firma cliente"; con las dos firmas
     # -> "Pendiente revisión". "Finalizada" la pone la aprobación del
     # informe por parte del coordinador.
+    # Los ítems "No Cumple" deben tener foto antes de terminar la inspección.
+    # RF-009: todo el checklist calificado antes de terminar la inspección.
+    if estado in ("Finalizada", PENDIENTE_FIRMA_CLIENTE, PENDIENTE_REVISION):
+        exigir_checklist_completo(db, inspeccion.id_inspeccion)
+        exigir_fotos_no_aplica(db, inspeccion.id_inspeccion)
     if estado == "Finalizada":
         estado = PENDIENTE_REVISION if inspeccion.firma_cliente else PENDIENTE_FIRMA_CLIENTE
     termina_inspector = estado == PENDIENTE_FIRMA_CLIENTE and inspeccion.estado != PENDIENTE_FIRMA_CLIENTE
     lista_para_revision = estado == PENDIENTE_REVISION and inspeccion.estado != PENDIENTE_REVISION
 
-
+    auditar_cambio(db, user_id, "inspeccion", inspeccion.id_inspeccion,
+                   {"estado": inspeccion.estado}, {"estado": estado})
     inspeccion.estado = estado
     if estado in ['Completada', 'Finalizada', 'Aprobada', PENDIENTE_FIRMA_CLIENTE, PENDIENTE_REVISION]:
         inspeccion.fecha_fin = datetime.now()

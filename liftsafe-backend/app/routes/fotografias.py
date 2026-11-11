@@ -7,6 +7,8 @@ import shutil
 from app.database import get_db
 from sqlalchemy import or_
 from app.models.models import Fotografia, Informe, Inspeccion, ChecklistItem
+from app.controllers.cierre_inspeccion_controller import exigir_inspeccion_abierta
+from app.utils.auditoria import registrar_auditoria
 from app.schemas.schemas import FotografiaResponse, MessageResponse, FotografiaUpdate
 from app.utils.auth_deps import get_current_user_role_from_request as get_current_user_role
 
@@ -103,6 +105,7 @@ def subir_foto_inspeccion(
         raise HTTPException(status_code=404, detail="Inspección no encontrada")
     if inspeccion.id_inspector != user_id:
         raise HTTPException(status_code=403, detail="Solo el inspector asignado puede subir fotos a esta inspección")
+    exigir_inspeccion_abierta(inspeccion)  # RF-011
     if id_item is not None and not db.query(ChecklistItem).filter(ChecklistItem.id_item == id_item).first():
         raise HTTPException(status_code=404, detail="Ítem del checklist no encontrado")
 
@@ -121,6 +124,10 @@ def subir_foto_inspeccion(
         sincronizado=True,
     )
     db.add(nueva_foto)
+    db.flush()
+    registrar_auditoria(db, user_id, "fotografia", "CREATE", nueva_foto.id_foto, None, {
+        "id_inspeccion": id_inspeccion, "id_item": id_item, "archivo": filename,
+    }, commit=False)
     db.commit()
     db.refresh(nueva_foto)
     return nueva_foto
@@ -160,13 +167,23 @@ def eliminar_foto(
     request: Request,
     db: Session = Depends(get_db),
 ):
-    rol, _, _ = get_current_user_role(request)
+    rol, _, user_id = get_current_user_role(request)
     if rol != "Inspector":
         raise HTTPException(status_code=403, detail="Solo inspectores pueden eliminar fotos")
 
     foto = db.query(Fotografia).filter(Fotografia.id_foto == id_foto).first()
     if not foto:
         raise HTTPException(status_code=404, detail="Foto no encontrada")
+    if foto.id_inspeccion:
+        inspeccion = db.query(Inspeccion).filter(Inspeccion.id_inspeccion == foto.id_inspeccion).first()
+        # Solo el inspector asignado borra fotos de su inspección
+        if inspeccion and inspeccion.id_inspector != user_id:
+            raise HTTPException(status_code=403, detail="Solo el inspector asignado puede eliminar esta foto")
+        exigir_inspeccion_abierta(inspeccion)
+
+    registrar_auditoria(db, user_id, "fotografia", "DELETE", foto.id_foto, {
+        "id_inspeccion": foto.id_inspeccion, "id_item": foto.id_item, "archivo": foto.nombre_archivo,
+    }, None, commit=False)
 
     if os.path.exists(foto.ruta_archivo):
         os.remove(foto.ruta_archivo)

@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Security
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from sqlalchemy import text
+from app.utils.cifrado import cifrar_contrasena
 from app.database import get_db
 from app.schemas.schemas import UsuarioLogin, Token, UsuarioRegister, RecuperarClaveRequest, ResetClaveRequest, MessageResponse
 from app.controllers.auth_controller import (
@@ -75,18 +76,17 @@ def register(user_data: UsuarioRegister, db: Session = Depends(get_db)):
         text("""
             INSERT INTO usuario (id_rol, nombre_completo, correo, contrasena_encriptada,
                                telefono, tipo_documento, documento_identidad, estado)
-            VALUES (:id_rol, :nombre, :correo, AES_ENCRYPT(:contrasena, :aes_key),
+            VALUES (:id_rol, :nombre, :correo, :contrasena,
                     :telefono, :tipo_doc, :documento, 'activo')
         """),
         {
             "id_rol": CLIENTE_ROL_ID,
             "nombre": user_data.nombre_completo,
             "correo": user_data.correo,
-            "contrasena": user_data.contrasena,
+            "contrasena": cifrar_contrasena(user_data.contrasena),
             "telefono": user_data.telefono,
             "tipo_doc": user_data.tipo_documento,
             "documento": user_data.documento_identidad,
-            "aes_key": settings.SECRET_KEY_MYSQL,
         }
     )
     db.commit()
@@ -122,10 +122,10 @@ def reset_clave(request: VerifyCodeRequest, db: Session = Depends(get_db)):
     if not valid:
         raise HTTPException(status_code=400, detail="Código inválido o expirado")
     
-    # Actualizar contraseña con AES_ENCRYPT
+    # RNF-003: la nueva contraseña se guarda cifrada con AES-256
     db.execute(
-        text("UPDATE usuario SET contrasena_encriptada = AES_ENCRYPT(:pwd, :aes_key) WHERE correo = :correo"),
-        {"pwd": request.nueva_contrasena, "correo": request.correo, "aes_key": settings.SECRET_KEY_MYSQL}
+        text("UPDATE usuario SET contrasena_encriptada = :pwd WHERE correo = :correo"),
+        {"pwd": cifrar_contrasena(request.nueva_contrasena), "correo": request.correo}
     )
     db.commit()
     

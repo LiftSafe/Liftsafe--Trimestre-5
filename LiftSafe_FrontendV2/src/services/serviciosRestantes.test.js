@@ -31,6 +31,7 @@ describe('servicios que delegan en apiClient', () => {
     ['checklistService.calificar', () => checklistService.calificar({}), '/checklist/', 'POST'],
     ['checklistService.listarPorInspeccion', () => checklistService.listarPorInspeccion(3), '/checklist/inspeccion/3', 'GET'],
     ['checklistService.obtenerCategorias', () => checklistService.obtenerCategorias(), '/checklist/categorias', 'GET'],
+    ['checklistService.obtenerCategorias (inspección)', () => checklistService.obtenerCategorias(7), '/checklist/categorias?id_inspeccion=7', 'GET'],
     ['checklistService.obtenerCumplimiento', () => checklistService.obtenerCumplimiento(3), '/checklist/cumplimiento/3', 'GET'],
     ['checklistService.eliminar', () => checklistService.eliminar(8), '/checklist/8', 'DELETE'],
     ['clienteService.crear', () => clienteService.crear({}), '/clientes/', 'POST'],

@@ -78,6 +78,17 @@ describe('<PromptDialog />', () => {
     expect(onConfirm).toHaveBeenCalledWith('Cliente ausente')
   })
 
+  it('should not confirm an empty text when it is required', () => {
+    const onConfirm = vi.fn()
+    render(<PromptDialog open required title="Rechazar informe" label="Motivo del rechazo" confirmText="Rechazar" onConfirm={onConfirm} onClose={() => {}} />)
+    expect(screen.getByRole('button', { name: 'Rechazar' })).toBeDisabled()
+    fireEvent.change(screen.getByLabelText(/Motivo del rechazo/), { target: { value: '   ' } })
+    expect(screen.getByRole('button', { name: 'Rechazar' })).toBeDisabled()
+    fireEvent.change(screen.getByLabelText(/Motivo del rechazo/), { target: { value: 'Faltan fotos del foso' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Rechazar' }))
+    expect(onConfirm).toHaveBeenCalledWith('Faltan fotos del foso')
+  })
+
   it('should start empty every time it opens and close with Cancelar', () => {
     const onClose = vi.fn()
     const { rerender } = render(<PromptDialog open title="T" label="Motivo" onConfirm={() => {}} onClose={onClose} />)

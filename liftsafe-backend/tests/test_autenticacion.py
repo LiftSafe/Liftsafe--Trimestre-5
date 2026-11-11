@@ -18,6 +18,7 @@ from app.controllers import inspeccion_controller as ic
 from app.database import get_db
 from app.main import app
 from app.utils import auth_deps
+from app.utils.cifrado import cifrar_contrasena, descifrar_contrasena, es_formato_nuevo
 
 
 @pytest.fixture
@@ -42,11 +43,17 @@ def usuario_falso(id_usuario=9, rol="Cliente"):
     return SimpleNamespace(id_usuario=id_usuario, rol=SimpleNamespace(nombre_rol=rol))
 
 
-def bd_con_clave(mocker, clave):
+def bd_con_clave(mocker, clave, formato="nuevo"):
+    # STUB de la fila que lee contrasena_coincide (app/utils/cifrado.py, RNF-003):
+    # "cifrada" = lo guardado en la columna; "vieja" = AES_DECRYPT de MySQL (formato anterior).
     sesion = mocker.MagicMock()
-    sesion.execute.return_value.mappings.return_value.first.return_value = (
-        {"pwd": clave} if clave is not None else None
-    )
+    if clave is None:
+        fila = None
+    elif formato == "nuevo":
+        fila = {"cifrada": cifrar_contrasena(clave), "vieja": None}
+    else:
+        fila = {"cifrada": b"bytes-de-AES_ENCRYPT", "vieja": clave.encode("utf-8")}
+    sesion.execute.return_value.mappings.return_value.first.return_value = fila
     return sesion
 
 
@@ -71,21 +78,31 @@ def test_token_de_acceso_vencido_no_se_puede_decodificar():
         jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
 
 
-def test_hash_password_devuelve_el_texto_tal_cual():
-    # MySQL encripta con AES_ENCRYPT; aquí no se transforma nada
-    assert ac.hash_password("Clave#Segura7") == "Clave#Segura7"
+def test_hash_password_cifra_con_aes_256_y_se_puede_descifrar():
+    # RNF-003: la contraseña ya no se guarda tal cual; se cifra con AES-256-GCM
+    cifrada = ac.hash_password("Clave#Segura7")
+    assert cifrada != "Clave#Segura7"
+    assert es_formato_nuevo(cifrada)
+    assert descifrar_contrasena(cifrada) == "Clave#Segura7"
 
 
 # ── auth_controller: contraseña (BD falsa) ────────────────────────────────────
 
 def test_verify_password_acepta_la_clave_correcta(mocker):
-    db = bd_con_clave(mocker, b"Clave1")  # MySQL devuelve bytes
+    db = bd_con_clave(mocker, "Clave1")
     assert ac.verify_password("Clave1", "x", db, "a@x.com") is True
 
 
 def test_verify_password_rechaza_clave_incorrecta_o_usuario_sin_clave(mocker):
-    assert ac.verify_password("otra", "x", bd_con_clave(mocker, b"Clave1"), "a@x.com") is False
+    assert ac.verify_password("otra", "x", bd_con_clave(mocker, "Clave1"), "a@x.com") is False
     assert ac.verify_password("Clave1", "x", bd_con_clave(mocker, None), "a@x.com") is False
+
+
+def test_verify_password_acepta_el_formato_viejo_y_lo_pasa_a_aes_256(mocker):
+    # SPY: con la clave correcta en el formato de MySQL, se vuelve a guardar cifrada
+    db = bd_con_clave(mocker, "Clave1", formato="viejo")
+    assert ac.verify_password("Clave1", "x", db, "a@x.com") is True
+    db.commit.assert_called_once()
 
 
 def test_verify_password_sin_bd_es_falso():
@@ -93,14 +110,14 @@ def test_verify_password_sin_bd_es_falso():
 
 
 def test_authenticate_user_devuelve_el_usuario_con_clave_correcta(mocker):
-    db = bd_con_clave(mocker, "Clave1")  # también acepta str
+    db = bd_con_clave(mocker, "Clave1")
     usuario = usuario_falso()
     db.query.return_value.join.return_value.filter.return_value.first.return_value = usuario
     assert ac.authenticate_user(db, "a@x.com", "Clave1") is usuario
 
 
 def test_authenticate_user_devuelve_none_con_clave_incorrecta(mocker):
-    db = bd_con_clave(mocker, b"Clave1")
+    db = bd_con_clave(mocker, "Clave1")
     db.query.return_value.join.return_value.filter.return_value.first.return_value = usuario_falso()
     assert ac.authenticate_user(db, "a@x.com", "otra") is None
 

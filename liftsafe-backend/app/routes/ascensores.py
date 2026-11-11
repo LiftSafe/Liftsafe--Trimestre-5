@@ -183,13 +183,16 @@ def crear_ascensor(
     
     # ✅ FIX: Director Técnico opera en "modo supervisión" (ve todo, aprueba
     # informes) y no debería poder crear ascensores desde acá.
-    if rol not in ['Administrador', 'Coordinador']:
+    # El Asesor registra los ascensores de los edificios de sus clientes.
+    if rol not in ['Administrador', 'Coordinador', 'Asesor']:
         raise HTTPException(status_code=403, detail="No autorizado para crear ascensores")
     
     # Validar que el cliente exista
     cliente = db.query(Usuario).filter(Usuario.id_usuario == data.id_cliente).first()
     if not cliente:
         raise HTTPException(status_code=404, detail="Cliente no encontrado")
+    if rol == 'Asesor' and (not cliente.rol or cliente.rol.nombre_rol != 'Cliente'):
+        raise HTTPException(status_code=403, detail="El asesor solo registra ascensores de clientes")
     
     # Validar código interno único
     existente = db.query(Ascensor).filter(Ascensor.codigo_interno == data.codigo_interno).first()
@@ -235,12 +238,19 @@ def editar_ascensor(
     rol, correo, user_id = get_current_user_role(credentials)
     
     # ✅ FIX: mismo motivo que en crear_ascensor -> "modo supervisión".
-    if rol not in ['Administrador', 'Coordinador']:
+    # El Asesor corrige los ascensores que registra en los edificios de sus clientes.
+    if rol not in ['Administrador', 'Coordinador', 'Asesor']:
         raise HTTPException(status_code=403, detail="No autorizado para editar ascensores")
     
     ascensor = db.query(Ascensor).filter(Ascensor.id_ascensor == id_ascensor).first()
     if not ascensor:
         raise HTTPException(status_code=404, detail="Ascensor no encontrado")
+    if rol == 'Asesor':
+        dueno = db.query(Usuario).filter(Usuario.id_usuario == ascensor.id_cliente).first()
+        if not dueno or not dueno.rol or dueno.rol.nombre_rol != 'Cliente':
+            raise HTTPException(status_code=403, detail="El asesor solo edita ascensores de clientes")
+        if data.id_cliente is not None and data.id_cliente != ascensor.id_cliente:
+            raise HTTPException(status_code=403, detail="El asesor no puede cambiar el cliente del ascensor")
     
     # Validar cliente si se está actualizando
     if data.id_cliente is not None:

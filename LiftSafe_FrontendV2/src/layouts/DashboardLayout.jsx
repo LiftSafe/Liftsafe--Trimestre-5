@@ -17,6 +17,8 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import RateReviewIcon from '@mui/icons-material/RateReview';
+import InsightsIcon from '@mui/icons-material/Insights';
+import FactCheckOutlinedIcon from '@mui/icons-material/FactCheckOutlined';
 import Logo from '../components/Logo';
 import { useAuth } from '../context/AuthContext';
 import { getMenuForRole } from '../config/roles';
@@ -35,10 +37,13 @@ const ICONS = {
   solicitudes: <AssignmentIcon fontSize="small" />,
   ascensores: <ElevatorIcon fontSize="small" />,
   edificios: <BusinessIcon fontSize="small" />,
+  misEdificios: <BusinessIcon fontSize="small" />,
   reportes: <DescriptionIcon fontSize="small" />,
   usuarios: <PeopleIcon fontSize="small" />,
   configuracion: <SettingsIcon fontSize="small" />,
   encuestas: <RateReviewIcon fontSize="small" />,
+  productividad: <InsightsIcon fontSize="small" />,
+  checklistNorma: <FactCheckOutlinedIcon fontSize="small" />,
 };
 
 // ✅ Pequeño "beep" de alarma generado con la Web Audio API -> no depende
@@ -70,7 +75,10 @@ function reproducirAlarma() {
 function formatearFechaNotificacion(fecha) {
   if (!fecha) return '';
   try {
-    return new Date(fecha).toLocaleString('es-CO', {
+    // El servidor guarda la hora en UTC sin zona: se marca como UTC
+    // para que se muestre en la hora de Colombia.
+    const texto = typeof fecha === 'string' && !/(Z|[+-]\d{2}:?\d{2})$/.test(fecha) ? `${fecha}Z` : fecha;
+    return new Date(texto).toLocaleString('es-CO', {
       day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
     });
   } catch {

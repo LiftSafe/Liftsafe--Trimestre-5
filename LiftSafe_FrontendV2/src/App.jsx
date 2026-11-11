@@ -13,11 +13,14 @@ import Inspections from './pages/Inspections';
 import Solicitudes from './pages/Solicitudes';
 import Elevators from './pages/Elevators';
 import Buildings from './pages/Buildings';
+import MisEdificios from './pages/MisEdificios';
 import Reports from './pages/Reports';
 import Users from './pages/Users';
 import Auditoria from './pages/Auditoria';
 import Settings from './pages/Settings';
 import Encuestas from './pages/Encuestas';
+import Productividad from './pages/Productividad';
+import ChecklistNorma from './pages/ChecklistNorma';
 import RoleRoute from './components/RoleRoute';
 
 // ============================================
@@ -55,11 +58,14 @@ const AppRoutes = () => {
         <Route path="solicitudes" element={<RoleRoute permission="solicitudes"><Solicitudes /></RoleRoute>} />
         <Route path="ascensores" element={<RoleRoute permission="ascensores"><Elevators /></RoleRoute>} />
         <Route path="edificios" element={<RoleRoute permission="edificios"><Buildings /></RoleRoute>} />
+        <Route path="mis-edificios" element={<RoleRoute permission="misEdificios"><MisEdificios /></RoleRoute>} />
         <Route path="reportes" element={<RoleRoute permission="reportes"><Reports /></RoleRoute>} />
         <Route path="usuarios" element={<RoleRoute permission="usuarios"><Users /></RoleRoute>} />
         <Route path="auditoria" element={<RoleRoute permission="auditoria"><Auditoria /></RoleRoute>} />
         <Route path="configuracion" element={<RoleRoute permission="configuracion"><Settings /></RoleRoute>} />
         <Route path="encuestas" element={<RoleRoute permission="encuestas"><Encuestas /></RoleRoute>} />
+        <Route path="productividad" element={<RoleRoute permission="productividad"><Productividad /></RoleRoute>} />
+        <Route path="lista-chequeo" element={<RoleRoute permission="checklistNorma"><ChecklistNorma /></RoleRoute>} />
       </Route>
       
       {/* Redirección por defecto */}

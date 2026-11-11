@@ -42,8 +42,16 @@ export default function Reports() {
   // RF-023: quién puede aprobar/rechazar un informe generado (paso 7 del flujo)
   const isReviewer = ['Coordinador', 'Director Técnico', 'Administrador'].includes(user?.role);
 
-  const { data: docs = [], loading: loadingDocs, error: errorDocs, refetch } = useDashboardData(fetchInformes);
-  const { data: inspecciones = [], loading: loadingInsp, error: errorInsp } = useDashboardData(fetchInspecciones);
+  const { data: docs = [], loading: loadingDocs, error: errorDocs, refetch: refetchDocs } = useDashboardData(fetchInformes);
+  const { data: inspecciones = [], loading: loadingInsp, error: errorInsp, refetch: refetchInsp } = useDashboardData(fetchInspecciones);
+  // Después de aprobar, rechazar, enviar o eliminar se recargan las DOS listas
+  // (certificados e inspecciones): antes solo se recargaba la primera y las
+  // tarjetas y el filtro "Pendientes" seguían mostrando el estado viejo hasta
+  // recargar la página.
+  const refetch = () => {
+    refetchDocs();
+    refetchInsp();
+  };
 
   // Filtro elegido al hacer clic en una tarjeta de arriba (null = todos)
   // También puede llegar desde las tarjetas del inicio: /dashboard/reportes?filtro=pendientes
@@ -124,6 +132,10 @@ export default function Reports() {
     setProcesandoInformeId(doc.id);
     try {
       const inf = await informeService.obtenerPorInspeccion(doc.id);
+      if (inf?.pendiente_aprobacion) {
+        showMessage('El informe podrá descargarse cuando el coordinador o el administrador lo apruebe.', 'info');
+        return;
+      }
       if (!inf?.ruta_pdf) {
         showMessage('Esta inspección todavía no tiene un PDF generado. Genérelo desde Inspecciones.', 'warning');
         return;
@@ -144,12 +156,13 @@ export default function Reports() {
         showMessage('No se pudo generar el informe de esta inspección.', 'warning');
         return;
       }
-      if (inf.estado !== 'Aprobado') {
+      if (!['Aprobado', 'Enviado'].includes(inf.estado)) {
         showMessage(`El informe debe estar "Aprobado" para enviarlo (estado actual: ${inf.estado}).`, 'warning');
         return;
       }
-      await informeService.enviar(inf.id_informe);
-      showMessage('Informe enviado correctamente', 'success');
+      // RF-014: el servidor manda el PDF por correo al cliente (o lo reenvía)
+      const res = await informeService.enviar(inf.id_informe);
+      showMessage(res?.message || 'Informe enviado correctamente', res?.message?.includes('no se pudo') ? 'warning' : 'success');
       if (refetch) refetch();
     } catch (err) {
       showMessage(err.message || 'Error al enviar el informe', 'error');
@@ -164,7 +177,9 @@ export default function Reports() {
   const obtenerInformeParaRevisar = async (doc) => {
     try {
       const inf = await informeService.obtenerPorInspeccion(doc.id);
-      if (inf?.id_informe) return inf;
+      // Si fue rechazado y el inspector ya la corrigió y finalizó otra vez,
+      // se regenera el PDF con los cambios para revisarlo de nuevo.
+      if (inf?.id_informe && inf.estado !== 'Rechazado') return inf;
     } catch (err) {
       if (err.status !== 404) throw err;
     }
@@ -214,7 +229,7 @@ export default function Reports() {
   const handleRechazarInforme = async (doc) => {
     setProcesandoInformeId(doc.id);
     try {
-      const inf = await informeService.obtenerPorInspeccion(doc.id);
+      const inf = await obtenerInformeParaRevisar(doc);
       if (!inf?.id_informe) {
         showMessage('Esta inspección todavía no tiene un informe generado.', 'warning');
         return;
@@ -227,6 +242,8 @@ export default function Reports() {
         open: true,
         title: 'Rechazar informe',
         label: 'Motivo del rechazo',
+        required: true,
+        helperText: 'Obligatorio: explica qué debe corregir el inspector.',
         confirmText: 'Rechazar',
         onConfirm: async (motivo) => {
           closePrompt();
@@ -486,6 +503,8 @@ export default function Reports() {
         title={promptDialog.title}
         label={promptDialog.label}
         confirmText={promptDialog.confirmText}
+        required={promptDialog.required}
+        helperText={promptDialog.helperText}
       />
     </Box>
   );

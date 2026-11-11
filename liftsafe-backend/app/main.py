@@ -29,6 +29,8 @@ from app.routes import (
     solicitudes,
     notificaciones,
     encuestas,
+    reportes,
+    checklist_admin,
 )
 
 logger = logging.getLogger(__name__)
@@ -97,6 +99,7 @@ app.include_router(inspecciones.router)      # Valentina
 app.include_router(dashboard.router)         # Equipo
 app.include_router(fotografias.router)       # Valentina
 app.include_router(usuario_ascensor.router)  # Dayan - reactivado (no se encontró causa técnica para desactivarlo)
+app.include_router(checklist_admin.router)   # Luz - RNF-011 mantenimiento de la lista de chequeo
 app.include_router(checklist.router)         # Felipe
 app.include_router(observaciones.router)     # Felipe
 app.include_router(informes.router)          # Esteban
@@ -105,6 +108,7 @@ app.include_router(programacion.router)      # Luz
 app.include_router(solicitudes.router)       # Luz
 app.include_router(notificaciones.router)    # Equipo - requiere correr migrations/add_notificacion_table.sql antes de usar
 app.include_router(encuestas.router)         # requiere correr migrations/add_encuesta_table.sql antes de usar
+app.include_router(reportes.router)          # Luz - RF-024 reporte de productividad
 
 # ============================================
 # SERVIR FOTOS SUBIDAS

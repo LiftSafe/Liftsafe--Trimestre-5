@@ -1,4 +1,5 @@
-import { render, screen, fireEvent } from '@testing-library/react'
+import { createRef } from 'react'
+import { render, screen, fireEvent, act } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
 import ChecklistInspeccion from './ChecklistInspeccion'
 import { resumenChecklist } from '../utils/checklist'
@@ -30,6 +31,7 @@ describe('ChecklistInspeccion', () => {
   it('should show the progress and number the items across categories', () => {
     pintar()
     expect(screen.getByText('2/3 calificados')).toBeInTheDocument()
+    fireEvent.click(screen.getByText('Siguiente'))
     expect(screen.getByText('3')).toBeInTheDocument()
     expect(screen.getByText('Iluminación mínima de 50 lux')).toBeInTheDocument()
   })
@@ -73,7 +75,7 @@ describe('ChecklistInspeccion', () => {
       urlFoto: (f) => `http://api/${f.ruta_archivo}`,
     })
     expect(screen.getByText('Foto (1)')).toBeInTheDocument()
-    expect(screen.getAllByText('Foto (0)')).toHaveLength(2)
+    expect(screen.getAllByText('Foto (0)')).toHaveLength(1)
     expect(screen.getByAltText('Foto del ítem: Acceso exclusivo y señalizado')).toHaveAttribute('src', 'http://api/uploads/fotos/a.jpg')
   })
 
@@ -89,6 +91,7 @@ describe('ChecklistInspeccion', () => {
     const onEliminarFoto = vi.fn()
     const foto = { id_foto: 5, id_item: 20, ruta_archivo: 'f.jpg' }
     pintar({ puedeSubirFotos: true, onSubirFoto: vi.fn(), onEliminarFoto, fotos: [foto] })
+    fireEvent.click(screen.getByText('Siguiente'))
     fireEvent.click(screen.getByTitle('Quitar foto'))
     expect(onEliminarFoto).toHaveBeenCalledWith(foto)
   })
@@ -98,5 +101,82 @@ describe('ChecklistInspeccion', () => {
     expect(screen.queryByText(/Foto \(/)).not.toBeInTheDocument()
     expect(screen.getByAltText('Foto del ítem: Acceso exclusivo y señalizado')).toBeInTheDocument()
     expect(screen.queryByTitle('Quitar foto')).not.toBeInTheDocument()
+  })
+  it('should warn that a not compliant item needs a photo until it has one', () => {
+    const conNA = { 11: { resultado: 'No Cumple' } }
+    const { unmount } = render(<ChecklistInspeccion categorias={categorias} detalles={conNA} puedeSubirFotos onSubirFoto={vi.fn()} onCalificar={vi.fn()} onQuitar={vi.fn()} />)
+    expect(screen.getByRole('alert')).toHaveTextContent('Foto obligatoria')
+    unmount()
+    render(<ChecklistInspeccion categorias={categorias} detalles={conNA} puedeSubirFotos onSubirFoto={vi.fn()} onCalificar={vi.fn()} onQuitar={vi.fn()} fotos={[{ id_foto: 1, id_item: 11, ruta_archivo: 'a.jpg' }]} />)
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('should show one group per page and move between them', () => {
+    pintar()
+    expect(screen.getByText('Cuarto de Máquinas')).toBeInTheDocument()
+    expect(screen.queryByText('Foso del Ascensor')).not.toBeInTheDocument()
+    expect(screen.getByText('Grupo 1 de 2')).toBeInTheDocument()
+    expect(screen.getByText('Anterior').closest('button')).toBeDisabled()
+    fireEvent.click(screen.getByRole('button', { name: /page 2/i }))
+    expect(screen.getByText('Foso del Ascensor')).toBeInTheDocument()
+    expect(screen.queryByText('Cuarto de Máquinas')).not.toBeInTheDocument()
+    expect(screen.getByText('Siguiente').closest('button')).toBeDisabled()
+    fireEvent.click(screen.getByText('Anterior'))
+    expect(screen.getByText('Cuarto de Máquinas')).toBeInTheDocument()
+  })
+
+  it('should go back to the first page when the filter changes', () => {
+    pintar()
+    fireEvent.click(screen.getByText('Siguiente'))
+    fireEvent.click(screen.getByText('Todos (3)'))
+    expect(screen.getByText('Cuarto de Máquinas')).toBeInTheDocument()
+  })
+
+  it('should show the item code and the NTC defect level', () => {
+    const cats = [{ id_categoria: 1, nombre_categoria: '6.1 Puertas', items: [
+      { id_item: 1, descripcion: 'Enclavamiento de puertas', codigo_item: 'NTC-6.1-01', nivel_criticidad: 'Muy grave' },
+    ] }]
+    render(<ChecklistInspeccion categorias={cats} detalles={{}} onCalificar={vi.fn()} onQuitar={vi.fn()} />)
+    expect(screen.getByText(/NTC-6.1-01/)).toBeInTheDocument()
+    expect(screen.getByText('Muy grave')).toBeInTheDocument()
+    expect(screen.queryByText('Siguiente')).not.toBeInTheDocument()
+  })
+
+  it('should jump to the page of an item when asked from outside', () => {
+    const ref = createRef()
+    render(<ChecklistInspeccion ref={ref} categorias={categorias} detalles={detalles} onCalificar={vi.fn()} onQuitar={vi.fn()} />)
+    fireEvent.click(screen.getByText('Pendientes (1)'))
+    act(() => ref.current.irAItem(20))
+    expect(screen.getByText('Foso del Ascensor')).toBeInTheDocument()
+    expect(screen.getByText('Grupo 2 de 2')).toBeInTheDocument()
+    expect(document.getElementById('item-checklist-20')).toBeInTheDocument()
+    act(() => ref.current.irAItem(999))
+    expect(screen.getByText('Foso del Ascensor')).toBeInTheDocument()
+  })
+
+  it('should not let grade or upload photos when the inspection is closed', () => {
+    const { onCalificar } = pintar({ bloqueado: true })
+    const grupo = screen.getByRole('group', { name: 'Calificación del ítem 2' })
+    expect(grupo.querySelector('button[value="Cumple"]')).toBeDisabled()
+    fireEvent.click(grupo.querySelector('button[value="Cumple"]'))
+    expect(onCalificar).not.toHaveBeenCalled()
+  })
+
+  it('should add an observation to a graded item', async () => {
+    const onObservacion = vi.fn().mockResolvedValue()
+    render(<ChecklistInspeccion categorias={categorias} detalles={{ 10: { resultado: 'No Cumple' } }} onCalificar={vi.fn()} onQuitar={vi.fn()} onObservacion={onObservacion} />)
+    // Solo los ítems calificados permiten observación
+    expect(screen.getAllByText('Agregar observación')).toHaveLength(1)
+    fireEvent.click(screen.getByText('Agregar observación'))
+    fireEvent.change(screen.getByLabelText('Observación del ítem'), { target: { value: 'Puerta sin señal' } })
+    fireEvent.click(screen.getByText('Guardar observación'))
+    await vi.waitFor(() => expect(onObservacion).toHaveBeenCalledWith(categorias[0].items[0], 'Puerta sin señal'))
+  })
+
+  it('should show a saved observation read only when it cannot be edited', () => {
+    render(<ChecklistInspeccion categorias={categorias} detalles={{ 10: { resultado: 'Cumple', observacion: 'Todo en orden' } }} onCalificar={vi.fn()} onQuitar={vi.fn()} />)
+    expect(screen.getByText('Todo en orden')).toBeInTheDocument()
+    expect(screen.queryByTitle('Editar observación')).not.toBeInTheDocument()
+    expect(screen.queryByText('Agregar observación')).not.toBeInTheDocument()
   })
 })

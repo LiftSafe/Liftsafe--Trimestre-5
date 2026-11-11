@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { claveSucursal, sucursalesDeAscensores } from './sucursales'
+import { claveSucursal, edificiosDelCliente, etiquetaEdificio, sucursalesDeAscensores, tieneEdificios } from './sucursales'
 
 describe('sucursales', () => {
   it('should use the sede id as key, or a fixed key when there is no sede', () => {
@@ -28,10 +28,25 @@ describe('sucursales', () => {
       { id_ascensor: 1, id_sede: null },
       { id_ascensor: 2, id_sede: 5, sede: 'Principal' },
     ])
-    expect(resultado.map((s) => s.nombre)).toEqual(['Principal', 'Sin sucursal asignada'])
+    expect(resultado.map((s) => s.nombre)).toEqual(['Principal', 'Sin edificio asignado'])
   })
 
   it('should return an empty list when there are no elevators', () => {
     expect(sucursalesDeAscensores()).toEqual([])
+  })
+
+  it('should list every building of the client, even without elevators', () => {
+    const sedes = [{ id_sede: 1, nombre: 'Torre Norte', direccion: 'Cra 7 #100' }, { id_sede: 2, nombre: 'Edificio Sol' }]
+    const ascensores = [{ id_ascensor: 1, id_sede: 1, sede: 'Torre Norte' }, { id_ascensor: 2, id_sede: null }]
+    const edificios = edificiosDelCliente(sedes, ascensores)
+    expect(edificios).toEqual([
+      { clave: '2', nombre: 'Edificio Sol', direccion: '', total: 0 },
+      { clave: '1', nombre: 'Torre Norte', direccion: 'Cra 7 #100', total: 1 },
+      { clave: 'sin-sucursal', nombre: 'Sin edificio asignado', total: 1 },
+    ])
+    expect(tieneEdificios(edificios)).toBe(true)
+    expect(etiquetaEdificio(edificios[1])).toBe('Torre Norte (Cra 7 #100)')
+    expect(etiquetaEdificio(edificios[0])).toBe('Edificio Sol')
+    expect(tieneEdificios(edificiosDelCliente([], [{ id_ascensor: 3, id_sede: null }]))).toBe(false)
   })
 })

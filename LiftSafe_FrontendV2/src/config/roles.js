@@ -4,7 +4,10 @@ export const MENU_ITEMS = [
   { key: 'solicitudes', text: 'Solicitudes', path: '/dashboard/solicitudes' },
   { key: 'ascensores', text: 'Ascensores', path: '/dashboard/ascensores' },
   { key: 'edificios', text: 'Edificios', path: '/dashboard/edificios' },
+  { key: 'misEdificios', text: 'Mis edificios', path: '/dashboard/mis-edificios' },
   { key: 'reportes', text: 'Reportes', path: '/dashboard/reportes' },
+  { key: 'productividad', text: 'Productividad', path: '/dashboard/productividad' },
+  { key: 'checklistNorma', text: 'Lista de chequeo', path: '/dashboard/lista-chequeo' },
   { key: 'usuarios', text: 'Usuarios', path: '/dashboard/usuarios' },
   { key: 'auditoria', text: 'Auditoría', path: '/dashboard/auditoria' },
   { key: 'configuracion', text: 'Mi cuenta', path: '/dashboard/configuracion' },
@@ -15,9 +18,12 @@ export const ROLE_PERMISSIONS = {
   // La Auditoría queda restringida a Administrador y Director Técnico:
   // antes la página existía en el código pero no tenía ruta ni entrada
   // de menú, así que nadie podía llegar a ella.
-  Administrador: ['dashboard', 'inspecciones', 'solicitudes', 'ascensores', 'edificios', 'reportes', 'usuarios', 'auditoria', 'configuracion'],
-  Asesor: ['dashboard', 'solicitudes', 'reportes', 'configuracion'],
-  Coordinador: ['dashboard', 'inspecciones', 'solicitudes', 'ascensores', 'edificios', 'reportes', 'configuracion'],
+  // RNF-011: el Administrador y el Director Técnico mantienen la lista de chequeo de la norma
+  Administrador: ['dashboard', 'inspecciones', 'solicitudes', 'ascensores', 'edificios', 'reportes', 'productividad', 'checklistNorma', 'usuarios', 'auditoria', 'configuracion'],
+  // El Asesor crea los clientes: tiene Usuarios, pero solo para clientes
+  Asesor: ['dashboard', 'solicitudes', 'reportes', 'usuarios', 'configuracion'],
+  // RF-024: el reporte de productividad es del Coordinador y del Director Técnico
+  Coordinador: ['dashboard', 'inspecciones', 'solicitudes', 'ascensores', 'edificios', 'reportes', 'productividad', 'configuracion'],
   // ✅ FIX: la documentación del rol dice "Ve inspecciones, ascensores,
   // edificios e informes de todo el sistema en modo supervisión", pero
   // 'ascensores' y 'edificios' no estaban en su lista -> ni el menú ni las
@@ -30,7 +36,7 @@ export const ROLE_PERMISSIONS = {
   // Técnico veía el ítem en el menú pero siempre chocaba con "No tienes
   // permisos para ver esta página". Se quita del menú para que coincida con
   // el permiso real.
-  'Director Técnico': ['dashboard', 'inspecciones', 'solicitudes', 'ascensores', 'edificios', 'reportes', 'configuracion'],
+  'Director Técnico': ['dashboard', 'inspecciones', 'solicitudes', 'ascensores', 'edificios', 'reportes', 'productividad', 'checklistNorma', 'configuracion'],
   Inspector: ['dashboard', 'inspecciones', 'solicitudes', 'ascensores', 'edificios', 'reportes', 'configuracion'],
   // ✅ FIX: le faltaba 'inspecciones' -> el Cliente no podía ni siquiera
   // navegar a /dashboard/inspecciones (RoleRoute lo redirigía a /dashboard),
@@ -39,7 +45,7 @@ export const ROLE_PERMISSIONS = {
   // ya filtra correctamente qué inspecciones puede ver un Cliente (solo las
   // de sus propios ascensores), así que este era puramente un bloqueo del
   // lado del frontend.
-  Cliente: ['dashboard', 'inspecciones', 'solicitudes', 'reportes', 'configuracion', 'encuestas'],
+  Cliente: ['dashboard', 'misEdificios', 'inspecciones', 'solicitudes', 'reportes', 'configuracion', 'encuestas'],
 };
 
 // Acciones específicas (opcional, pero la dejas)
@@ -53,7 +59,7 @@ export const ROLE_ACTIONS = {
   createInspection: ['Administrador', 'Coordinador', 'Inspector'],
   createElevator: ['Administrador'],
   createBuilding: ['Administrador'],
-  createUser: ['Administrador'],
+  createUser: ['Administrador', 'Asesor'],
   viewAllInspections: ['Administrador'],
   viewAllReports: ['Administrador', 'Inspector'],
   manageNotifications: ['Administrador', 'Coordinador', 'Director Técnico', 'Inspector', 'Asesor'],

@@ -1,10 +1,11 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
+import FilterListIcon from '@mui/icons-material/FilterList';
 import {
   Box, Card, CardContent, Button, Chip, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow,
   Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem,
   Typography, Divider, IconButton, CircularProgress, Alert, Paper,
-  FormControlLabel, Checkbox,
+  FormControlLabel, Checkbox, Collapse,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import CloseIcon from '@mui/icons-material/Close';
@@ -21,8 +22,11 @@ import ConfirmDialog from '../components/ConfirmDialog';
 import { canDo } from '../config/roles';
 import { usePaginatedSearch } from '../hooks/usePaginatedSearch';
 import ChecklistInspeccion from '../components/ChecklistInspeccion';
+import { describirItems, itemsSinFotoObligatoria, primerItemSinCalificar, resumenChecklist } from '../utils/checklist';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { leerEstados, filtrarPorEstado } from '../utils/filtroEstado';
+import { FILTROS_VACIOS, contarFiltros, filtrarInspecciones, opcionesDe } from '../utils/filtrosInspecciones';
+import { leerFiltroProductividad, filtrarPorProductividad, etiquetaProductividad } from '../utils/filtroProductividad';
 import { ESTADO_PENDIENTE_FIRMA, ESTADO_PENDIENTE_REVISION } from '../utils/statusHelpers';
 import { useAuth } from '../context/AuthContext';
 import { apiClient } from '../services/apiClient';
@@ -359,12 +363,22 @@ export default function Inspections() {
   const location = useLocation();
   const navigate = useNavigate();
   const filtroEstados = leerEstados(location.search);
-  const inspeccionesVisibles = filtrarPorEstado(inspections, filtroEstados);
+  // RF-017: filtros por fecha, cliente, ubicación, técnico, tipo y estado
+  const [filtros, setFiltros] = useState(FILTROS_VACIOS);
+  const [verFiltros, setVerFiltros] = useState(false);
+  // Clic en una tarjeta o un número del reporte de Productividad (?prod=...)
+  const filtroProd = leerFiltroProductividad(location.search);
+  const inspeccionesVisibles = filtrarInspecciones(filtrarPorProductividad(filtrarPorEstado(inspections, filtroEstados), filtroProd), filtros);
 
   const { search, setSearch, page, setPage, paginated, totalCount } = usePaginatedSearch(
     inspeccionesVisibles,
-    ['codigo_ascensor', 'elevator', 'marca', 'tipo_servicio', 'type', 'nombre_inspector', 'inspector', 'estado', 'status']
+    ['codigo_ascensor', 'elevator', 'marca', 'tipo_servicio', 'type', 'nombre_inspector', 'inspector', 'estado', 'status', 'nombre_cliente', 'ciudad', 'sede']
   );
+  const cambiarFiltro = (campo, valor) => {
+    setFiltros((f) => ({ ...f, [campo]: valor }));
+    setPage(0);
+  };
+  const totalFiltros = contarFiltros(filtros);
 
   const [openCreate, setOpenCreate] = useState(false);
   const [newInspection, setNewInspection] = useState({
@@ -400,6 +414,13 @@ export default function Inspections() {
   // ---- Checklist (Felipe) ----
   const [categorias, setCategorias] = useState([]);
   const [detalles, setDetalles] = useState({}); // { [id_item]: { id_detalle, resultado } }
+  // Ítems "No cumple" sin foto: la foto es obligatoria y bloquean "Marcar como finalizada"
+  const faltanFotosNA = itemsSinFotoObligatoria(categorias, detalles, fotos);
+  // RF-009: no se finaliza con ítems del checklist sin calificar
+  const resumenCk = resumenChecklist(categorias, detalles);
+  const sinCalificar = resumenCk.total - resumenCk.calificados;
+  const [verFaltantes, setVerFaltantes] = useState(false);
+  const checklistRef = useRef(null);
   const [loadingChecklist, setLoadingChecklist] = useState(false);
   const [checklistError, setChecklistError] = useState('');
   const [savingItem, setSavingItem] = useState(null);
@@ -559,13 +580,13 @@ export default function Inspections() {
     setChecklistError('');
     try {
       const [cats, existentes] = await Promise.all([
-        checklistService.obtenerCategorias(),
+        checklistService.obtenerCategorias(idInspeccion),
         checklistService.listarPorInspeccion(idInspeccion),
       ]);
       setCategorias(cats || []);
       const mapa = {};
       (existentes || []).forEach((d) => {
-        mapa[d.id_item] = { id_detalle: d.id_detalle, resultado: d.resultado };
+        mapa[d.id_item] = { id_detalle: d.id_detalle, resultado: d.resultado, observacion: d.observacion || '' };
       });
       setDetalles(mapa);
     } catch (err) {
@@ -575,15 +596,16 @@ export default function Inspections() {
     }
   }
 
-  async function cargarObservaciones(idInforme) {
+  // RF-008: las observaciones se registran durante la inspección (no hace
+  // falta que exista el informe)
+  async function cargarObservaciones(idInspeccion) {
     setObsError('');
-    if (!idInforme) {
+    if (!idInspeccion) {
       setObservaciones([]);
-      setObsError('Esta inspección todavía no tiene un informe generado, así que no se pueden registrar observaciones.');
       return;
     }
     try {
-      const obs = await observacionService.listarPorInforme(idInforme);
+      const obs = await observacionService.listarPorInspeccion(idInspeccion);
       setObservaciones(obs || []);
     } catch (err) {
       setObservaciones([]);
@@ -650,7 +672,7 @@ export default function Inspections() {
 
       await Promise.all([
         cargarChecklist(id),
-        cargarObservaciones(detalle.id_informe),
+        cargarObservaciones(id),
         cargarInforme(id),
       ]);
     } catch (err) {
@@ -690,6 +712,11 @@ export default function Inspections() {
 
   const idInspeccionActual = selected?.id_inspeccion || selected?.id;
   // El cliente solo ve el checklist final (después de la revisión del coordinador)
+  // RF-011: una inspección cerrada ya no se edita (checklist ni fotos)
+  const inspeccionCerrada = ['Finalizada', 'Completada', 'Aprobada', 'Cancelada', ESTADO_PENDIENTE_FIRMA, ESTADO_PENDIENTE_REVISION]
+    .includes(selected?.estado);
+  // RF-008: el inspector registra observaciones mientras la inspección está abierta
+  const puedeEditarObservaciones = userRol === 'Inspector' && !inspeccionCerrada;
   const clienteEsperaRevision = userRol === 'Cliente' && !['Finalizada', 'Aprobada'].includes(selected?.estado);
 
   const recargarFotos = async () => {
@@ -797,6 +824,17 @@ export default function Inspections() {
   const finalizarInspeccion = () => {
     const id = selected?.id_inspeccion || selected?.id;
     if (!id) return;
+    if (sinCalificar > 0) {
+      showMessage(`No puedes finalizar: ${sinCalificar === 1 ? 'falta 1 ítem' : `faltan ${sinCalificar} ítems`} del checklist por calificar.`, 'warning');
+      return;
+    }
+    if (faltanFotosNA.length) {
+      showMessage(
+        `No puedes finalizar: ${faltanFotosNA.length === 1 ? 'falta la foto de 1 ítem marcado' : `faltan las fotos de ${faltanFotosNA.length} ítems marcados`} "No cumple". La foto es obligatoria.`,
+        'warning',
+      );
+      return;
+    }
     setConfirmDialog({
       open: true,
       title: 'Finalizar inspección',
@@ -850,10 +888,10 @@ export default function Inspections() {
     setEnviandoInforme(true);
     setInformeError('');
     try {
-      await informeService.enviar(informe.id_informe);
+      const res = await informeService.enviar(informe.id_informe);
       const id = selected?.id_inspeccion || selected?.id;
       await cargarInforme(id);
-      showMessage('Informe marcado como enviado', 'success');
+      showMessage(res?.message || 'Informe enviado', res?.message?.includes('no se pudo') ? 'warning' : 'success');
     } catch (err) {
       setInformeError(err.message || 'Error al enviar el informe');
     } finally {
@@ -873,13 +911,30 @@ export default function Inspections() {
       });
       setDetalles((prev) => ({
         ...prev,
-        [item.id_item]: { id_detalle: guardado.id_detalle, resultado: guardado.resultado },
+        [item.id_item]: { id_detalle: guardado.id_detalle, resultado: guardado.resultado, observacion: guardado.observacion || '' },
       }));
     } catch (err) {
       setChecklistError(err.message || 'No se pudo guardar la calificación');
     } finally {
       setSavingItem(null);
     }
+  }
+
+  // RF-008: observación técnica de un ítem del checklist
+  async function guardarObservacionItem(item, texto) {
+    const actual = detalles[item.id_item];
+    if (!actual?.resultado) return;
+    const idInspeccion = selected?.id_inspeccion || selected?.id;
+    const guardado = await checklistService.calificar({
+      id_inspeccion: idInspeccion,
+      id_item: item.id_item,
+      resultado: actual.resultado,
+      observacion: texto.trim() || null,
+    });
+    setDetalles((prev) => ({
+      ...prev,
+      [item.id_item]: { ...prev[item.id_item], id_detalle: guardado.id_detalle, observacion: guardado.observacion || '' },
+    }));
   }
 
   async function eliminarCalificacion(item) {
@@ -905,12 +960,13 @@ export default function Inspections() {
     if (!nuevaObs.descripcion.trim()) return;
     setCreandoObs(true);
     try {
+      const idInspeccion = selected?.id_inspeccion || selected?.id;
       await observacionService.crear({
-        id_informe: selected.id_informe,
+        id_inspeccion: idInspeccion,
         ...nuevaObs,
       });
       setNuevaObs({ tipo_observacion: 'Preventiva', descripcion: '', nivel_riesgo: 'Bajo', requiere_atencion_inmediata: false });
-      await cargarObservaciones(selected.id_informe);
+      await cargarObservaciones(idInspeccion);
     } catch (err) {
       setObsError(err.message || 'No se pudo crear la observación');
     } finally {
@@ -921,7 +977,7 @@ export default function Inspections() {
   async function eliminarObservacion(idObservacion) {
     try {
       await observacionService.eliminar(idObservacion);
-      await cargarObservaciones(selected.id_informe);
+      await cargarObservaciones(selected?.id_inspeccion || selected?.id);
     } catch (err) {
       setObsError(err.message || 'No se pudo eliminar la observación');
     }
@@ -962,7 +1018,55 @@ export default function Inspections() {
       )}
 
       <Box sx={{ mb: 2 }}>
-        <SearchBar value={search} onChange={setSearch} placeholder="Buscar por ascensor, inspector o estado..." />
+        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+          <SearchBar value={search} onChange={setSearch} placeholder="Buscar por ascensor, cliente, inspector o estado..." />
+          <Button
+            variant={totalFiltros ? 'contained' : 'outlined'}
+            size="small"
+            startIcon={<FilterListIcon />}
+            onClick={() => setVerFiltros((v) => !v)}
+            aria-expanded={verFiltros}
+          >
+            Filtros{totalFiltros ? ` (${totalFiltros})` : ''}
+          </Button>
+          {totalFiltros > 0 && (
+            <Button size="small" onClick={() => { setFiltros(FILTROS_VACIOS); setPage(0); }}>Limpiar filtros</Button>
+          )}
+        </Box>
+        <Collapse in={verFiltros}>
+          <Box sx={{
+            mt: 1.5, p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper',
+            display: 'grid', gap: 1.5, gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: 'repeat(4, 1fr)' },
+          }}
+          >
+            <TextField size="small" type="date" label="Desde" value={filtros.desde}
+              onChange={(e) => cambiarFiltro('desde', e.target.value)} InputLabelProps={{ shrink: true }} />
+            <TextField size="small" type="date" label="Hasta" value={filtros.hasta}
+              onChange={(e) => cambiarFiltro('hasta', e.target.value)} InputLabelProps={{ shrink: true }} />
+            {[
+              { campo: 'cliente', label: 'Cliente', oculto: userRol === 'Cliente' },
+              { campo: 'inspector', label: 'Técnico', oculto: userRol === 'Inspector' },
+              { campo: 'ciudad', label: 'Ciudad' },
+              { campo: 'tipo', label: 'Tipo de inspección' },
+              { campo: 'estado', label: 'Estado' },
+            ].filter((f) => !f.oculto).map(({ campo, label }) => (
+              <TextField key={campo} select size="small" label={label} value={filtros[campo]}
+                onChange={(e) => cambiarFiltro(campo, e.target.value)}>
+                <MenuItem value="">Todos</MenuItem>
+                {opcionesDe(inspections, campo).map((v) => <MenuItem key={v} value={v}>{v}</MenuItem>)}
+              </TextField>
+            ))}
+          </Box>
+        </Collapse>
+        {filtroProd && (
+          <Chip
+            label={`${etiquetaProductividad(filtroProd)} (${inspeccionesVisibles.length})`}
+            onDelete={() => navigate('/dashboard/inspecciones')}
+            color="primary"
+            variant="outlined"
+            sx={{ ml: 1.5, mt: 0.5 }}
+          />
+        )}
         {filtroEstados.length > 0 && (
           <Chip
             label={`Mostrando: ${filtroEstados.join(' / ')}`}
@@ -1236,20 +1340,82 @@ export default function Inspections() {
 
               {/* Marcar inspección como finalizada (Inspector, o Coordinador/Admin) */}
               {(userRol === 'Inspector' || userRol === 'Coordinador' || userRol === 'Administrador') &&
-                !['Finalizada', 'Completada', 'Aprobada', 'Cancelada', ESTADO_PENDIENTE_FIRMA, ESTADO_PENDIENTE_REVISION].includes(selected?.estado) && (
+                !inspeccionCerrada && (
                 <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
                   <Button
                     variant="outlined"
                     size="small"
                     onClick={finalizarInspeccion}
-                    disabled={finalizando || !firmas?.firma_inspector}
+                    disabled={finalizando || !firmas?.firma_inspector || faltanFotosNA.length > 0 || sinCalificar > 0}
                   >
                     {finalizando ? 'Finalizando...' : 'Marcar como finalizada'}
                   </Button>
+                  {sinCalificar > 0 && (
+                    <Typography
+                      component="button"
+                      type="button"
+                      variant="caption"
+                      onClick={() => {
+                        const id = primerItemSinCalificar(categorias, detalles);
+                        if (id) checklistRef.current?.irAItem(id);
+                      }}
+                      title="Ir al primer ítem sin calificar"
+                      sx={{
+                        color: '#C77700', fontWeight: 600, bgcolor: 'transparent', border: 0, p: 0,
+                        cursor: 'pointer', textAlign: 'left', textDecoration: 'underline dotted', textUnderlineOffset: 3,
+                      }}
+                    >
+                      {sinCalificar === 1 ? 'Falta 1 ítem' : `Faltan ${sinCalificar} ítems`} del checklist por calificar →
+                    </Typography>
+                  )}
+                  {faltanFotosNA.length > 0 && (
+                    <Typography
+                      component="button"
+                      type="button"
+                      variant="caption"
+                      onClick={() => setVerFaltantes((v) => !v)}
+                      aria-expanded={verFaltantes}
+                      title="Ver cuáles ítems faltan"
+                      sx={{
+                        color: '#D14343', fontWeight: 600, bgcolor: 'transparent', border: 0, p: 0,
+                        cursor: 'pointer', textAlign: 'left', textDecoration: 'underline dotted', textUnderlineOffset: 3,
+                      }}
+                    >
+                      {faltanFotosNA.length === 1 ? 'Falta la foto de 1 ítem que no cumple' : `Faltan las fotos de ${faltanFotosNA.length} ítems que no cumplen`} (obligatoria). {verFaltantes ? '▴' : '▾'}
+                    </Typography>
+                  )}
                   {!firmas?.firma_inspector && (
                     <Typography variant="caption" color="text.secondary">
                       Registra primero la firma del inspector.
                     </Typography>
+                  )}
+                  {faltanFotosNA.length > 0 && (
+                    <Collapse in={verFaltantes} sx={{ width: '100%' }}>
+                      <Box sx={{ mt: 0.5, p: 1.5, borderRadius: 2, bgcolor: 'rgba(209, 67, 67, 0.06)', border: '1px solid rgba(209, 67, 67, 0.25)' }}>
+                        <Typography variant="caption" sx={{ display: 'block', fontWeight: 700, color: '#D14343', mb: 0.75 }}>
+                          Ítems que no cumplen y aún no tienen foto:
+                        </Typography>
+                        {describirItems(categorias, faltanFotosNA).map((f) => (
+                          <Typography
+                            key={f.id_item}
+                            component="button"
+                            type="button"
+                            variant="body2"
+                            onClick={() => checklistRef.current?.irAItem(f.id_item)}
+                            title="Ir al ítem"
+                            sx={{
+                              display: 'block', width: '100%', textAlign: 'left', fontSize: '0.82rem', mb: 0.25, px: 0.75, py: 0.5,
+                              bgcolor: 'transparent', border: 0, borderRadius: 1.5, cursor: 'pointer', color: 'inherit', fontFamily: 'inherit',
+                              '&:hover': { bgcolor: 'rgba(209, 67, 67, 0.10)', '& .ir': { textDecoration: 'underline' } },
+                            }}
+                          >
+                            <strong>{f.numero}.</strong> <span className="ir">{f.descripcion}</span>
+                            <Typography component="span" variant="caption" color="text.secondary">{'  ·  '}{f.grupo}</Typography>
+                            <Typography component="span" variant="caption" sx={{ color: '#D14343', fontWeight: 700 }}>{'  '}Ir →</Typography>
+                          </Typography>
+                        ))}
+                      </Box>
+                    </Collapse>
                   )}
                 </Box>
               )}
@@ -1260,6 +1426,20 @@ export default function Inspections() {
               <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem', mb: 1.5, color: '#1a237e' }}>
                 Checklist NTC 5926-1
               </Typography>
+
+              {/* RF-023: el inspector ve por qué le rechazaron el informe */}
+              {userRol !== 'Cliente' && informe?.estado === 'Rechazado' && !inspeccionCerrada && (
+                <Alert severity="warning" sx={{ mb: 2 }}>
+                  <strong>El informe fue rechazado.</strong>
+                  {informe.observaciones_revision ? ` Motivo: ${informe.observaciones_revision}` : ''}
+                  {' '}Corrige lo necesario y vuelve a marcar la inspección como finalizada.
+                </Alert>
+              )}
+              {inspeccionCerrada && userRol === 'Inspector' && (
+                <Alert severity="info" sx={{ mb: 2 }}>
+                  La inspección ya fue cerrada: el checklist y las fotos quedan solo para consulta.
+                </Alert>
+              )}
 
               {clienteEsperaRevision ? (
                 <Alert severity="info" sx={{ mb: 2 }}>
@@ -1284,15 +1464,18 @@ export default function Inspections() {
 
               {!loadingChecklist && categorias.length > 0 && (
                 <ChecklistInspeccion
+                  ref={checklistRef}
                   categorias={categorias}
                   detalles={detalles}
                   savingItem={savingItem}
                   fotos={fotos}
-                  puedeSubirFotos={userRol === 'Inspector'}
+                  puedeSubirFotos={userRol === 'Inspector' && !inspeccionCerrada}
+                  bloqueado={userRol !== 'Inspector' || inspeccionCerrada}
                   onSubirFoto={subirFotoItem}
                   onEliminarFoto={(foto) => eliminarFoto(foto.id_foto)}
                   urlFoto={(foto) => `${API_BASE_URL}/${foto.ruta_archivo.replace(/\\/g, '/')}`}
                   onCalificar={calificarItem}
+                  onObservacion={userRol === 'Inspector' && !inspeccionCerrada ? guardarObservacionItem : null}
                   onQuitar={eliminarCalificacion}
                 />
               )}
@@ -1319,13 +1502,18 @@ export default function Inspections() {
                     </Typography>
                     <Typography variant="body2">{obs.descripcion}</Typography>
                   </Box>
-                  <IconButton size="small" onClick={() => eliminarObservacion(obs.id_observacion)} title="Eliminar observación">
-                    <DeleteIcon fontSize="small" />
-                  </IconButton>
+                  {puedeEditarObservaciones && (
+                    <IconButton size="small" onClick={() => eliminarObservacion(obs.id_observacion)} title="Eliminar observación">
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  )}
                 </Box>
               ))}
 
-              {selected?.id_informe && (
+              {!observaciones.length && !obsError && (
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Sin observaciones técnicas.</Typography>
+              )}
+              {puedeEditarObservaciones && (
                 <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
                   <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>Agregar observación</Typography>
                   <Box sx={{ display: 'flex', gap: 1, mb: 1, flexWrap: 'wrap' }}>
@@ -1363,11 +1551,7 @@ export default function Inspections() {
                   </Button>
                 </Box>
               )}
-              {!selected?.id_informe && (
-                <Typography variant="caption" color="text.secondary">
-                  Se podrán agregar observaciones cuando esta inspección tenga un informe generado.
-                </Typography>
-              )}
+
 
               <Divider sx={{ my: 2 }} />
 
@@ -1436,6 +1620,30 @@ export default function Inspections() {
 
               {informeError && <Alert severity="error" sx={{ mb: 2 }}>{informeError}</Alert>}
 
+              {/* El cliente solo descarga el informe cuando el coordinador o el administrador lo aprueba */}
+              {userRol === 'Cliente' ? (
+                informe?.ruta_pdf && !informe?.pendiente_aprobacion ? (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+                    <Chip size="small" color="success" label={`Estado: ${informe.estado}`} />
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      startIcon={<DownloadOutlinedIcon />}
+                      component="a"
+                      href={`${API_BASE_URL}/${informe.ruta_pdf.replace(/\\/g, '/')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Descargar PDF
+                    </Button>
+                  </Box>
+                ) : (
+                  <Alert severity="info">
+                    El informe podrá descargarse cuando el coordinador o el administrador lo apruebe.
+                  </Alert>
+                )
+              ) : (
+              <>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
                 <Chip
                   size="small"
@@ -1464,9 +1672,10 @@ export default function Inspections() {
                     Descargar PDF
                   </Button>
                 )}
-                {informe?.estado === 'Generado' && (
+                {/* RF-014: el informe aprobado se envía por correo (o se reenvía) */}
+                {['Aprobado', 'Enviado'].includes(informe?.estado) && userRol !== 'Inspector' && (
                   <Button variant="outlined" size="small" onClick={enviarInforme} disabled={enviandoInforme}>
-                    {enviandoInforme ? 'Enviando...' : 'Enviar informe'}
+                    {enviandoInforme ? 'Enviando...' : informe?.estado === 'Enviado' ? 'Reenviar por correo' : 'Enviar por correo'}
                   </Button>
                 )}
               </Box>
@@ -1475,6 +1684,8 @@ export default function Inspections() {
                 <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
                   Se necesitan ambas firmas (inspector y cliente) para poder generar el informe.
                 </Typography>
+              )}
+              </>
               )}
             </>
           )}

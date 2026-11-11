@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from jose import jwt, JWTError
 
 from app.database import get_db
@@ -12,6 +12,10 @@ from app.schemas.schemas import (
     ChecklistCategoriaResponse,
     MessageResponse,
 )
+from app.controllers.checklist_controller import categorias_visibles
+from app.controllers.cierre_inspeccion_controller import exigir_inspeccion_abierta
+from app.utils.auditoria import auditar_cambio, registrar_auditoria
+
 router = APIRouter(prefix="/checklist", tags=["Checklist"])
 
 
@@ -44,6 +48,7 @@ def calificar_item(
 
     if inspeccion.id_inspector != user_id:
         raise HTTPException(status_code=403, detail="No eres el inspector asignado a esta inspección")
+    exigir_inspeccion_abierta(inspeccion)  # RF-011: cerrada = no se edita
 
     item = db.query(ChecklistItem).filter(ChecklistItem.id_item == data.id_item).first()
     if not item:
@@ -55,9 +60,19 @@ def calificar_item(
     ).first()
 
     if existente:
+        antes = {"id_inspeccion": existente.id_inspeccion, "id_item": existente.id_item,
+                 "resultado": existente.resultado, "observacion": existente.observacion}
         existente.resultado = data.resultado
-        existente.observacion = data.observacion
-        existente.accion_requerida = data.accion_requerida
+        # Al recalificar sin mandar la observación, se conserva la que tenía
+        if "observacion" in data.model_fields_set:
+            existente.observacion = data.observacion
+        if "accion_requerida" in data.model_fields_set:
+            existente.accion_requerida = data.accion_requerida
+        # RNF-012: queda en el log el valor anterior de la calificación/observación
+        auditar_cambio(db, user_id, "detalle_checklist", existente.id_detalle, antes, {
+            "id_inspeccion": existente.id_inspeccion, "id_item": existente.id_item,
+            "resultado": existente.resultado, "observacion": existente.observacion,
+        })
         db.commit()
         db.refresh(existente)
         return existente
@@ -70,6 +85,11 @@ def calificar_item(
         accion_requerida=data.accion_requerida,
     )
     db.add(nuevo)
+    db.flush()
+    registrar_auditoria(db, user_id, "detalle_checklist", "CREATE", nuevo.id_detalle, None, {
+        "id_inspeccion": nuevo.id_inspeccion, "id_item": nuevo.id_item,
+        "resultado": nuevo.resultado, "observacion": nuevo.observacion,
+    }, commit=False)
     db.commit()
     db.refresh(nuevo)
     return nuevo
@@ -115,10 +135,19 @@ def listar_checklist_inspeccion(
 @router.get("/categorias", response_model=List[ChecklistCategoriaResponse])
 def listar_categorias(
     request: Request,
+    id_inspeccion: Optional[int] = None,
     db: Session = Depends(get_db),
 ):
+    """Checklist vigente (NTC 5926-1) en orden. Con id_inspeccion también
+    incluye los ítems ya respondidos en esa inspección aunque estén inactivos."""
     get_current_user_role(request)
-    return db.query(ChecklistCategoria).filter(ChecklistCategoria.activo == True).all()
+    activas = {f[0] for f in db.query(ChecklistCategoria.id_categoria).filter(ChecklistCategoria.activo == True).all()}
+    items_activos = {f[0] for f in db.query(ChecklistItem.id_item).filter(ChecklistItem.activo == True).all()}
+    respondidos = set()
+    if id_inspeccion:
+        respondidos = {f[0] for f in db.query(DetalleChecklist.id_item).filter(
+            DetalleChecklist.id_inspeccion == id_inspeccion).all()}
+    return categorias_visibles(db.query(ChecklistCategoria).all(), activas, items_activos, respondidos)
 
 
 @router.get("/cumplimiento/{id_inspeccion}")
@@ -161,7 +190,12 @@ def eliminar_detalle_checklist(
     inspeccion = db.query(Inspeccion).filter(Inspeccion.id_inspeccion == detalle.id_inspeccion).first()
     if rol != "Inspector" or not inspeccion or inspeccion.id_inspector != user_id:
         raise HTTPException(status_code=403, detail="No tienes permiso para eliminar este registro")
+    exigir_inspeccion_abierta(inspeccion)
 
+    registrar_auditoria(db, user_id, "detalle_checklist", "DELETE", detalle.id_detalle, {
+        "id_inspeccion": detalle.id_inspeccion, "id_item": detalle.id_item,
+        "resultado": detalle.resultado, "observacion": detalle.observacion,
+    }, None, commit=False)
     db.delete(detalle)
     db.commit()
     return {"message": "Calificación de checklist eliminada"}

@@ -82,6 +82,9 @@ function ConfirmDialog({
 // ========== PÁGINA PRINCIPAL ==========
 export default function UsersPage() {
   const { user, hasAction } = useAuth();
+  // El Asesor solo gestiona clientes: rol fijo en "Cliente" y sin eliminar
+  const esAsesor = (user?.role || user?.rol) === 'Asesor';
+  const rolesCreables = esAsesor ? ['Cliente'] : ADMIN_CREATABLE_ROLES;
   const { data: users = [], loading, error, refetch } = useDashboardData(fetchUsuarios);
   const { search, setSearch, page, setPage, paginated, totalCount } = usePaginatedSearch(
     users,
@@ -222,14 +225,23 @@ export default function UsersPage() {
     <Box>
       <PageHeader 
         title="Usuarios" 
-        subtitle="Gestión de usuarios del sistema (solo administrador)" 
+        subtitle={esAsesor ? 'Crea y gestiona los clientes' : 'Gestión de usuarios del sistema (solo administrador)'} 
         breadcrumbs={[{ label: 'Dashboard', path: '/dashboard' }, { label: 'Usuarios' }]} 
       />
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 2 }}>
         <SearchBar value={search} onChange={setSearch} placeholder="Buscar usuario..." />
         {hasAction('createUser') && (
-          <Button variant="contained" startIcon={<AddIcon />} onClick={() => setDialogOpen(true)}>Nuevo usuario</Button>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => {
+              if (esAsesor) setForm((f) => ({ ...f, role: 'Cliente' }));
+              setDialogOpen(true);
+            }}
+          >
+            {esAsesor ? 'Nuevo cliente' : 'Nuevo usuario'}
+          </Button>
         )}
       </Box>
       <Card>
@@ -275,7 +287,7 @@ export default function UsersPage() {
                               size="small"
                               color="secondary"
                               onClick={() => setSedesCliente(u)}
-                              title="Sedes del cliente"
+                              title={esAsesor ? 'Edificios y ascensores del cliente' : 'Sedes del cliente'}
                             >
                               <StoreOutlinedIcon fontSize="small" />
                             </IconButton>
@@ -288,6 +300,7 @@ export default function UsersPage() {
                           >
                             <EditIcon fontSize="small" />
                           </IconButton>
+                          {!esAsesor && (
                           <IconButton 
                             size="small" 
                             color="error"
@@ -296,6 +309,7 @@ export default function UsersPage() {
                           >
                             <DeleteIcon fontSize="small" />
                           </IconButton>
+                          )}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -315,14 +329,14 @@ export default function UsersPage() {
 
       {/* MODAL CREAR USUARIO */}
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle fontWeight={700}>Crear usuario</DialogTitle>
+        <DialogTitle fontWeight={700}>{esAsesor ? 'Crear cliente' : 'Crear usuario'}</DialogTitle>
         <DialogContent>
           {formError && <Alert severity="error" sx={{ mb: 2 }}>{formError}</Alert>}
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
             <TextField label="Nombre completo" name="name" value={form.name} onChange={handleChange} fullWidth />
             <TextField label="Correo electrónico" name="email" type="email" value={form.email} onChange={handleChange} fullWidth />
-            <TextField select label="Rol" name="role" value={form.role} onChange={handleChange} fullWidth>
-              {ADMIN_CREATABLE_ROLES.map((r) => <MenuItem key={r} value={r}>{r}</MenuItem>)}
+            <TextField select label="Rol" name="role" value={form.role} onChange={handleChange} fullWidth disabled={esAsesor}>
+              {rolesCreables.map((r) => <MenuItem key={r} value={r}>{r}</MenuItem>)}
             </TextField>
             <TextField select label="Tipo de documento" name="documentType" value={form.documentType} onChange={handleChange} fullWidth>
               {ADULT_DOCUMENT_TYPES.map((doc) => (
@@ -342,7 +356,7 @@ export default function UsersPage() {
         <DialogActions sx={{ p: 2 }}>
           <Button onClick={() => setDialogOpen(false)}>Cancelar</Button>
           <Button variant="contained" onClick={handleCreate} disabled={saving}>
-            {saving ? 'Creando...' : 'Crear usuario'}
+            {saving ? 'Creando...' : esAsesor ? 'Crear cliente' : 'Crear usuario'}
           </Button>
         </DialogActions>
       </Dialog>
@@ -355,8 +369,8 @@ export default function UsersPage() {
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
             <TextField label="Nombre completo" name="name" value={editForm.name} onChange={handleEditChange} fullWidth />
             <TextField label="Correo electrónico" name="email" type="email" value={editForm.email} onChange={handleEditChange} fullWidth />
-            <TextField select label="Rol" name="role" value={editForm.role} onChange={handleEditChange} fullWidth>
-              {ADMIN_CREATABLE_ROLES.map((r) => <MenuItem key={r} value={r}>{r}</MenuItem>)}
+            <TextField select label="Rol" name="role" value={editForm.role} onChange={handleEditChange} fullWidth disabled={esAsesor}>
+              {rolesCreables.map((r) => <MenuItem key={r} value={r}>{r}</MenuItem>)}
             </TextField>
             <TextField select label="Estado" name="status" value={editForm.status} onChange={handleEditChange} fullWidth>
               <MenuItem value="Activo">Activo</MenuItem>
@@ -408,6 +422,8 @@ export default function UsersPage() {
       {/* SEDES DEL CLIENTE */}
       {sedesCliente && (
         <SedesClienteDialog
+          etiqueta={esAsesor ? 'edificio' : 'sede'}
+          conAscensores={esAsesor}
           key={sedesCliente.id}
           open
           cliente={sedesCliente}

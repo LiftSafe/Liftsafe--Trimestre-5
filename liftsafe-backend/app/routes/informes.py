@@ -1,12 +1,17 @@
-from fastapi import APIRouter, Depends, HTTPException, Security
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Security
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from typing import List
-from app.database import get_db
-from app.models.models import Informe, Inspeccion, Usuario, Ascensor, Notificacion, Encuesta, Solicitud, Fotografia
+from app.database import SessionLocal, get_db
+from app.models.models import Informe, Inspeccion, Usuario, Ascensor, Notificacion, Encuesta, Solicitud, Fotografia, Observacion
+from app.controllers.foto_obligatoria_controller import exigir_fotos_no_aplica
+from app.utils.auditoria import registrar_auditoria
+from app.controllers.informe_acceso_controller import (
+    ROL_CLIENTE, cliente_puede_descargar, es_inspeccion_del_cliente, informe_para_usuario,
+)
 from app.schemas.schemas import MessageResponse, InformeRevisionRequest
 from app.controllers.informe_controller import generar_pdf_informe
-from app.controllers.email_controller import send_encuesta_email
+from app.controllers.email_controller import send_encuesta_email, send_informe_email
 from datetime import datetime
 import os
 from jose import jwt, JWTError
@@ -29,6 +34,82 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Security(securi
     except JWTError as e:
         raise HTTPException(status_code=401, detail=f"Token invalido: {str(e)}")
 
+async def enviar_informe_por_correo(db: Session, informe) -> bool:
+    """RF-014: manda el PDF al cliente (con copia al coordinador que lo
+    revisó). Si sale el correo, el informe queda 'Enviado'."""
+    insp = db.query(Inspeccion).filter(Inspeccion.id_inspeccion == informe.id_inspeccion).first()
+    asc = db.query(Ascensor).filter(Ascensor.id_ascensor == insp.id_ascensor).first() if insp else None
+    cliente = db.query(Usuario).filter(Usuario.id_usuario == asc.id_cliente).first() if asc else None
+    if not cliente or not cliente.correo:
+        return False
+    revisor = db.query(Usuario).filter(Usuario.id_usuario == informe.id_revisor).first() if informe.id_revisor else None
+    enviado = await send_informe_email(
+        [cliente.correo], cliente.nombre_completo, asc.codigo_interno, informe.numero_informe,
+        informe.ruta_pdf, copia=[revisor.correo] if revisor and revisor.correo != cliente.correo else None,
+    )
+    if enviado:
+        informe.estado = "Enviado"
+        db.add(Notificacion(
+            id_usuario_destino=cliente.id_usuario,
+            mensaje=f"Te enviamos a tu correo el informe {informe.numero_informe} del ascensor {asc.codigo_interno}.",
+            enlace="/dashboard/reportes",
+            leida=False,
+        ))
+        db.commit()
+    return enviado
+
+
+def finalizar_solicitud(db: Session, inspeccion) -> bool:
+    """Marca como Finalizada la solicitud de la que salió la inspección."""
+    if not inspeccion or not inspeccion.id_solicitud:
+        return False
+    solicitud = db.query(Solicitud).filter(Solicitud.id_solicitud == inspeccion.id_solicitud).first()
+    if not solicitud or solicitud.estado == "Finalizada":
+        return False
+    solicitud.estado = "Finalizada"
+    db.commit()
+    return True
+
+
+async def crear_encuesta_si_falta(db: Session, inspeccion, ascensor, cliente, mensaje: str, enviar_correo: bool = True) -> bool:
+    """Crea la encuesta de satisfacción de la inspección (una sola vez),
+    avisa al cliente en la campanita y le manda el correo (si enviar_correo)."""
+    if not (inspeccion and ascensor and cliente):
+        return False
+    if db.query(Encuesta).filter(Encuesta.id_inspeccion == inspeccion.id_inspeccion).first():
+        return False
+    db.add(Encuesta(id_inspeccion=inspeccion.id_inspeccion, id_cliente=cliente.id_usuario))
+    db.add(Notificacion(
+        id_usuario_destino=cliente.id_usuario,
+        mensaje=mensaje,
+        enlace="/dashboard/encuestas",
+        leida=False,
+    ))
+    db.commit()
+    if not enviar_correo:
+        return True
+    try:
+        await send_encuesta_email(cliente.correo, cliente.nombre_completo, ascensor.codigo_interno)
+    except Exception as e:
+        print(f"⚠️ No se pudo enviar el correo de encuesta: {e}")
+    return True
+
+async def correos_al_aprobar(id_informe: int, correo_encuesta: tuple | None) -> None:
+    """Se ejecuta DESPUÉS de responder: enviar correos por SMTP tarda varios
+    segundos y antes hacía esperar al coordinador para ver el nuevo estado.
+    Usa su propia sesión porque la de la petición ya se cerró."""
+    db = SessionLocal()
+    try:
+        informe = db.query(Informe).filter(Informe.id_informe == id_informe).first()
+        if informe:
+            await enviar_informe_por_correo(db, informe)
+        if correo_encuesta:
+            await send_encuesta_email(*correo_encuesta)
+    except Exception as e:
+        print(f"⚠️ No se pudieron enviar los correos del informe {id_informe}: {e}")
+    finally:
+        db.close()
+
 # ============================================
 # 1. GENERAR INFORME PDF (ESTEBAN)
 # ============================================
@@ -38,6 +119,8 @@ def generar_informe(
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
+    if current_user["rol"] == ROL_CLIENTE:
+        raise HTTPException(status_code=403, detail="El cliente no puede generar informes")
     inspeccion = db.query(Inspeccion).filter(Inspeccion.id_inspeccion == id_inspeccion).first()
     if not inspeccion:
         raise HTTPException(status_code=404, detail="Inspeccion no encontrada")
@@ -75,6 +158,10 @@ def generar_informe(
     db.query(Fotografia).filter(
         Fotografia.id_inspeccion == id_inspeccion, Fotografia.id_informe.is_(None)
     ).update({Fotografia.id_informe: informe_actual.id_informe}, synchronize_session=False)
+    # RF-008: las observaciones registradas durante la inspección también
+    db.query(Observacion).filter(
+        Observacion.id_inspeccion == id_inspeccion, Observacion.id_informe.is_(None)
+    ).update({Observacion.id_informe: informe_actual.id_informe}, synchronize_session=False)
     db.commit()
 
     # FIX: nadie se enteraba de que un informe ya estaba listo para
@@ -103,7 +190,15 @@ def listar_informes(
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
-    return db.query(Informe).order_by(Informe.id_informe.desc()).all()
+    consulta = db.query(Informe)
+    if current_user["rol"] == ROL_CLIENTE:
+        # El cliente solo ve sus informes ya aprobados
+        consulta = consulta.join(Inspeccion, Inspeccion.id_inspeccion == Informe.id_inspeccion).join(
+            Ascensor, Ascensor.id_ascensor == Inspeccion.id_ascensor
+        ).filter(Ascensor.id_cliente == current_user["user_id"])
+        return [informe_para_usuario(i, ROL_CLIENTE) for i in consulta.order_by(Informe.id_informe.desc()).all()
+                if cliente_puede_descargar(i.estado)]
+    return [informe_para_usuario(i, current_user["rol"]) for i in consulta.order_by(Informe.id_informe.desc()).all()]
 
 # ============================================
 # 3. OBTENER INFORME POR INSPECCIÓN (ESTEBAN)
@@ -114,18 +209,22 @@ def obtener_informe_por_inspeccion(
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
+    if current_user["rol"] == ROL_CLIENTE and not es_inspeccion_del_cliente(db, id_inspeccion, current_user["user_id"]):
+        raise HTTPException(status_code=403, detail="No tienes permiso para ver este informe")
     informe = db.query(Informe).filter(Informe.id_inspeccion == id_inspeccion).first()
     if not informe:
         raise HTTPException(status_code=404, detail="Informe no encontrado")
-    return informe
+    # Al cliente se le oculta el PDF hasta que el coordinador lo apruebe
+    return informe_para_usuario(informe, current_user["rol"])
 
 # ============================================
 # 3.5 APROBAR / RECHAZAR INFORME (RF-023, paso 7 del flujo)
 # ============================================
 @router.put("/{id}/revisar", response_model=MessageResponse)
-def revisar_informe(
+async def revisar_informe(
     id: int,
     data: InformeRevisionRequest,
+    background: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
@@ -139,6 +238,18 @@ def revisar_informe(
     if informe.estado != "Generado":
         raise HTTPException(status_code=400, detail="Solo se pueden revisar informes en estado 'Generado'")
 
+    # No se aprueba si faltan fotos de ítems marcados "No Cumple".
+    if data.decision == "Aprobado":
+        exigir_fotos_no_aplica(db, informe.id_inspeccion)
+    # RF-023: al rechazar, el comentario es obligatorio (orienta al inspector).
+    if data.decision == "Rechazado" and not (data.observaciones_revision or "").strip():
+        raise HTTPException(status_code=400, detail="Escribe el motivo del rechazo para orientar al inspector")
+
+    # RNF-012: la decisión del revisor queda en el log
+    registrar_auditoria(db, current_user["user_id"], "informe", data.decision.upper()[:20], informe.id_informe,
+                        {"estado": informe.estado},
+                        {"estado": data.decision, "observaciones_revision": data.observaciones_revision,
+                         "id_inspeccion": informe.id_inspeccion}, commit=False)
     informe.fecha_revision = datetime.now()
     informe.id_revisor = current_user["user_id"]
     informe.observaciones_revision = data.observaciones_revision
@@ -165,17 +276,47 @@ def revisar_informe(
                     leida=False,
                 ))
             db.commit()
+        # Con el informe aprobado el proceso terminó: la solicitud queda
+        # Finalizada (antes solo pasaba al "Enviar informe") y se habilita
+        # la encuesta de satisfacción.
+        finalizar_solicitud(db, insp)
+        correo_encuesta = None
+        if insp:
+            asc = db.query(Ascensor).filter(Ascensor.id_ascensor == insp.id_ascensor).first()
+            cli = db.query(Usuario).filter(Usuario.id_usuario == asc.id_cliente).first() if asc else None
+            creada = await crear_encuesta_si_falta(
+                db, insp, asc, cli,
+                f"La inspección del ascensor {asc.codigo_interno if asc else ''} terminó. "
+                "Cuéntanos cómo fue todo el proceso en la sección Encuestas.",
+                enviar_correo=False,
+            )
+            if creada and cli.correo:
+                correo_encuesta = (cli.correo, cli.nombre_completo, asc.codigo_interno)
+        # RF-014: el informe aprobado y la encuesta se envían por correo en
+        # segundo plano, así el nuevo estado se ve al instante.
+        background.add_task(correos_al_aprobar, informe.id_informe, correo_encuesta)
 
     # FIX: el inspector que hizo la inspección no se enteraba de si su
     # informe había sido aprobado o rechazado.
     inspeccion_rel = db.query(Inspeccion).filter(
         Inspeccion.id_inspeccion == informe.id_inspeccion
     ).first()
+    # Rechazado: la inspección vuelve al inspector para que la corrija
+    # y la finalice otra vez (al aprobarla después, el informe se regenera).
+    if data.decision == "Rechazado" and inspeccion_rel:
+        registrar_auditoria(db, current_user["user_id"], "inspeccion", "UPDATE", inspeccion_rel.id_inspeccion,
+                            {"estado": inspeccion_rel.estado}, {"estado": "En Progreso"}, commit=False)
+        inspeccion_rel.estado = "En Progreso"
+        db.commit()
     if inspeccion_rel and inspeccion_rel.id_inspector:
+        mensaje = f"Tu informe de la inspección #{informe.id_inspeccion} fue {data.decision.lower()}."
+        if data.decision == "Rechazado":
+            mensaje = (f"Tu informe de la inspección #{informe.id_inspeccion} fue rechazado. "
+                       f"Motivo: {data.observaciones_revision.strip()}. Corrígela y finalízala de nuevo.")
         db.add(Notificacion(
             id_usuario_destino=inspeccion_rel.id_inspector,
-            mensaje=f"Tu informe de la inspección #{informe.id_inspeccion} fue {data.decision.lower()}.",
-            enlace="/dashboard/reportes",
+            mensaje=mensaje[:255],
+            enlace="/dashboard/inspecciones" if data.decision == "Rechazado" else "/dashboard/reportes",
             leida=False,
         ))
         db.commit()
@@ -188,19 +329,24 @@ def revisar_informe(
 @router.put("/{id}/enviar", response_model=MessageResponse)
 async def enviar_informe(
     id: int,
+    background: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
+    if current_user["rol"] == ROL_CLIENTE:
+        raise HTTPException(status_code=403, detail="El cliente no puede enviar informes")
     informe = db.query(Informe).filter(Informe.id_informe == id).first()
     if not informe:
         raise HTTPException(status_code=404, detail="Informe no encontrado")
 
-    if informe.estado != "Aprobado":
+    # "Enviado" también se acepta: el botón sirve para reenviar el correo
+    if informe.estado not in ("Aprobado", "Enviado"):
         raise HTTPException(status_code=400, detail="El informe debe estar aprobado antes de enviarse")
 
     informe.estado = "Enviado"
     db.commit()
 
+    correo_encuesta = None
     # FIX: el cliente no se enteraba de que su informe ya estaba disponible.
     inspeccion_rel = db.query(Inspeccion).filter(
         Inspeccion.id_inspeccion == informe.id_inspeccion
@@ -217,13 +363,7 @@ async def enviar_informe(
     # Solicitudes el cliente/coordinador nunca veía que el proceso ya había
     # terminado. Ahora, cuando el informe se envía, se marca la Solicitud
     # asociada como "Finalizada".
-    if inspeccion_rel:
-        solicitud_rel = db.query(Solicitud).filter(
-            Solicitud.id_solicitud == inspeccion_rel.id_solicitud
-        ).first()
-        if solicitud_rel and solicitud_rel.estado != "Finalizada":
-            solicitud_rel.estado = "Finalizada"
-            db.commit()
+    finalizar_solicitud(db, inspeccion_rel)
 
     if cliente_rel:
         db.add(Notificacion(
@@ -239,31 +379,20 @@ async def enviar_informe(
         # en que el informe (ya aprobado) se envía al cliente, que es
         # cuando de verdad se completa todo el proceso. Si por algún motivo
         # ya existiera una encuesta para esta inspección, no se duplica.
-        ya_existe = db.query(Encuesta).filter(
-            Encuesta.id_inspeccion == inspeccion_rel.id_inspeccion
-        ).first()
-        if not ya_existe:
-            db.add(Encuesta(
-                id_inspeccion=inspeccion_rel.id_inspeccion,
-                id_cliente=cliente_rel.id_usuario,
-            ))
-            db.add(Notificacion(
-                id_usuario_destino=cliente_rel.id_usuario,
-                mensaje=(
-                    f"Ya tienes el informe completo del ascensor {ascensor_rel.codigo_interno}. "
-                    "Cuéntanos cómo fue todo el proceso en la sección Encuestas."
-                ),
-                enlace="/dashboard/encuestas",
-                leida=False,
-            ))
-            db.commit()
+        # Normalmente la encuesta ya se creó al aprobar; si no, se crea aquí.
+        creada = await crear_encuesta_si_falta(
+            db, inspeccion_rel, ascensor_rel, cliente_rel,
+            f"Ya tienes el informe completo del ascensor {ascensor_rel.codigo_interno}. "
+            "Cuéntanos cómo fue todo el proceso en la sección Encuestas.",
+            enviar_correo=False,
+        )
+        if creada and cliente_rel.correo:
+            correo_encuesta = (cliente_rel.correo, cliente_rel.nombre_completo, ascensor_rel.codigo_interno)
 
-            try:
-                await send_encuesta_email(cliente_rel.correo, cliente_rel.nombre_completo, ascensor_rel.codigo_interno)
-            except Exception as e:
-                print(f"⚠️ No se pudo enviar el correo de encuesta: {e}")
-
-    return {"message": "Informe enviado correctamente"}
+    # RF-014: el PDF (y la encuesta, si es nueva) se mandan por correo en
+    # segundo plano para no hacer esperar al usuario mientras responde el SMTP.
+    background.add_task(correos_al_aprobar, informe.id_informe, correo_encuesta)
+    return {"message": "El informe se está enviando por correo al cliente"}
 
 # ============================================
 # 5. ELIMINAR INFORME (HEAD - CRUD completo)

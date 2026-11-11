@@ -23,6 +23,7 @@ dependencies = [
     "aiosmtplib==5.1.2",
     "email-validator==2.3.0",
     "passlib==1.7.4",
+    "cryptography==50.0.2",  # RNF-003: AES-256-GCM (ya venía instalada con fastapi-mail)
 ]
 
 [dependency-groups]

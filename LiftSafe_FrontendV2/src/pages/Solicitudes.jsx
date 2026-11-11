@@ -38,13 +38,15 @@ import PageHeader from '../components/PageHeader';
 import SearchBar from '../components/SearchBar';
 import ListPagination from '../components/ListPagination';
 import ConfirmDialog from '../components/ConfirmDialog';
+import CancelarVisitaDialog from '../components/CancelarVisitaDialog';
 import { usePaginatedSearch } from '../hooks/usePaginatedSearch';
 import { useAuth } from '../context/AuthContext';
 import { solicitudService } from '../services/solicitudService';
 import { ascensorService } from '../services/ascensorService';
 import { usuarioService } from '../services/usuarioService';
 import { programacionService } from '../services/programacionService';
-import { claveSucursal, sucursalesDeAscensores } from '../utils/sucursales';
+import { claveSucursal, edificiosDelCliente, etiquetaEdificio, tieneEdificios } from '../utils/sucursales';
+import { clienteService } from '../services/clienteService';
 import { useLocation } from 'react-router-dom';
 import { leerEstados, filtrarPorEstado } from '../utils/filtroEstado';
 
@@ -57,9 +59,16 @@ const TIPOS_SERVICIO = [
 
 const PRIORIDADES = ['Baja', 'Media', 'Alta', 'Crítica'];
 
+// Solicitudes ya asignadas que aún no terminan: cuentan en la tarjeta "Programadas"
+const EN_CURSO = ['Programada', 'En Progreso', 'Pendiente firma cliente', 'Pendiente revisión'];
+
 const ESTADOS = {
   'Pendiente': 'warning',
   'Programada': 'info',
+  // La inspección de la solicitud ya empezó (el backend muestra en qué va)
+  'En Progreso': 'warning',
+  'Pendiente firma cliente': 'warning',
+  'Pendiente revisión': 'secondary',
   'Aprobada': 'success',
   'Finalizada': 'success',
   'Cancelada': 'error'
@@ -69,6 +78,7 @@ export default function Solicitudes() {
   const { user } = useAuth();
   const [solicitudes, setSolicitudes] = useState([]);
   const [ascensores, setAscensores] = useState([]);
+  const [sedesCliente, setSedesCliente] = useState([]); // edificios del cliente
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showForm, setShowForm] = useState(false);
@@ -89,6 +99,7 @@ export default function Solicitudes() {
   const [submitLoading, setSubmitLoading] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState({ open: false, onConfirm: null, message: '' });
   const closeConfirm = () => setConfirmDialog((c) => ({ ...c, open: false }));
+  const [visitaACancelar, setVisitaACancelar] = useState(null);
 
   // ✅ Asignar inspector directamente desde Solicitudes (antes solo existía
   // en el dashboard de Inicio del Coordinador). Mismo flujo/endpoint
@@ -108,9 +119,10 @@ export default function Solicitudes() {
   const esAdmin = userRol === 'Administrador';
   const esCoordinador = userRol === 'Coordinador';
 
-  // Sucursales que salen de los ascensores del cliente
-  const sucursales = sucursalesDeAscensores(ascensores);
-  const pideSucursal = sucursales.length >= 2;
+  // Edificios del cliente (con o sin ascensores): primero se elige el
+  // edificio y luego el ascensor de ese edificio.
+  const sucursales = edificiosDelCliente(sedesCliente, ascensores);
+  const pideSucursal = tieneEdificios(sucursales);
   // Nombre de la sucursal del ascensor de una solicitud (si tiene)
   const sucursalDe = (solicitud) => ascensores.find((a) => a.id_ascensor === solicitud?.id_ascensor)?.sede || null;
   const sucursalAsignacion = sucursalDe(assignDialog.solicitud);
@@ -119,7 +131,7 @@ export default function Solicitudes() {
   const ascAsig = solAsig?.ascensor;
   const datosAsignacion = solAsig ? [
     ['Cliente', solAsig.cliente?.nombre_completo || '—'],
-    ['Sucursal', sucursalAsignacion || 'Sin sucursal'],
+    ['Edificio', sucursalAsignacion || 'Sin edificio'],
     ['Ascensor', ascAsig ? [ascAsig.codigo_interno, [ascAsig.marca, ascAsig.modelo].filter(Boolean).join(' ')].filter(Boolean).join(' · ') : '—'],
     ['Dirección', [ascAsig?.direccion_completa, ascAsig?.ciudad].filter(Boolean).join(', ') || '—'],
     ['Teléfono', solAsig.cliente?.telefono || '—'],
@@ -149,23 +161,15 @@ export default function Solicitudes() {
       const solicitudesData = await solicitudService.listar();
       setSolicitudes(solicitudesData || []);
       
-      // ✅ Intentar cargar ascensores del backend, si falla usa los de prueba
+      // Ascensores reales del usuario (antes, si no había, se inventaban
+      // ASC-001 y ASC-002 de prueba, que eran de otro cliente).
       try {
-        const ascensoresData = await ascensorService.listar();
-        if (ascensoresData && ascensoresData.length > 0) {
-          setAscensores(ascensoresData);
-        } else {
-          setAscensores([
-            { id_ascensor: 1, codigo_interno: 'ASC-001', marca: 'Otis', modelo: 'Gen2-MRL' },
-            { id_ascensor: 2, codigo_interno: 'ASC-002', marca: 'Schindler', modelo: '3300 MRL' }
-          ]);
-        }
+        setAscensores((await ascensorService.listar()) || []);
       } catch {
-        console.log('Usando ascensores de prueba (backend no respondió)');
-        setAscensores([
-          { id_ascensor: 1, codigo_interno: 'ASC-001', marca: 'Otis', modelo: 'Gen2-MRL' },
-          { id_ascensor: 2, codigo_interno: 'ASC-002', marca: 'Schindler', modelo: '3300 MRL' }
-        ]);
+        setAscensores([]);
+      }
+      if (esCliente) {
+        setSedesCliente(await clienteService.misSedes().catch(() => []) || []);
       }
     } catch (err) {
       console.error('Error cargando datos:', err);
@@ -315,7 +319,7 @@ export default function Solicitudes() {
 
   const validateForm = () => {
     const errors = {};
-    if (pideSucursal && !sucursal) errors.sucursal = 'Selecciona una sucursal';
+    if (pideSucursal && !sucursal) errors.sucursal = 'Selecciona un edificio';
     if (!formData.id_ascensor) errors.id_ascensor = 'Selecciona un ascensor';
     if (!formData.tipo_servicio) errors.tipo_servicio = 'Selecciona un tipo de servicio';
     if (!formData.prioridad) errors.prioridad = 'Selecciona una prioridad';
@@ -406,7 +410,7 @@ export default function Solicitudes() {
   // Estadísticas
   const total = solicitudes.length;
   const pendientes = solicitudes.filter(s => s.estado === 'Pendiente').length;
-  const programadas = solicitudes.filter(s => s.estado === 'Programada').length;
+  const programadas = solicitudes.filter(s => EN_CURSO.includes(s.estado)).length;
   const finalizadas = solicitudes.filter(s => s.estado === 'Finalizada' || s.estado === 'Aprobada').length;
 
   if (loading) {
@@ -462,7 +466,7 @@ export default function Solicitudes() {
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <Paper
-            onClick={() => { setFiltroEstados(['Programada']); setPage(0); }}
+            onClick={() => { setFiltroEstados(EN_CURSO); setPage(0); }}
             role="button"
             title="Ver en la tabla"
             sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2, cursor: 'pointer' }}
@@ -614,6 +618,18 @@ export default function Solicitudes() {
                             Cancelar
                           </Button>
                         )}
+                        {/* Cancelar visita ya programada (Coordinador/Admin) */}
+                        {(esCoordinador || esAdmin) && s.estado === 'Programada' && (
+                          <Button
+                            size="small"
+                            color="warning"
+                            startIcon={<CancelIcon />}
+                            onClick={() => setVisitaACancelar(s)}
+                            sx={{ mr: 1 }}
+                          >
+                            Cancelar visita
+                          </Button>
+                        )}
                         {/* Eliminar (solo admin) */}
                         {esAdmin && (
                           <Button
@@ -651,17 +667,17 @@ export default function Solicitudes() {
             {pideSucursal && (
               <TextField
                 select
-                label="Sucursal *"
+                label="Edificio *"
                 name="sucursal"
                 value={sucursal}
                 onChange={(e) => elegirSucursal(e.target.value)}
                 error={!!formErrors.sucursal}
-                helperText={formErrors.sucursal || 'Elige la sucursal donde está el ascensor'}
+                helperText={formErrors.sucursal || 'Elige el edificio donde está el ascensor'}
                 fullWidth
               >
                 {sucursales.map((s) => (
                   <MenuItem key={s.clave} value={s.clave}>
-                    {s.nombre}
+                    {etiquetaEdificio(s)}{s.total ? '' : ' — sin ascensores'}
                   </MenuItem>
                 ))}
               </TextField>
@@ -674,7 +690,11 @@ export default function Solicitudes() {
               value={formData.id_ascensor}
               onChange={handleChange}
               error={!!formErrors.id_ascensor}
-              helperText={formErrors.id_ascensor || (pideSucursal && !sucursal ? 'Primero elige la sucursal' : '')}
+              helperText={formErrors.id_ascensor || (pideSucursal && !sucursal
+                ? 'Primero elige el edificio'
+                : !ascensoresVisibles.length
+                  ? (pideSucursal ? 'Este edificio no tiene ascensores registrados. Pídele a tu asesor que los registre.' : 'No tienes ascensores registrados. Pídele a tu asesor que los registre.')
+                  : '')}
               disabled={pideSucursal && !sucursal}
               fullWidth
             >
@@ -842,6 +862,14 @@ export default function Solicitudes() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {visitaACancelar && (
+        <CancelarVisitaDialog
+          solicitud={visitaACancelar}
+          onClose={() => setVisitaACancelar(null)}
+          onCancelada={async () => { setVisitaACancelar(null); await cargarDatos(); }}
+        />
+      )}
 
       <ConfirmDialog
         open={confirmDialog.open}

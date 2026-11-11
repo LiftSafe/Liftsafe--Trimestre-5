@@ -4,6 +4,25 @@ from app.database import Base
 from sqlalchemy import Column, Integer, String, Float, Date, DateTime, Time, ForeignKey, Text, Boolean, LargeBinary
 from sqlalchemy.orm import relationship
 from datetime import datetime
+from app.utils.cifrado import TextoCifrado
+from sqlalchemy.dialects.mysql import BIT as _BIT
+from sqlalchemy.types import TypeDecorator as _TypeDecorator
+
+
+class BitBooleano(_TypeDecorator):
+    """Columna BIT(1) de MySQL leída como bool. Con Boolean, el conector
+    devuelve b'\\x00' y SQLAlchemy lo toma como True."""
+    impl = _BIT
+    cache_ok = True
+
+    def process_result_value(self, value, dialect):
+        if isinstance(value, (bytes, bytearray)):
+            return int.from_bytes(value, "big") != 0
+        return None if value is None else bool(value)
+
+    def process_bind_param(self, value, dialect):
+        return None if value is None else int(bool(value))
+
 
 # ============ MODELO ROL ============
 
@@ -26,7 +45,7 @@ class Usuario(Base):
     id_rol = Column(Integer, ForeignKey("rol.id_rol"), nullable=False)
     nombre_completo = Column(String(150), nullable=False)
     correo = Column(String(120), nullable=False, unique=True)
-    contrasena_encriptada = Column(LargeBinary, nullable=True, comment="AES_ENCRYPT de MySQL")
+    contrasena_encriptada = Column(LargeBinary, nullable=True, comment="AES-256-GCM (app/utils/cifrado.py)")
     telefono = Column(String(255), nullable=True)
     tipo_documento = Column(String(10), nullable=True, comment="CC, CE, PA, RC, TI, NIT, PEP, PPT, CD")
     documento_identidad = Column(String(255), nullable=True)
@@ -171,9 +190,9 @@ class Inspeccion(Base):
     fecha_fin = Column(DateTime, nullable=True)
     duracion_minutos = Column(Integer, nullable=True)
     estado = Column(String(255), nullable=False)
-    firma_inspector = Column(Text, nullable=True, comment="Firma digital base64")
+    firma_inspector = Column(TextoCifrado, nullable=True, comment="Firma digital base64 cifrada con AES-256 (RNF-003)")
     fecha_firma_inspector = Column(DateTime, nullable=True)
-    firma_cliente = Column(Text, nullable=True, comment="Firma digital base64")
+    firma_cliente = Column(TextoCifrado, nullable=True, comment="Firma digital base64 cifrada con AES-256 (RNF-003)")
     fecha_firma_cliente = Column(DateTime, nullable=True)
     sincronizado = Column(Boolean, nullable=True)
     fecha_sincronizacion = Column(DateTime, nullable=True)
@@ -228,7 +247,7 @@ class ChecklistCategoria(Base):
     descripcion = Column(String(500), nullable=True)
     orden_visualizacion = Column(Integer, nullable=False, default=0)
     norma_referencia = Column(String(100), nullable=True, comment="NTC 5926-1:2012")
-    activo = Column(Boolean, nullable=True)
+    activo = Column(BitBooleano, nullable=True)
     
     items = relationship("ChecklistItem", back_populates="categoria")
 
@@ -244,9 +263,9 @@ class ChecklistItem(Base):
     descripcion = Column(Text, nullable=False)
     criterio_cumplimiento = Column(Text, nullable=True, comment="Descripción de qué se considera cumplimiento")
     nivel_criticidad = Column(String(255), nullable=False)
-    obligatorio = Column(Boolean, nullable=True)
+    obligatorio = Column(BitBooleano, nullable=True)
     orden_visualizacion = Column(Integer, nullable=False, default=0)
-    activo = Column(Boolean, nullable=True)
+    activo = Column(BitBooleano, nullable=True)
     
     # Relaciones
     categoria = relationship("ChecklistCategoria", back_populates="items")
@@ -302,7 +321,10 @@ class Observacion(Base):
     __tablename__ = "observacion"
     
     id_observacion = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    id_informe = Column(Integer, ForeignKey("informe.id_informe"), nullable=False)
+    # RF-008: la observación se registra durante la inspección; al generar el
+    # informe queda también ligada a él (igual que las fotos).
+    id_informe = Column(Integer, ForeignKey("informe.id_informe"), nullable=True)
+    id_inspeccion = Column(Integer, ForeignKey("inspeccion.id_inspeccion"), nullable=True)
     tipo_observacion = Column(String(255), nullable=False)
     descripcion = Column(Text, nullable=False)
     nivel_riesgo = Column(String(255), nullable=False)

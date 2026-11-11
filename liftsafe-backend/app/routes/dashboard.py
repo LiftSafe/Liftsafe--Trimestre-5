@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload
 from app.database import get_db
 from app.utils.auth_deps import get_current_user, require_admin
-from app.models.models import Usuario, Ascensor, Inspeccion, Informe  # ✅ SIN Edificio
+from app.models.models import Usuario, Ascensor, Inspeccion, Informe, Rol  # ✅ SIN Edificio
 from sqlalchemy import func, text
 from datetime import datetime, timedelta
 
@@ -139,9 +139,15 @@ def get_charts(current_user = Depends(get_current_user), db: Session = Depends(g
 # ============================================
 @router.get("/usuarios")
 def get_usuarios(current_user = Depends(get_current_user), db: Session = Depends(get_db)):
-    """Obtiene lista de usuarios para el dashboard"""
+    """Obtiene lista de usuarios para el dashboard (Administrador: todos; Asesor: solo clientes)"""
+    rol = current_user.get("rol")
+    if rol not in ("Administrador", "Asesor"):
+        raise HTTPException(status_code=403, detail="No autorizado para ver los usuarios")
     try:
-        usuarios = db.query(Usuario).options(joinedload(Usuario.rol)).order_by(Usuario.id_usuario.desc()).all()
+        consulta = db.query(Usuario).options(joinedload(Usuario.rol))
+        if rol == "Asesor":
+            consulta = consulta.join(Rol, Rol.id_rol == Usuario.id_rol).filter(Rol.nombre_rol == "Cliente")
+        usuarios = consulta.order_by(Usuario.id_usuario.desc()).all()
         return [{
             "id": u.id_usuario,
             "nombre": u.nombre_completo,
@@ -235,7 +241,12 @@ def get_informes(current_user = Depends(get_current_user), db: Session = Depends
             joinedload(Inspeccion.inspector_rel),
         ).filter(
             Inspeccion.estado.in_(["Aprobada", "Finalizada", "Completada", "Pendiente revisión"])
-        ).order_by(Inspeccion.fecha_creacion.desc()).all()
+        )
+        if current_user.get("rol") == "Cliente":
+            # El cliente solo ve las inspecciones de sus propios ascensores
+            inspecciones = inspecciones.join(Ascensor, Ascensor.id_ascensor == Inspeccion.id_ascensor).filter(
+                Ascensor.id_cliente == current_user.get("user_id"))
+        inspecciones = inspecciones.order_by(Inspeccion.fecha_creacion.desc()).all()
 
         return [{
             "id": i.id_inspeccion,
