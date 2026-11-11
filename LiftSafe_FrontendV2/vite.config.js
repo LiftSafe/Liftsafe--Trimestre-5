@@ -39,6 +39,8 @@ export default defineConfig({
     // MUI trae imports de carpeta que Node no resuelve solo; Vitest debe procesarlos
     server: { deps: { inline: [/@mui/] } },
     include: ['src/**/*.{test,spec}.{js,jsx}'],
+    // Los formularios de MUI escritos tecla por tecla tardan más con la cobertura activa
+    testTimeout: 15000,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html', 'lcov'],
