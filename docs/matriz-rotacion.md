@@ -33,3 +33,35 @@ Cifra real medida al cierre de cada semana (líneas) y umbral que se exige la se
 - Regla de rama: el repositorio es **público**, así que se activa un ruleset en `main` (*Require a pull request* + *Require status checks*: `frontend` y `backend-fastapi`). Si no se pudiera activar, la regla manual es que **nadie fusiona un PR en rojo**.
 - Prueba del rojo: con `fail_under = 99` o `lines: 99`, el job correspondiente queda en ❌; al devolver el valor, vuelve a ✅.
 - Exclusiones de cobertura: solo `src/main.jsx` (arranque de React), `src/assets/**` (imágenes), `src/data/**` (datos de demostración) y `app/__init__.py` en el backend. Ninguna tiene lógica de negocio.
+
+
+
+# Semana 5 
+## ¿Qué prueba este PR?
+Resiliencia del correo (recuperar clave y encuesta) con dobles, el cliente HTTP con MSW y estados de error del login con page.route.
+
+## Inventario de dependencias externas
+- Correo (FastMail/SMTP): recuperación de clave y encuesta → test_notificaciones.py
+- Reloj: códigos de recuperación vencen en 1 h → ya cubierto en test_reset_codes.py
+- Disco: reset_codes.json, PDFs y fotos → monkeypatch de _save_codes/_load_codes
+- MySQL: fake de sesión con dependency_overrides[get_db]
+- Backend visto desde el frontend → MSW (apiClient.msw.test.js) y page.route (06-login-api-con-errores.spec.js)
+
+## Tipos de doble por test
+(copia aquí los comentarios "Doble: ..." de cada test)
+
+## Mutantes
+- Back: quité el try/except de recuperar_clave → falló test_recuperar_clave_responde_503_si_el_servidor_de_correo_falla.
+- Front: quité .catch(() => ({})) de parseResponse → fallaron el test de HTML y el de 500 sin cuerpo.
+
+## Revisión de exceso de mocks
+Revisé un test con la tabla de señales. test_recuperar_clave_envia_el_codigo_una_sola_vez: verifica la llamada porque enviar el correo ES el resultado; no mockea la unidad bajo prueba ni librerías de terceros (se reemplaza send_reset_email, función propia). Sin cambios necesarios.
+
+## Capas
+- Autor: API + Front + E2E (trabajo individual)
+- Revisor: pendiente / consultado con el instructor
+
+## ¿Cómo lo ejecuto?
+cd liftsafe-backend && uv run pytest
+cd LiftSafe_FrontendV2 && npm test
+cd e2e && pnpm test
