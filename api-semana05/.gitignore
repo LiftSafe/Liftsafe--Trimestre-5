@@ -1,0 +1,7 @@
+node_modules/
+dist/
+logs/
+.env
+
+# La raíz del repo ignora "lib/" (Python); aquí src/lib sí es código
+!src/lib/

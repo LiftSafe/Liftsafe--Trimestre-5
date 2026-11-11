@@ -17,6 +17,9 @@ conf = ConnectionConfig(
     MAIL_SSL_TLS=settings.MAIL_SSL_TLS,    # True
     USE_CREDENTIALS=True,
 )
+async def _enviar(message: MessageSchema) -> None:
+    """Interfaz propia sobre FastMail: único punto que toca la librería."""
+    await FastMail(conf).send_message(message)
 
 async def send_reset_email(email: str, code: str):
     """Envía un email con código numérico de 6 dígitos para recuperar contraseña."""
@@ -43,8 +46,8 @@ async def send_reset_email(email: str, code: str):
             """,
             subtype="html"
         )
-        fm = FastMail(conf)
-        await fm.send_message(message)
+        
+        await _enviar(message)
         logger.info(f"✅ Email enviado exitosamente a {email}")
         return True
         
@@ -74,8 +77,7 @@ async def send_encuesta_email(email: str, nombre_cliente: str, codigo_ascensor: 
             """,
             subtype="html"
         )
-        fm = FastMail(conf)
-        await fm.send_message(message)
+        await _enviar(message)
         logger.info(f"✅ Email de encuesta enviado a {email}")
         return True
 

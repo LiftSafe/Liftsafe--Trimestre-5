@@ -1,3 +1,5 @@
+// Semana 1 · Revisado por Luz (E2E): desde el enlace del login se abre el formulario de
+// recuperar contraseña en un navegador real. Correr: cd e2e && pnpm test
 import { expect, test } from '@playwright/test';
 
 test('should open the password recovery form from the login link', async ({ page }) => {
