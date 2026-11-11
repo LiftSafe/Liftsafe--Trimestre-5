@@ -50,4 +50,4 @@ source = ["app"]
 omit = ["app/__init__.py"]
 
 [tool.coverage.report]
-fail_under = 52  # semana 3: 52.08% real, redondeada hacia abajo (>= 40)
+fail_under = 57  # semana 4: 57.49% real, redondeada hacia abajo (>= 50)
