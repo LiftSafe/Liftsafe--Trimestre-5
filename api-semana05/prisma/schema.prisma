@@ -1,0 +1,59 @@
+// LiftSafe — semana 5: ascensores (recurso principal) y edificios (relación 1:N)
+
+generator client {
+  provider   = "prisma-client-js"
+  // Cliente sin binario de Rust: usa el driver de PostgreSQL (adapter-pg)
+  engineType = "client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ElevatorType {
+  ELECTRICO
+  HIDRAULICO
+  PANORAMICO
+  MONTACARGAS
+}
+
+enum ElevatorStatus {
+  ACTIVO
+  EN_MANTENIMIENTO
+  FUERA_DE_SERVICIO
+}
+
+// Recurso secundario: un edificio tiene muchos ascensores
+model Building {
+  id        String     @id @default(uuid()) @db.Uuid
+  name      String     @unique
+  address   String
+  city      String
+  floors    Int
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+  elevators Elevator[]
+
+  @@map("buildings")
+}
+
+// Recurso principal: cada ascensor pertenece a un edificio
+model Elevator {
+  id           String         @id @default(uuid()) @db.Uuid
+  internalCode String         @unique @map("internal_code")
+  brand        String
+  model        String
+  type         ElevatorType
+  capacityKg   Int            @map("capacity_kg")
+  stops        Int
+  status       ElevatorStatus @default(ACTIVO)
+  installedAt  DateTime?      @map("installed_at") @db.Date
+  buildingId   String         @map("building_id") @db.Uuid
+  building     Building       @relation(fields: [buildingId], references: [id], onDelete: Restrict)
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+
+  @@index([buildingId])
+  @@map("elevators")
+}

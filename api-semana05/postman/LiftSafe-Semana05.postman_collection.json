@@ -1,0 +1,265 @@
+{
+  "info": {
+    "name": "LiftSafe · Semana 05 (PostgreSQL + Prisma)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Copia en elevatorId el id de un ascensor y en buildingId el de un edificio (salen en el listado y en el detalle)."
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/api/v1"
+    },
+    {
+      "key": "elevatorId",
+      "value": ""
+    },
+    {
+      "key": "buildingId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "CRUD",
+      "item": [
+        {
+          "name": "1. Listar (paginado)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/elevators?page=1&limit=3",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "elevators"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "3"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "2. Detalle con edificio",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/elevators/{{elevatorId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "elevators",
+                "{{elevatorId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "3. Crear",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"internalCode\": \"ASC-010\",\n  \"brand\": \"Kone\",\n  \"model\": \"MonoSpace 700\",\n  \"type\": \"ELECTRICO\",\n  \"capacityKg\": 900,\n  \"stops\": 18,\n  \"installedAt\": \"2025-02-10\",\n  \"buildingId\": \"{{buildingId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/elevators",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "elevators"
+              ]
+            }
+          }
+        },
+        {
+          "name": "4. Actualizar",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"EN_MANTENIMIENTO\",\n  \"capacityKg\": 1000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/elevators/{{elevatorId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "elevators",
+                "{{elevatorId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "5. Eliminar",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/elevators/{{elevatorId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "elevators",
+                "{{elevatorId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Errores",
+      "item": [
+        {
+          "name": "Código repetido → 409 (P2002)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"internalCode\": \"ASC-001\",\n  \"brand\": \"Kone\",\n  \"model\": \"MonoSpace 700\",\n  \"type\": \"ELECTRICO\",\n  \"capacityKg\": 900,\n  \"stops\": 18,\n  \"installedAt\": \"2025-02-10\",\n  \"buildingId\": \"{{buildingId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/elevators",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "elevators"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Id inexistente → 404",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/elevators/00000000-0000-4000-8000-000000000000",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "elevators",
+                "00000000-0000-4000-8000-000000000000"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Eliminar inexistente → 404 (P2025)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/elevators/00000000-0000-4000-8000-000000000000",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "elevators",
+                "00000000-0000-4000-8000-000000000000"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Body inválido → 400",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"internalCode\": \"X\",\n  \"capacityKg\": -1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/elevators",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "elevators"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Id no UUID → 400",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/elevators/abc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "elevators",
+                "abc"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

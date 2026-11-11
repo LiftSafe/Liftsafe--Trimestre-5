@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: liftsafe-semana05-db
+    environment:
+      POSTGRES_USER: liftsafe
+      POSTGRES_PASSWORD: liftsafe
+      POSTGRES_DB: liftsafe_semana05
+    ports:
+      - "5432:5432"
+    volumes:
+      - liftsafe_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U liftsafe -d liftsafe_semana05"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  liftsafe_pg:
