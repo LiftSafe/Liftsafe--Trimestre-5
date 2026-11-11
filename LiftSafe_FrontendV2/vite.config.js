@@ -55,7 +55,7 @@ export default defineConfig({
       ],
       // Umbral = línea base de la semana 1 (redondeada hacia abajo).
       // Desde hoy solo puede subir. Si baja, "npm test" falla.
-      thresholds: { lines: 50, branches: 41, functions: 54, statements: 50 },
+      thresholds: { lines: 54, branches: 45, functions: 56, statements: 53 }, // semana 4: 54.12% real
     },
   },
 })
