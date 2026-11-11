@@ -1,3 +1,5 @@
+# Semana 3 · Revisado por Luz (API): el PDF del informe se construye con checklist, firmas y
+# fotos al lado de su ítem; normaliza resultados, escapa HTML e ignora fotos que no existen.
 """Pruebas del PDF del informe de inspección (app/controllers/informe_controller.py)."""
 import base64
 import io
