@@ -30,7 +30,13 @@ function GrupoDialog({ inicial, onCerrar, onGuardar }) {
 
   const cambiar = (campo) => (e) => setForm((f) => ({ ...f, [campo]: e.target.value }));
   const guardar = async () => {
-    if (!form.nombre_categoria.trim()) { setError('Escribe el nombre del grupo'); return; }
+    const nombre = form.nombre_categoria.trim();
+    if (!nombre) { setError('Escribe el nombre del grupo'); return; }
+    // Evita guardar por error nombres como "o": mínimo 3 caracteres y alguna letra
+    if (nombre.length < 3 || !/[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]/.test(nombre)) {
+      setError('El nombre del grupo debe tener al menos 3 caracteres y alguna letra (ej: 6.2 Cables de tracción y sus amarres)');
+      return;
+    }
     setGuardando(true);
     try {
       await onGuardar({
@@ -73,6 +79,9 @@ function ItemDialog({ inicial, grupos, onCerrar, onGuardar }) {
   const [error, setError] = useState('');
   const [guardando, setGuardando] = useState(false);
 
+  const grupo = grupos.find((g) => g.id_categoria === Number(form.id_categoria));
+  const nombreGrupo = grupo ? `${grupo.nombre_categoria}${grupo.activo ? '' : ' (desactivado)'}` : '';
+
   const cambiar = (campo) => (e) => setForm((f) => ({ ...f, [campo]: e.target.value }));
   const guardar = async () => {
     if (!form.id_categoria) { setError('Elige el grupo'); return; }
@@ -100,13 +109,9 @@ function ItemDialog({ inicial, grupos, onCerrar, onGuardar }) {
     <Dialog open onClose={onCerrar} maxWidth="sm" fullWidth>
       <DialogTitle fontWeight={700}>{inicial?.id_item ? 'Editar ítem' : 'Nuevo ítem'}</DialogTitle>
       <DialogContent sx={{ display: 'grid', gap: 2, pt: '8px !important' }}>
-        <TextField select label="Grupo" value={form.id_categoria} onChange={cambiar('id_categoria')} required>
-          {grupos.map((g) => (
-            <MenuItem key={g.id_categoria} value={g.id_categoria}>
-              {g.nombre_categoria}{g.activo ? '' : ' (desactivado)'}
-            </MenuItem>
-          ))}
-        </TextField>
+        {/* El ítem pertenece al grupo desde el que se abrió ("Agregar ítem" o el lápiz):
+            se muestra solo ese grupo, sin la lista de todos los demás. */}
+        <TextField label="Grupo" value={nombreGrupo} required InputProps={{ readOnly: true }} />
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '2fr 1fr' }, gap: 2 }}>
           <TextField label="Código" value={form.codigo_item} onChange={cambiar('codigo_item')} placeholder="NTC-6.1-01" required />
           <TextField label="Orden" type="number" value={form.orden_visualizacion} onChange={cambiar('orden_visualizacion')} slotProps={{ htmlInput: { min: 0 } }} />

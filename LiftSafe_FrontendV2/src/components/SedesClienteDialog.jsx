@@ -75,6 +75,12 @@ export default function SedesClienteDialog({ open, cliente, onClose, etiqueta = 
     }
   };
 
+  // ✅ FIX: si escribieron un edificio y dieron "Listo" sin pulsar "Agregar",
+  // se perdía. Ahora se guarda y el diálogo sigue abierto mostrando el edificio
+  // nuevo, para poder registrarle los ascensores.
+  const hayPendiente = Boolean(nueva.nombre.trim() || nueva.direccion.trim() || nueva.ciudad.trim());
+  const listo = () => (hayPendiente ? agregar() : onClose());
+
   const guardarEdicion = async () => {
     if (!editando.nombre.trim()) {
       setError(`El nombre de ${t.una} no puede quedar vacío`);
@@ -199,7 +205,8 @@ export default function SedesClienteDialog({ open, cliente, onClose, etiqueta = 
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5 }}>
           <TextField label={t.nombre} required size="small" sx={{ gridColumn: '1 / -1' }}
             placeholder={t.ejemplo} value={nueva.nombre}
-            onChange={(e) => setNueva({ ...nueva, nombre: e.target.value })} />
+            onChange={(e) => setNueva({ ...nueva, nombre: e.target.value })}
+            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); agregar(); } }} />
           <TextField label="Dirección" size="small" value={nueva.direccion}
             onChange={(e) => setNueva({ ...nueva, direccion: e.target.value })} />
           <TextField label="Ciudad" size="small" value={nueva.ciudad}
@@ -210,7 +217,9 @@ export default function SedesClienteDialog({ open, cliente, onClose, etiqueta = 
         </Button>
       </DialogContent>
       <DialogActions sx={{ p: 2 }}>
-        <Button variant="contained" onClick={onClose}>Listo</Button>
+        <Button variant="contained" onClick={listo} disabled={guardando}>
+          {hayPendiente ? t.guardar : 'Listo'}
+        </Button>
       </DialogActions>
     </Dialog>
   );

@@ -4,6 +4,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import Response
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.controllers.productividad_controller import calcular_productividad, rechazos_por_inspeccion
@@ -59,8 +60,12 @@ def _datos_productividad(desde, hasta, current_user, db):
         db.query(Inspeccion, Usuario.nombre_completo, Informe.estado)
         .outerjoin(Usuario, Inspeccion.id_inspector == Usuario.id_usuario)
         .outerjoin(Informe, Informe.id_inspeccion == Inspeccion.id_inspeccion)
-        .filter(Inspeccion.fecha_inicio >= datetime.combine(desde, time.min),
-                Inspeccion.fecha_inicio <= datetime.combine(hasta, time.max))
+        # ✅ FIX: se filtraba solo por fecha_inicio (la fecha programada). Una
+        # inspección programada para mañana pero hecha hoy quedaba fuera del
+        # reporte. Ahora cuenta el día en que se terminó (fecha_fin) y, si aún
+        # no ha terminado, el día programado.
+        .filter(func.coalesce(Inspeccion.fecha_fin, Inspeccion.fecha_inicio) >= datetime.combine(desde, time.min),
+                func.coalesce(Inspeccion.fecha_fin, Inspeccion.fecha_inicio) <= datetime.combine(hasta, time.max))
         .all()
     )
     rechazos = rechazos_por_inspeccion(db)

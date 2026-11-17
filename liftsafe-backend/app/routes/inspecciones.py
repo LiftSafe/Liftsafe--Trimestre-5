@@ -336,18 +336,33 @@ async def firmar_cliente(
     if not ascensor:
         raise HTTPException(status_code=404, detail="Ascensor no encontrado")
     
-    if ascensor.id_cliente != user_id:
+    # Firma presencial: el inspector asignado puede recoger la firma del cliente
+    # en su propio equipo al terminar la visita. Se exige el nombre y documento
+    # de quien firma, y queda en la auditoría que la registró el inspector.
+    presencial = rol == "Inspector" and inspeccion.id_inspector == user_id
+    if not presencial and ascensor.id_cliente != user_id:
         raise HTTPException(status_code=403, detail="No eres el cliente propietario de este ascensor")
-    
+    nombre_firmante = (data.nombre_firmante or "").strip()
+    documento_firmante = (data.documento_firmante or "").strip()
+    if presencial:
+        if not inspeccion.firma_inspector:
+            raise HTTPException(status_code=400, detail="Primero registra la firma del inspector")
+        if not nombre_firmante or not documento_firmante:
+            raise HTTPException(status_code=400, detail="Escribe el nombre y el documento de quien firma por el cliente")
+
     inspeccion.firma_cliente = data.firma
     inspeccion.fecha_firma_cliente = datetime.now()
     pasa_a_revision = inspeccion.estado == PENDIENTE_FIRMA_CLIENTE
     estado_antes = inspeccion.estado
     if pasa_a_revision:
         inspeccion.estado = PENDIENTE_REVISION
+    datos_firma = {"firma_cliente": True, "estado": inspeccion.estado}
+    if presencial:
+        datos_firma.update({"presencial": True, "nombre_firmante": nombre_firmante,
+                            "documento_firmante": documento_firmante})
     registrar_auditoria(db, user_id, "inspeccion", "FIRMA", inspeccion.id_inspeccion,
                         {"firma_cliente": False, "estado": estado_antes},
-                        {"firma_cliente": True, "estado": inspeccion.estado}, commit=False)
+                        datos_firma, commit=False)
     db.commit()
     db.refresh(inspeccion)
 

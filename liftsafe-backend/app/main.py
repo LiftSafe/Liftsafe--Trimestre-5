@@ -3,6 +3,7 @@
 
 import logging
 import os
+import re
 
 from fastapi import FastAPI, Request
 from fastapi.exception_handlers import request_validation_exception_handler
@@ -34,6 +35,14 @@ from app.routes import (
 )
 
 logger = logging.getLogger(__name__)
+
+# Los errores no controlados también quedan en logs/errores.log (ignorado por
+# git) para poder revisarlos sin tener que buscar en la terminal.
+os.makedirs("logs", exist_ok=True)
+_archivo_errores = logging.FileHandler("logs/errores.log", encoding="utf-8")
+_archivo_errores.setLevel(logging.ERROR)
+_archivo_errores.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
+logger.addHandler(_archivo_errores)
 
 app = FastAPI(
     title="LiftSafe API",
@@ -84,7 +93,16 @@ async def handle_request_validation(request: Request, exc: RequestValidationErro
 async def handle_unexpected_error(request: Request, exc: Exception):
     # El detalle real queda en el log del servidor, no en la respuesta.
     logger.exception("Error no controlado en %s %s", request.method, request.url.path)
-    return JSONResponse(status_code=500, content={"detail": "Error interno del servidor"})
+    respuesta = JSONResponse(status_code=500, content={"detail": "Error interno del servidor"})
+    # ✅ FIX: este manejador corre FUERA del middleware de CORS, así que el 500
+    # salía sin cabeceras CORS y el navegador lo mostraba como "Failed to fetch"
+    # en vez de "Error interno del servidor". Se agregan a mano para localhost.
+    origen = request.headers.get("origin")
+    if origen and re.fullmatch(r"http://(localhost|127\.0\.0\.1):\d+", origen):
+        respuesta.headers["Access-Control-Allow-Origin"] = origen
+        respuesta.headers["Access-Control-Allow-Credentials"] = "true"
+        respuesta.headers["Vary"] = "Origin"
+    return respuesta
 
 
 # ============================================

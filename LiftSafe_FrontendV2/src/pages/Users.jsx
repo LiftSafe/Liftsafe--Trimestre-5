@@ -337,7 +337,7 @@ export default function UsersPage() {
           {formError && <Alert severity="error" sx={{ mb: 2 }}>{formError}</Alert>}
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
             <TextField label="Nombre completo" name="name" value={form.name} onChange={handleChange} fullWidth />
-            <TextField label="Correo electrónico" name="email" type="text" value={form.email} onChange={handleChange} fullWidth />
+            <TextField label="Correo electrónico" name="email" type="text" autoComplete="username" value={form.email} onChange={handleChange} fullWidth />
             <TextField select label="Rol" name="role" value={form.role} onChange={handleChange} fullWidth disabled={esAsesor}>
               {rolesCreables.map((r) => <MenuItem key={r} value={r}>{r}</MenuItem>)}
             </TextField>
@@ -350,10 +350,13 @@ export default function UsersPage() {
             {form.documentType === 'NIT' && (
               <TextField label="Razón social" name="businessName" value={form.businessName} onChange={handleChange} fullWidth />
             )}
-            <TextField label="Teléfono" name="phone" value={form.phone} onChange={handleChange} fullWidth />
-            <TextField label="Contraseña" name="password" type="password" value={form.password} onChange={handleChange} fullWidth />
+            {/* autoComplete: el correo va marcado como "username" para que Chrome, al ofrecer
+                guardar la contraseña, use el correo y no tome el teléfono como usuario
+                ni lo rellene con el correo guardado del login */}
+            <TextField label="Teléfono" name="phone" type="tel" autoComplete="tel" value={form.phone} onChange={handleChange} fullWidth />
+            <TextField label="Contraseña" name="password" type="password" autoComplete="new-password" value={form.password} onChange={handleChange} fullWidth />
             <PasswordRequirements password={form.password} />
-            <TextField label="Confirmar contraseña" name="confirm" type="password" value={form.confirm} onChange={handleChange} fullWidth />
+            <TextField label="Confirmar contraseña" name="confirm" type="password" autoComplete="new-password" value={form.confirm} onChange={handleChange} fullWidth />
           </Box>
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
@@ -371,7 +374,7 @@ export default function UsersPage() {
           {editError && <Alert severity="error" sx={{ mb: 2 }}>{editError}</Alert>}
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
             <TextField label="Nombre completo" name="name" value={editForm.name} onChange={handleEditChange} fullWidth />
-            <TextField label="Correo electrónico" name="email" type="text" value={editForm.email} onChange={handleEditChange} fullWidth />
+            <TextField label="Correo electrónico" name="email" type="text" autoComplete="username" value={editForm.email} onChange={handleEditChange} fullWidth />
             <TextField select label="Rol" name="role" value={editForm.role} onChange={handleEditChange} fullWidth disabled={esAsesor}>
               {rolesCreables.map((r) => <MenuItem key={r} value={r}>{r}</MenuItem>)}
             </TextField>
@@ -389,13 +392,13 @@ export default function UsersPage() {
             {editForm.documentType === 'NIT' && (
               <TextField label="Razón social" name="businessName" value={editForm.businessName} onChange={handleEditChange} fullWidth />
             )}
-            <TextField label="Teléfono" name="phone" value={editForm.phone} onChange={handleEditChange} fullWidth />
+            <TextField label="Teléfono" name="phone" type="tel" autoComplete="tel" value={editForm.phone} onChange={handleEditChange} fullWidth />
             <Typography variant="caption" color="text.secondary">
               Deja la contraseña en blanco si no deseas cambiarla.
             </Typography>
-            <TextField label="Nueva contraseña (opcional)" name="password" type="password" value={editForm.password} onChange={handleEditChange} fullWidth />
+            <TextField label="Nueva contraseña (opcional)" name="password" type="password" autoComplete="new-password" value={editForm.password} onChange={handleEditChange} fullWidth />
             {editForm.password && <PasswordRequirements password={editForm.password} />}
-            <TextField label="Confirmar nueva contraseña" name="confirm" type="password" value={editForm.confirm} onChange={handleEditChange} fullWidth />
+            <TextField label="Confirmar nueva contraseña" name="confirm" type="password" autoComplete="new-password" value={editForm.confirm} onChange={handleEditChange} fullWidth />
           </Box>
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>

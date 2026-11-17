@@ -1,6 +1,7 @@
 // src/pages/Buildings.jsx
 
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box, Card, CardContent, Typography, Button, Alert, CircularProgress,
   Dialog, DialogTitle, DialogContent, DialogActions, IconButton,
@@ -66,6 +67,16 @@ export default function Buildings() {
 
   // ✅ ESTADO PARA MODAL DE DETALLE (reemplaza comprobante)
   const [detailBuilding, setDetailBuilding] = useState(null);
+  const navigate = useNavigate();
+
+  // Acciones rápidas: abren Ascensores / Inspecciones filtradas por este edificio
+  const verAscensores = () => {
+    const params = new URLSearchParams({ cliente: String(detailBuilding.id), nombre: detailBuilding.name || '' });
+    navigate(`/dashboard/ascensores?${params}`);
+  };
+  const verInspecciones = () => {
+    navigate(`/dashboard/inspecciones?${new URLSearchParams({ cliente: detailBuilding.name || '' })}`);
+  };
 
   const handleOpenDetail = (building) => {
     setDetailBuilding(building);
@@ -357,10 +368,10 @@ export default function Buildings() {
               Acciones rápidas
             </Typography>
             <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-              <Button size="small" variant="outlined" startIcon={<ElevatorOutlinedIcon />}>
+              <Button size="small" variant="outlined" startIcon={<ElevatorOutlinedIcon />} onClick={verAscensores}>
                 Ver ascensores
               </Button>
-              <Button size="small" variant="outlined" color="primary">
+              <Button size="small" variant="outlined" color="primary" onClick={verInspecciones}>
                 Ver inspecciones
               </Button>
             </Box>

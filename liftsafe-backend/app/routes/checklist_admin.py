@@ -31,7 +31,7 @@ def _texto(v):
 
 
 class CategoriaIn(BaseModel):
-    nombre_categoria: str = Field(min_length=1, max_length=150)
+    nombre_categoria: str = Field(min_length=3, max_length=150)
     descripcion: Optional[str] = Field(default=None, max_length=500)
     orden_visualizacion: int = Field(default=0, ge=0)
     norma_referencia: Optional[str] = Field(default="NTC 5926-1:2012", max_length=100)
@@ -41,7 +41,7 @@ class CategoriaIn(BaseModel):
 
 
 class CategoriaUpdate(BaseModel):
-    nombre_categoria: Optional[str] = Field(default=None, min_length=1, max_length=150)
+    nombre_categoria: Optional[str] = Field(default=None, min_length=3, max_length=150)
     descripcion: Optional[str] = Field(default=None, max_length=500)
     orden_visualizacion: Optional[int] = Field(default=None, ge=0)
     norma_referencia: Optional[str] = Field(default=None, max_length=100)

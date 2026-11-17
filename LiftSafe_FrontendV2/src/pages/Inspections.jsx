@@ -63,6 +63,39 @@ const statusColor = {
 
 const PAD_HEIGHT = 200;
 
+// Firma presencial del cliente: el inspector le pasa su equipo al terminar la
+// visita. Se pide nombre y documento de quien firma (quedan en la auditoría).
+function FirmaClientePresencial({ onSave }) {
+  const [nombre, setNombre] = useState('');
+  const [documento, setDocumento] = useState('');
+  const [error, setError] = useState('');
+
+  const guardar = (firma) => {
+    if (!nombre.trim() || !documento.trim()) {
+      setError('Escribe el nombre y el documento de quien firma por el cliente.');
+      return;
+    }
+    setError('');
+    onSave(firma, { nombre_firmante: nombre.trim(), documento_firmante: documento.trim() });
+  };
+
+  return (
+    <Box sx={{ mt: 2 }}>
+      <Alert severity="info" sx={{ mb: 1.5 }}>
+        Si el cliente está presente, pásale el equipo para que firme aquí mismo.
+      </Alert>
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5, mb: 1.5 }}>
+        <TextField size="small" label="Nombre de quien firma" required value={nombre}
+          onChange={(e) => setNombre(e.target.value)} />
+        <TextField size="small" label="Documento de quien firma" required value={documento}
+          onChange={(e) => setDocumento(e.target.value)} />
+      </Box>
+      {error && <Alert severity="error" sx={{ mb: 1.5 }}>{error}</Alert>}
+      <SignaturePad label="Firma del cliente (presencial)" onSave={guardar} />
+    </Box>
+  );
+}
+
 function SignaturePad({ onSave, disabled, label, fecha }) {
   const canvasRef = useRef(null);
   const wrapRef = useRef(null);
@@ -364,8 +397,10 @@ export default function Inspections() {
   const navigate = useNavigate();
   const filtroEstados = leerEstados(location.search);
   // RF-017: filtros por fecha, cliente, ubicación, técnico, tipo y estado
-  const [filtros, setFiltros] = useState(FILTROS_VACIOS);
-  const [verFiltros, setVerFiltros] = useState(false);
+  // "Ver inspecciones" en Edificios llega con ?cliente=<nombre>: arranca con ese filtro
+  const clienteInicial = new URLSearchParams(location.search).get('cliente') || '';
+  const [filtros, setFiltros] = useState(() => ({ ...FILTROS_VACIOS, cliente: clienteInicial }));
+  const [verFiltros, setVerFiltros] = useState(!!clienteInicial);
   // Clic en una tarjeta o un número del reporte de Productividad (?prod=...)
   const filtroProd = leerFiltroProductividad(location.search);
   const inspeccionesVisibles = filtrarInspecciones(filtrarPorProductividad(filtrarPorEstado(inspections, filtroEstados), filtroProd), filtros);
@@ -792,10 +827,11 @@ export default function Inspections() {
     }
   };
 
-  const firmarComoCliente = async (firmaBase64) => {
+  // extra: { nombre_firmante, documento_firmante } cuando firma en el equipo del inspector
+  const firmarComoCliente = async (firmaBase64, extra = {}) => {
     const id = selected?.id_inspeccion || selected?.id;
     try {
-      const respuesta = await firmaService.firmarCliente(id, { firma: firmaBase64 });
+      const respuesta = await firmaService.firmarCliente(id, { firma: firmaBase64, ...extra });
       // Si estaba "Pendiente firma cliente", con esta firma pasa a revisión
       if (selected?.estado === ESTADO_PENDIENTE_FIRMA) {
         setSelected((s) => (s ? { ...s, estado: ESTADO_PENDIENTE_REVISION } : s));
@@ -1322,6 +1358,16 @@ export default function Inspections() {
                     onSave={firmarComoInspector}
                     fecha={firmas?.fecha_firma_inspector}
                   />
+                )}
+                {/* Ya firmó el inspector: puede recoger ahí mismo la firma del cliente */}
+                {userRol === 'Inspector' && firmas?.firma_inspector && (
+                  firmas?.firma_cliente ? (
+                    <Box sx={{ mt: 2 }}>
+                      <SignaturePad label="Firma del cliente" disabled fecha={firmas?.fecha_firma_cliente} />
+                    </Box>
+                  ) : (
+                    <FirmaClientePresencial onSave={firmarComoCliente} />
+                  )
                 )}
                 {userRol === 'Cliente' && (
                   <SignaturePad

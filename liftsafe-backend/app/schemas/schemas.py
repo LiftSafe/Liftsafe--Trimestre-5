@@ -447,6 +447,10 @@ class FotografiaUpdate(BaseModel):
 # ==========================================
 class FirmaRequest(BaseModel):
     firma: str  # base64
+    # Solo para la firma presencial del cliente en el equipo del inspector:
+    # quién firmó realmente (queda en la auditoría).
+    nombre_firmante: Optional[str] = None
+    documento_firmante: Optional[str] = None
 
 class FirmaResponse(BaseModel):
     mensaje: str

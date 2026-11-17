@@ -3,6 +3,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import IconButton from '@mui/material/IconButton';
 import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Box, Card, CardContent, Chip, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, Button, Alert, CircularProgress,
@@ -81,8 +82,16 @@ export default function Elevators() {
   const userRol = user?.role || user?.rol;
   const esDirectorTecnico = userRol === 'Director Técnico';
   const { data: elevators = [], loading, error, refetch } = useDashboardData(fetchAscensores);
+  // Filtro por edificio que llega desde "Ver ascensores" en Edificios (?cliente=ID&nombre=...)
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const filtroCliente = searchParams.get('cliente');
+  const nombreFiltroCliente = searchParams.get('nombre');
+  const ascensoresVisibles = filtroCliente
+    ? elevators.filter((e) => String(e.id_cliente ?? e.cliente) === filtroCliente)
+    : elevators;
   const { search, setSearch, page, setPage, paginated, totalCount } = usePaginatedSearch(
-    elevators,
+    ascensoresVisibles,
     ['building', 'brand', 'model', 'city', 'location', 'status']
   );
 
@@ -240,7 +249,16 @@ export default function Elevators() {
       />
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 2 }}>
-        <SearchBar value={search} onChange={setSearch} placeholder="Buscar ascensor..." />
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+          <SearchBar value={search} onChange={setSearch} placeholder="Buscar ascensor..." />
+          {filtroCliente && (
+            <Chip
+              color="primary"
+              label={`Edificio: ${nombreFiltroCliente || `#${filtroCliente}`}`}
+              onDelete={() => navigate('/dashboard/ascensores')}
+            />
+          )}
+        </Box>
         {hasAction('createElevator') && (
           <Button variant="contained" startIcon={<AddIcon />} onClick={abrirCrear}>
             Registrar ascensor
