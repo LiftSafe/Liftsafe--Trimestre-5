@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator
 from typing import Optional, List, Literal
 from datetime import datetime, date, time
 from app.utils.password_validator import validate_password
@@ -455,39 +455,44 @@ class FirmaResponse(BaseModel):
 # ==========================================
 # ESQUEMAS DE ACTUALIZACIÓN (EQUIPO)
 # ==========================================
+# Límites de las columnas de `ascensor` (liftsafe_db.sql): si el API acepta algo más
+# grande, MySQL falla y el cliente recibe un 500 (hallazgo S6); se rechaza antes con 422.
+MAX_INT = 2_147_483_647  # INT con signo de MySQL
+
+
 class AscensorCreate(BaseModel):
     id_cliente: int
-    codigo_interno: str
-    marca: str
-    modelo: str
-    numero_serie: str
-    tipo_ascensor: str
-    capacidad_kg: int
-    capacidad_personas: Optional[int] = None
-    numero_pisos: int
+    codigo_interno: str = Field(max_length=50)
+    marca: str = Field(max_length=80)
+    modelo: str = Field(max_length=80)
+    numero_serie: str = Field(max_length=80)
+    tipo_ascensor: str = Field(max_length=50)
+    capacidad_kg: int = Field(le=MAX_INT)
+    capacidad_personas: Optional[int] = Field(default=None, le=MAX_INT)
+    numero_pisos: int = Field(le=MAX_INT)
     velocidad_ms: Optional[float] = None
-    ubicacion_exacta: str
-    direccion_completa: str
-    ciudad: str
-    estado: str
+    ubicacion_exacta: str = Field(max_length=200)
+    direccion_completa: str = Field(max_length=250)
+    ciudad: str = Field(max_length=100)
+    estado: str = Field(max_length=255)
     fecha_instalacion: Optional[date] = None
     id_sede: Optional[int] = None
 
 class AscensorUpdate(BaseModel):
     id_cliente: Optional[int] = None
-    codigo_interno: Optional[str] = None
-    marca: Optional[str] = None
-    modelo: Optional[str] = None
-    numero_serie: Optional[str] = None
-    tipo_ascensor: Optional[str] = None
-    capacidad_kg: Optional[int] = None
-    capacidad_personas: Optional[int] = None
-    numero_pisos: Optional[int] = None
+    codigo_interno: Optional[str] = Field(default=None, max_length=50)
+    marca: Optional[str] = Field(default=None, max_length=80)
+    modelo: Optional[str] = Field(default=None, max_length=80)
+    numero_serie: Optional[str] = Field(default=None, max_length=80)
+    tipo_ascensor: Optional[str] = Field(default=None, max_length=50)
+    capacidad_kg: Optional[int] = Field(default=None, le=MAX_INT)
+    capacidad_personas: Optional[int] = Field(default=None, le=MAX_INT)
+    numero_pisos: Optional[int] = Field(default=None, le=MAX_INT)
     velocidad_ms: Optional[float] = None
-    ubicacion_exacta: Optional[str] = None
-    direccion_completa: Optional[str] = None
-    ciudad: Optional[str] = None
-    estado: Optional[str] = None
+    ubicacion_exacta: Optional[str] = Field(default=None, max_length=200)
+    direccion_completa: Optional[str] = Field(default=None, max_length=250)
+    ciudad: Optional[str] = Field(default=None, max_length=100)
+    estado: Optional[str] = Field(default=None, max_length=255)
     fecha_instalacion: Optional[date] = None
     id_sede: Optional[int] = None
 
