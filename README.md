@@ -201,6 +201,26 @@ cd LiftSafe_FrontendV2 && npm test            # frontend + cobertura
 | "Credenciales incorrectas" al iniciar sesión | No se corrió el script de contraseñas | `uv run python update_all_passwords.py` |
 | El frontend carga pero nada funciona | El backend no está corriendo | Inicia el backend (paso 2) |
 
+## Pruebas de integración con la BD real (semana 6)
+
+Los tests de `liftsafe-backend/tests/integration/` corren contra un MySQL 8.0 **de pruebas, desechable**
+(`docker-compose.test.yml`, puerto **3307**, BD `liftsafe_test`), nunca contra la de desarrollo (3306).
+Sin `DATABASE_URL` se saltan, así que `uv run pytest` sigue funcionando sin Docker.
+
+```bash
+# 1. Levantar la BD de pruebas (crea el esquema desde tests/integration/db/01-esquema.sql)
+docker compose -f docker-compose.test.yml up -d --wait
+
+# 2. Correr los tests con la conexión por variable de entorno (desde liftsafe-backend)
+#    PowerShell:  $env:DATABASE_URL="mysql+pymysql://root:test_root@127.0.0.1:3307/liftsafe_test"; uv run pytest
+DATABASE_URL="mysql+pymysql://root:test_root@127.0.0.1:3307/liftsafe_test" uv run pytest
+
+# 3. Apagar y borrar todo
+docker compose -f docker-compose.test.yml down -v
+```
+
+El esquema se regenera con `python liftsafe-backend/tests/integration/db/generar_esquema.py` (a partir de `liftsafe_db.sql`, sin datos de ejemplo).
+
 ## Credenciales por Defecto
 
 ### Base de Datos MySQL (XAMPP)
