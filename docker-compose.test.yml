@@ -1,0 +1,30 @@
+# ========================================================
+# LiftSafe — BD de PRUEBAS (semana 6: integración con BD real)
+# ========================================================
+# MySQL 8.0 (la misma versión mayor del proyecto) en el puerto 3307 y con
+# nombre liftsafe_test, para no tocar jamás la BD de desarrollo (3306).
+# La BD es desechable: los datos viven en memoria (tmpfs) y el esquema se
+# crea en cada arranque desde liftsafe-backend/tests/integration/db/.
+#
+#   docker compose -f docker-compose.test.yml up -d --wait     # levantar
+#   docker compose -f docker-compose.test.yml down -v          # apagar y borrar
+#
+# Los tests leen DATABASE_URL (ver README, sección "Pruebas de integración").
+services:
+  db-test:
+    image: mysql:8.0
+    container_name: liftsafe-mysql-test
+    environment:
+      MYSQL_ROOT_PASSWORD: ${TEST_DB_PASSWORD:-test_root}
+      MYSQL_DATABASE: liftsafe_test
+    ports:
+      - "3307:3306"
+    volumes:
+      - ./liftsafe-backend/tests/integration/db:/docker-entrypoint-initdb.d:ro
+    tmpfs:
+      - /var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
