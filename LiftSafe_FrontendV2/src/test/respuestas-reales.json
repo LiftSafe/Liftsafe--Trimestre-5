@@ -1,0 +1,102 @@
+{
+  "listado_ok": {
+    "status": 200,
+    "body": [
+      {
+        "id_ascensor": 118,
+        "codigo_interno": "ASC-101",
+        "marca": "Schindler",
+        "modelo": "3300",
+        "tipo_ascensor": "Pasajeros",
+        "capacidad_kg": 630,
+        "ciudad": "Bogotá",
+        "estado": "Operativo",
+        "cliente": "Torre Norte",
+        "id_sede": null,
+        "sede": null
+      },
+      {
+        "id_ascensor": 117,
+        "codigo_interno": "ASC-100",
+        "marca": "Schindler",
+        "modelo": "3300",
+        "tipo_ascensor": "Pasajeros",
+        "capacidad_kg": 630,
+        "ciudad": "Bogotá",
+        "estado": "Operativo",
+        "cliente": "Torre Norte",
+        "id_sede": null,
+        "sede": null
+      }
+    ]
+  },
+  "edificios_ok": {
+    "status": 200,
+    "body": [
+      {
+        "id_cliente": 159,
+        "cliente": "Torre Norte",
+        "correo": "torre@example.com",
+        "telefono": "3001234567",
+        "tipo_documento": "NIT",
+        "documento_identidad": "900123456",
+        "razon_social": "Torre Norte SAS",
+        "nit": "900123456",
+        "direccion": "Calle 100 # 15-20",
+        "ciudad": "Bogotá",
+        "estado": "Activo",
+        "fecha_registro": "2026-11-18T00:13:42",
+        "total_ascensores": 2
+      }
+    ]
+  },
+  "sin_token": {
+    "status": 401,
+    "body": {
+      "detail": "Not authenticated"
+    }
+  },
+  "crear_sin_permiso": {
+    "status": 403,
+    "body": {
+      "detail": "No autorizado para crear ascensores"
+    }
+  },
+  "crear_cliente_inexistente": {
+    "status": 404,
+    "body": {
+      "detail": "Cliente no encontrado"
+    }
+  },
+  "crear_codigo_repetido": {
+    "status": 409,
+    "body": {
+      "detail": "El código interno ya está registrado"
+    }
+  },
+  "crear_marca_81": {
+    "status": 422,
+    "body": {
+      "detail": [
+        {
+          "type": "string_too_long",
+          "loc": [
+            "body",
+            "marca"
+          ],
+          "msg": "String should have at most 80 characters",
+          "input": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "ctx": {
+            "max_length": 80
+          }
+        }
+      ]
+    }
+  },
+  "editar_inexistente": {
+    "status": 404,
+    "body": {
+      "detail": "Ascensor no encontrado"
+    }
+  }
+}
