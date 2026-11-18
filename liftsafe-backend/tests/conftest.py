@@ -16,13 +16,25 @@ os.environ.setdefault("MAIL_PASSWORD", "no-es-una-clave-real")
 os.environ.setdefault("MAIL_FROM", "pruebas@example.com")
 
 # Seguridad: las pruebas JAMÁS apuntan a la base de datos de desarrollo.
-# Se fuerza (no se usa setdefault) para que un .env no la pise.
-# Apunta al MySQL de pruebas de docker-compose.test.yml (puerto 3307).
-os.environ["DB_HOST"] = "127.0.0.1"
-os.environ["DB_PORT"] = "3307"
-os.environ["DB_USER"] = "root"
-os.environ["DB_PASSWORD"] = "test_root"
-os.environ["DB_NAME"] = "liftsafe_test"
+# La conexión de los tests de integración llega por DATABASE_URL (ver README,
+# "Pruebas de integración"). Sin DATABASE_URL, esos tests se saltan y el resto
+# usa sesiones falsas (sin BD). Se fuerza (no setdefault) para que un .env no la pise.
+from urllib.parse import urlparse  # noqa: E402
+
+_url = os.environ.get("DATABASE_URL")
+if _url:
+    _partes = urlparse(_url)
+    os.environ["DB_HOST"] = _partes.hostname or "127.0.0.1"
+    os.environ["DB_PORT"] = str(_partes.port or 3306)
+    os.environ["DB_USER"] = _partes.username or ""
+    os.environ["DB_PASSWORD"] = _partes.password or ""
+    os.environ["DB_NAME"] = _partes.path.lstrip("/")
+else:
+    os.environ["DB_HOST"] = "127.0.0.1"
+    os.environ["DB_PORT"] = "3307"
+    os.environ["DB_USER"] = "sin_conexion"
+    os.environ["DB_PASSWORD"] = ""
+    os.environ["DB_NAME"] = "liftsafe_test"
 
 
 # ============================================================================
