@@ -1,0 +1,149 @@
+# Frontend React - ESLint
+# Fecha: 2026-11-18 19:43
+
+
+C:\src\Liftsafe--Trimestre-5\LiftSafe_FrontendV2\src\components\MessageDialog.jsx
+  14:14  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+  21:14  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\src\Liftsafe--Trimestre-5\LiftSafe_FrontendV2\src\components\PromptDialog.jsx
+  15:15  warning  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  13 |
+  14 |   useEffect(() => {
+> 15 |     if (open) setValue('');
+     |               ^^^^^^^^ Avoid calling setState() directly within an effect
+  16 |   }, [open]);
+  17 |
+  18 |   return (  react-hooks/set-state-in-effect
+
+C:\src\Liftsafe--Trimestre-5\LiftSafe_FrontendV2\src\context\AuthContext.jsx
+   42:11  warning  Error: Cannot access variable before it is declared
+
+`logout` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+  40 |         if (expDate < new Date()) {
+  41 |           console.log('Token expirado');
+> 42 |           logout();
+     |           ^^^^^^ `logout` accessed before it is declared
+  43 |         }
+  44 |       } catch (e) {
+  45 |         console.error('Error verificando token:', e);
+
+   98 |   // LOGOUT
+   99 |   // ============================================
+> 100 |   const logout = () => {
+      |   ^^^^^^^^^^^^^^^^^^^^^^
+> 101 |     sessionStorage.removeItem('liftsafe_user');
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 102 |     sessionStorage.removeItem('token');
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 103 |     setUser(null);
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 104 |     navigate('/login');
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 105 |   };
+      | ^^^^^ `logout` is declared here
+  106 |
+  107 |   // ============================================
+  108 |   // PERMISOS  react-hooks/immutability
+   49:6   warning  React Hook useEffect has a missing dependency: 'logout'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             react-hooks/exhaustive-deps
+  131:17  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        react-refresh/only-export-components
+
+C:\src\Liftsafe--Trimestre-5\LiftSafe_FrontendV2\src\pages\Auditoria.jsx
+  41:3  warning  Unused eslint-disable directive (no problems were reported from 'react-hooks/set-state-in-effect')
+  43:5  warning  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  41 |   // eslint-disable-next-line react-hooks/set-state-in-effect -- patron estandar de carga de datos al montar
+  42 |   useEffect(() => {
+> 43 |     cargarAuditoria();
+     |     ^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  44 |     // eslint-disable-next-line react-hooks/exhaustive-deps
+  45 |   }, [filtroTabla]);
+  46 |  react-hooks/set-state-in-effect
+
+C:\src\Liftsafe--Trimestre-5\LiftSafe_FrontendV2\src\pages\Encuestas.jsx
+  39:21  warning  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  37 |   };
+  38 |
+> 39 |   useEffect(() => { cargar(); }, []);
+     |                     ^^^^^^ Avoid calling setState() directly within an effect
+  40 |
+  41 |   const actualizarBorrador = (id, campo, valor) => {
+  42 |     setBorradores((prev) => ({  react-hooks/set-state-in-effect
+
+C:\src\Liftsafe--Trimestre-5\LiftSafe_FrontendV2\src\pages\Inspections.jsx
+  137:6  warning  React Hook useEffect has a missing dependency: 'setupCanvas'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  react-hooks/exhaustive-deps
+  534:5  warning  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  532 |     if (!openCreate) return;
+  533 |     let cancelled = false;
+> 534 |     setLoadingAscensores(true);
+      |     ^^^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  535 |     ascensorService.listar()
+  536 |       .then((data) => {
+  537 |         if (!cancelled) setAscensores(Array.isArray(data) ? data : []);                                                                     react-hooks/set-state-in-effect
+  557:5  warning  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  555 |     if (!openCreate) return;
+  556 |     let cancelled = false;
+> 557 |     setLoadingInspectores(true);
+      |     ^^^^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  558 |     usuarioService.listarInspectores(newInspection.fecha_programada || undefined)
+  559 |       .then((data) => {
+  560 |         if (!cancelled) setInspectoresDisponibles(Array.isArray(data) ? data : []);  react-hooks/set-state-in-effect
+  582:7  warning  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  580 |     );
+  581 |     if (!sigueDisponible) {
+> 582 |       setNewInspection((prev) => ({ ...prev, id_inspector: '' }));
+      |       ^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  583 |     }
+  584 |     // eslint-disable-next-line react-hooks/exhaustive-deps
+  585 |   }, [inspectoresDisponibles]);                                                                                    react-hooks/set-state-in-effect
+
+C:\src\Liftsafe--Trimestre-5\LiftSafe_FrontendV2\src\pages\dashboards\AdminDashboard.jsx
+  74:5  warning  Unused eslint-disable directive (no problems were reported from 'react-hooks/exhaustive-deps')
+
+✖ 14 problems (0 errors, 14 warnings)
+  0 errors and 2 warnings potentially fixable with the `--fix` option.
+
+
+# Código de salida: 0

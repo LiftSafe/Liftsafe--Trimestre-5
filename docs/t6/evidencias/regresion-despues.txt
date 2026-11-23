@@ -1,0 +1,67 @@
+# Regresion de defectos sobre el codigo CORREGIDO - se espera que PASE
+# Fecha: 2026-11-18 19:31  ·  Código de salida: 0
+
+...........                                                              [100%]
+============================== warnings summary ===============================
+.venv\Lib\site-packages\fastapi\testclient.py:1
+  C:\src\Liftsafe--Trimestre-5\liftsafe-backend\.venv\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+app\database.py:27
+  C:\src\Liftsafe--Trimestre-5\liftsafe-backend\app\database.py:27: MovedIn20Warning: The ``declarative_base()`` function is now available as sqlalchemy.orm.declarative_base(). (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    Base = declarative_base()
+
+app\schemas\schemas.py:17
+  C:\src\Liftsafe--Trimestre-5\liftsafe-backend\app\schemas\schemas.py:17: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class UsuarioResponse(BaseModel):
+
+app\schemas\schemas.py:32
+  C:\src\Liftsafe--Trimestre-5\liftsafe-backend\app\schemas\schemas.py:32: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class AscensorResponse(BaseModel):
+
+app\schemas\schemas.py:44
+  C:\src\Liftsafe--Trimestre-5\liftsafe-backend\app\schemas\schemas.py:44: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class InspeccionResponse(BaseModel):
+
+app\schemas\schemas.py:187
+  C:\src\Liftsafe--Trimestre-5\liftsafe-backend\app\schemas\schemas.py:187: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class UsuarioAscensorResponse(UsuarioAscensorBase):
+
+app\schemas\schemas.py:199
+  C:\src\Liftsafe--Trimestre-5\liftsafe-backend\app\schemas\schemas.py:199: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class AuditoriaResponse(BaseModel):
+
+app\schemas\schemas.py:235
+  C:\src\Liftsafe--Trimestre-5\liftsafe-backend\app\schemas\schemas.py:235: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class SolicitudResponse(SolicitudBase):
+
+app\schemas\schemas.py:284
+  C:\src\Liftsafe--Trimestre-5\liftsafe-backend\app\schemas\schemas.py:284: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class ProgramacionResponse(BaseModel):
+
+app\schemas\schemas.py:315
+  C:\src\Liftsafe--Trimestre-5\liftsafe-backend\app\schemas\schemas.py:315: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class NotificacionResponse(NotificacionBase):
+
+app\schemas\schemas.py:349
+  C:\src\Liftsafe--Trimestre-5\liftsafe-backend\app\schemas\schemas.py:349: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class DetalleChecklistResponse(DetalleChecklistBase):
+
+app\schemas\schemas.py:356
+  C:\src\Liftsafe--Trimestre-5\liftsafe-backend\app\schemas\schemas.py:356: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class ChecklistItemResponse(BaseModel):
+
+app\schemas\schemas.py:369
+  C:\src\Liftsafe--Trimestre-5\liftsafe-backend\app\schemas\schemas.py:369: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class ChecklistCategoriaResponse(BaseModel):
+
+app\schemas\schemas.py:402
+  C:\src\Liftsafe--Trimestre-5\liftsafe-backend\app\schemas\schemas.py:402: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class ObservacionResponse(ObservacionBase):
+
+app\schemas\schemas.py:421
+  C:\src\Liftsafe--Trimestre-5\liftsafe-backend\app\schemas\schemas.py:421: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class FotografiaResponse(FotografiaBase):
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+11 passed, 15 warnings in 1.20s

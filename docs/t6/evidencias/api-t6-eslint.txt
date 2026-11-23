@@ -1,0 +1,5 @@
+# api-t6 - ESLint
+# Fecha: 2026-11-18 19:29
+
+
+# Código de salida: 0

@@ -1,0 +1,9 @@
+# Backend FastAPI - ruff (PEP 8), reporte completo despues de --fix
+# Fecha: 2026-11-18 19:30  ·  Código de salida: 1
+
+4	W291	trailing-whitespace
+3	E731	lambda-assignment
+3	E712	true-false-comparison
+1	F811	redefined-while-unused
+Found 11 errors.
+10 unsafe fixes available with `--fix --unsafe-fixes`.

@@ -1,0 +1,100 @@
+# api-t6 - coleccion Postman (newman)
+# Fecha: 2026-11-18 19:29
+
+(node:11036) [DEP0176] DeprecationWarning: fs.F_OK is deprecated, use fs.constants.F_OK instead
+(Use `node --trace-deprecation ...` to show where the warning was created)
+newman
+
+LiftSafe — 4.° backend (T6) · API de integración con JWT
+
+→ 01 Salud del servicio
+  GET http://localhost:3100/api/v1/health [200 OK, 249B, 42ms]
+  √  200 y status ok
+
+→ 02 Login ADMIN (guarda el token)
+  POST http://localhost:3100/api/v1/auth/login [200 OK, 648B, 420ms]
+  √  200 con token JWT
+  √  No devuelve la contraseña
+
+→ 03 Login INTEGRADOR (guarda el token)
+  POST http://localhost:3100/api/v1/auth/login [200 OK, 679B, 166ms]
+  √  200 con rol INTEGRADOR
+
+→ 04 Login con contraseña errada → 401
+  POST http://localhost:3100/api/v1/auth/login [401 Unauthorized, 308B, 146ms]
+  √  401 sin token
+
+→ 05 Login con correo inválido → 400
+  POST http://localhost:3100/api/v1/auth/login [400 Bad Request, 403B, 8ms]
+  √  400 con detalle de validación
+
+→ 06 Perfil del token (GET /auth/me)
+  GET http://localhost:3100/api/v1/auth/me [200 OK, 362B, 15ms]
+  √  200 con el correo del token
+
+→ 07 Listar ascensores sin token → 401
+  GET http://localhost:3100/api/v1/elevators [401 Unauthorized, 328B, 4ms]
+  √  401
+
+→ 08 Listar ascensores (INTEGRADOR)
+  GET http://localhost:3100/api/v1/elevators?page=1&limit=5 [200 OK, 2.01kB, 46ms]
+  √  200 con contrato paginado
+  √  Responde en menos de 1 s
+
+→ 09 Resumen por estado
+  GET http://localhost:3100/api/v1/elevators/summary [200 OK, 322B, 11ms]
+  √  200 con total y byStatus
+
+→ 10 Edificios (guarda un buildingId)
+  GET http://localhost:3100/api/v1/buildings [200 OK, 1.16kB, 14ms]
+  √  200 con totalElevators
+
+→ 11 INTEGRADOR intenta crear → 403
+  POST http://localhost:3100/api/v1/elevators [403 Forbidden, 308B, 3ms]
+  √  403
+
+→ 12 ADMIN crea con datos inválidos → 400
+  POST http://localhost:3100/api/v1/elevators [400 Bad Request, 1.18kB, 7ms]
+  √  400 con varios problemas
+
+→ 13 ADMIN crea ascensor → 201
+  POST http://localhost:3100/api/v1/elevators [201 Created, 789B, 36ms]
+  √  201 y guarda el id
+
+→ 14 Código repetido → 409
+  POST http://localhost:3100/api/v1/elevators [409 Conflict, 307B, 38ms]
+  √  409
+
+→ 15 ADMIN elimina el ascensor → 204
+  DELETE http://localhost:3100/api/v1/elevators/fdcd523f-4b95-49cb-b6e9-7eae9284169e [204 No Content, 134B, 14ms]
+  √  204
+
+→ 16 Detalle de un ascensor borrado → 404
+  GET http://localhost:3100/api/v1/elevators/fdcd523f-4b95-49cb-b6e9-7eae9284169e [404 Not Found, 294B, 12ms]
+  √  404
+
+→ 17 Token manipulado → 401
+  GET http://localhost:3100/api/v1/elevators [401 Unauthorized, 291B, 14ms]
+  √  401
+
+┌─────────────────────────┬───────────────────┬───────────────────┐
+│                         │          executed │            failed │
+├─────────────────────────┼───────────────────┼───────────────────┤
+│              iterations │                 1 │                 0 │
+├─────────────────────────┼───────────────────┼───────────────────┤
+│                requests │                17 │                 0 │
+├─────────────────────────┼───────────────────┼───────────────────┤
+│            test-scripts │                17 │                 0 │
+├─────────────────────────┼───────────────────┼───────────────────┤
+│      prerequest-scripts │                 1 │                 0 │
+├─────────────────────────┼───────────────────┼───────────────────┤
+│              assertions │                19 │                 0 │
+├─────────────────────────┴───────────────────┴───────────────────┤
+│ total run duration: 2.4s                                        │
+├─────────────────────────────────────────────────────────────────┤
+│ total data received: 5.8kB (approx)                             │
+├─────────────────────────────────────────────────────────────────┤
+│ average response time: 58ms [min: 3ms, max: 420ms, s.d.: 101ms] │
+└─────────────────────────────────────────────────────────────────┘
+
+# Código de salida: 0

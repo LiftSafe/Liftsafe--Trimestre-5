@@ -1,0 +1,4 @@
+# Backend FastAPI - ruff (PEP 8), errores criticos
+# Fecha: 2026-11-18 19:30  ·  Código de salida: 0
+
+All checks passed!

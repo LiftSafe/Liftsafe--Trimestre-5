@@ -1,0 +1,198 @@
+# Backend FastAPI - pytest con cobertura
+# Fecha: 2026-11-18 19:31  ·  Código de salida: 0
+
+============================= test session starts =============================
+platform win32 -- Python 3.14.7, pytest-9.1.1, pluggy-1.6.0
+rootdir: C:\src\Liftsafe--Trimestre-5\liftsafe-backend
+configfile: pyproject.toml
+testpaths: tests
+plugins: anyio-4.15.1, cov-7.1.0, mock-3.15.1
+collected 296 items
+
+tests\test_api_ascensores.py ......                                      [  2%]
+tests\test_api_bd.py ........                                            [  4%]
+tests\test_api_front.py .......                                          [  7%]
+tests\test_api_seguridad.py ...........................                  [ 16%]
+tests\test_auditoria.py ....                                             [ 17%]
+tests\test_auditoria_cambios.py ....                                     [ 18%]
+tests\test_autenticacion.py ............................................ [ 33%]
+...                                                                      [ 34%]
+tests\test_auth_deps.py ........                                         [ 37%]
+tests\test_cancelar_visita.py ....                                       [ 38%]
+tests\test_checklist_admin.py ......                                     [ 40%]
+tests\test_checklist_categorias.py ...                                   [ 41%]
+tests\test_cierre_inspeccion.py .........                                [ 44%]
+tests\test_cifrado.py .......                                            [ 47%]
+tests\test_encuesta_al_aprobar.py ........                               [ 50%]
+tests\test_estado_solicitud.py ....                                      [ 51%]
+tests\test_excel_productividad.py ...                                    [ 52%]
+tests\test_foto_obligatoria.py ......                                    [ 54%]
+tests\test_gestion_usuarios.py .........                                 [ 57%]
+tests\test_informe_acceso.py ....                                        [ 58%]
+tests\test_informe_correo.py ...                                         [ 59%]
+tests\test_informe_pdf.py .............                                  [ 64%]
+tests\test_notificaciones.py ......                                      [ 66%]
+tests\test_password_validator.py .................                       [ 71%]
+tests\test_productividad.py ...                                          [ 72%]
+tests\test_programacion_hora.py ...........                              [ 76%]
+tests\test_regresion_defectos.py ...........                             [ 80%]
+tests\test_reset_codes.py .............                                  [ 84%]
+tests\test_rutas_sesion_falsa.py .....................                   [ 91%]
+tests\test_schemas.py ...............                                    [ 96%]
+tests\test_sedes.py ......                                               [ 98%]
+tests\test_smoke.py ...                                                  [100%]
+
+============================== warnings summary ===============================
+.venv\Lib\site-packages\fastapi\testclient.py:1
+  C:\src\Liftsafe--Trimestre-5\liftsafe-backend\.venv\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+app\database.py:27
+  C:\src\Liftsafe--Trimestre-5\liftsafe-backend\app\database.py:27: MovedIn20Warning: The ``declarative_base()`` function is now available as sqlalchemy.orm.declarative_base(). (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    Base = declarative_base()
+
+app\schemas\schemas.py:17
+  C:\src\Liftsafe--Trimestre-5\liftsafe-backend\app\schemas\schemas.py:17: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class UsuarioResponse(BaseModel):
+
+app\schemas\schemas.py:32
+  C:\src\Liftsafe--Trimestre-5\liftsafe-backend\app\schemas\schemas.py:32: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class AscensorResponse(BaseModel):
+
+app\schemas\schemas.py:44
+  C:\src\Liftsafe--Trimestre-5\liftsafe-backend\app\schemas\schemas.py:44: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class InspeccionResponse(BaseModel):
+
+app\schemas\schemas.py:187
+  C:\src\Liftsafe--Trimestre-5\liftsafe-backend\app\schemas\schemas.py:187: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class UsuarioAscensorResponse(UsuarioAscensorBase):
+
+app\schemas\schemas.py:199
+  C:\src\Liftsafe--Trimestre-5\liftsafe-backend\app\schemas\schemas.py:199: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class AuditoriaResponse(BaseModel):
+
+app\schemas\schemas.py:235
+  C:\src\Liftsafe--Trimestre-5\liftsafe-backend\app\schemas\schemas.py:235: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class SolicitudResponse(SolicitudBase):
+
+app\schemas\schemas.py:284
+  C:\src\Liftsafe--Trimestre-5\liftsafe-backend\app\schemas\schemas.py:284: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class ProgramacionResponse(BaseModel):
+
+app\schemas\schemas.py:315
+  C:\src\Liftsafe--Trimestre-5\liftsafe-backend\app\schemas\schemas.py:315: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class NotificacionResponse(NotificacionBase):
+
+app\schemas\schemas.py:349
+  C:\src\Liftsafe--Trimestre-5\liftsafe-backend\app\schemas\schemas.py:349: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class DetalleChecklistResponse(DetalleChecklistBase):
+
+app\schemas\schemas.py:356
+  C:\src\Liftsafe--Trimestre-5\liftsafe-backend\app\schemas\schemas.py:356: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class ChecklistItemResponse(BaseModel):
+
+app\schemas\schemas.py:369
+  C:\src\Liftsafe--Trimestre-5\liftsafe-backend\app\schemas\schemas.py:369: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class ChecklistCategoriaResponse(BaseModel):
+
+app\schemas\schemas.py:402
+  C:\src\Liftsafe--Trimestre-5\liftsafe-backend\app\schemas\schemas.py:402: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class ObservacionResponse(ObservacionBase):
+
+app\schemas\schemas.py:421
+  C:\src\Liftsafe--Trimestre-5\liftsafe-backend\app\schemas\schemas.py:421: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class FotografiaResponse(FotografiaBase):
+
+tests/test_api_front.py: 2 warnings
+tests/test_autenticacion.py: 15 warnings
+tests/test_rutas_sesion_falsa.py: 19 warnings
+  C:\src\Liftsafe--Trimestre-5\liftsafe-backend\app\controllers\auth_controller.py:95: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES))
+
+tests/test_autenticacion.py::test_token_de_reset_devuelve_el_correo
+  C:\src\Liftsafe--Trimestre-5\liftsafe-backend\app\controllers\auth_controller.py:100: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    expire = datetime.utcnow() + timedelta(hours=1)
+
+tests/test_reset_codes.py::test_codigo_correcto_y_vigente_es_valido
+tests/test_reset_codes.py::test_codigo_se_puede_usar_una_sola_vez
+tests/test_reset_codes.py::test_codigo_incorrecto_es_invalido_y_no_se_consume
+tests/test_reset_codes.py::test_codigo_vencido_es_invalido_y_se_elimina
+tests/test_reset_codes.py::test_acepta_el_codigo_como_numero
+tests/test_reset_codes.py::test_codigo_de_un_correo_no_sirve_para_otro
+tests/test_reset_codes.py::test_codigo_de_un_correo_no_sirve_para_otro
+  C:\src\Liftsafe--Trimestre-5\liftsafe-backend\tests\test_reset_codes.py:22: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    ac._reset_codes[correo] = {"code": code, "expires": datetime.utcnow() + vence_en}
+
+tests/test_reset_codes.py: 10 warnings
+  C:\src\Liftsafe--Trimestre-5\liftsafe-backend\app\controllers\auth_controller.py:58: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    if datetime.utcnow() > entry["expires"]:
+
+tests/test_reset_codes.py::test_genera_un_codigo_de_6_digitos_que_vence_en_una_hora
+  C:\src\Liftsafe--Trimestre-5\liftsafe-backend\tests\test_reset_codes.py:59: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    antes = datetime.utcnow()
+
+tests/test_reset_codes.py::test_genera_un_codigo_de_6_digitos_que_vence_en_una_hora
+tests/test_reset_codes.py::test_pedir_un_codigo_nuevo_invalida_el_anterior
+tests/test_reset_codes.py::test_pedir_un_codigo_nuevo_invalida_el_anterior
+  C:\src\Liftsafe--Trimestre-5\liftsafe-backend\app\controllers\auth_controller.py:46: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    "expires": datetime.utcnow() + timedelta(hours=1)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=============================== tests coverage ================================
+_______________ coverage: platform win32, python 3.14.7-final-0 _______________
+
+Name                                              Stmts   Miss  Cover   Missing
+-------------------------------------------------------------------------------
+app\config.py                                        19      0   100%
+app\controllers\__init__.py                           0      0   100%
+app\controllers\ascensor_controller.py                0      0   100%
+app\controllers\auth_controller.py                   75      0   100%
+app\controllers\checklist_controller.py              11      0   100%
+app\controllers\cierre_inspeccion_controller.py      18      0   100%
+app\controllers\email_controller.py                  47      3    94%   22, 51-52
+app\controllers\estado_solicitud_controller.py       14      3    79%   26-30
+app\controllers\foto_obligatoria_controller.py       28      0   100%
+app\controllers\gestion_usuarios_controller.py       12      0   100%
+app\controllers\informe_acceso_controller.py         16      1    94%   30
+app\controllers\informe_controller.py               252     31    88%   66, 90-91, 195-196, 206-209, 391-428
+app\controllers\inspeccion_controller.py             18      0   100%
+app\controllers\productividad_controller.py          50      4    92%   12-21
+app\controllers\sede_controller.py                   21      0   100%
+app\controllers\usuario_controller.py                15      9    40%   5, 8-14, 23, 26
+app\controllers\vista_controller.py                   8      8     0%   1-13
+app\database.py                                      13      0   100%
+app\main.py                                          59      0   100%
+app\models\__init__.py                                0      0   100%
+app\models\models.py                                265      0   100%
+app\routes\__init__.py                                0      0   100%
+app\routes\ascensores.py                            134     64    52%   51, 78-119, 146-158, 195, 243, 248-305
+app\routes\auditoria.py                              17      0   100%
+app\routes\auth.py                                   76      1    99%   63
+app\routes\checklist.py                             101     78    23%   23-31, 40-95, 104-130, 143-150, 159-172, 184-201
+app\routes\checklist_admin.py                       155     79    49%   28, 86, 95-100, 110-111, 119, 125-129, 133-137, 141-145, 150-158, 164-179, 183-184, 189-198, 204-221
+app\routes\clientes.py                              107     34    68%   45, 86-91, 113, 135-151, 157-165, 186
+app\routes\dashboard.py                              81     61    25%   19-46, 54-135, 143-164, 172-191, 199-229, 238-260
+app\routes\encuestas.py                              35      0   100%
+app\routes\fotografias.py                           121     91    25%   33-68, 75-86, 98-132, 141-146, 157-158, 169-192, 204-219
+app\routes\informes.py                              207    139    33%   26-35, 40-59, 122-183, 193-201, 212-218, 231-324, 336-395, 407-420
+app\routes\inspecciones.py                          231    160    31%   26-31, 47-81, 123-149, 160-186, 213-256, 267-281, 293-312, 328, 331, 335, 370, 381-395, 415-426, 439-506
+app\routes\notificaciones.py                         36      0   100%
+app\routes\observaciones.py                          93     70    25%   23-31, 40-81, 92-97, 106-112, 122-133, 142-163
+app\routes\programacion.py                          127     78    39%   37-124, 134-140, 152-229, 244, 289-293, 305-314, 325-335
+app\routes\reportes.py                               34      8    76%   29, 40-44, 53, 57
+app\routes\solicitudes.py                            87     64    26%   20, 50, 54-55, 65-124, 132-139, 148-157, 167-204, 213-218
+app\routes\usuario_ascensor.py                       75     54    28%   21, 51-94, 104-118, 129-141, 153-163, 174-180
+app\routes\usuarios.py                              122     82    33%   23-27, 39-71, 86, 102, 106, 110, 120-128, 160-179, 201-259, 273-288
+app\routes\vistas.py                                 33      0   100%
+app\schemas\__init__.py                               0      0   100%
+app\schemas\schemas.py                              253      8    97%   84, 111, 134, 139-141, 153-154
+app\utils\__init__.py                                 0      0   100%
+app\utils\auditoria.py                               22      0   100%
+app\utils\auth_deps.py                               76      0   100%
+app\utils\cifrado.py                                 59      4    93%   72-73, 77, 80
+app\utils\excel_productividad.py                     92      2    98%   91-92
+app\utils\password_validator.py                      31      0   100%
+-------------------------------------------------------------------------------
+TOTAL                                              3346   1136    66%
+Required test coverage of 64.0% reached. Total coverage: 66.05%
+====================== 296 passed, 73 warnings in 11.13s ======================

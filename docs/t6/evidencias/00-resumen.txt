@@ -1,0 +1,32 @@
+# Resumen de ejecucion - 2026-11-18 19:25
+
+OK	api-t6 - npm install	api-t6-install.txt
+FALLO (1)	api-t6 - PostgreSQL en Docker (dev + pruebas)	api-t6-docker.txt
+FALLO (1)	api-t6 - migraciones base de desarrollo	api-t6-migrate-dev.txt
+FALLO (1)	api-t6 - migraciones base de PRUEBAS	api-t6-migrate-test.txt
+OK	api-t6 - TypeScript (typecheck)	api-t6-typecheck.txt
+OK	api-t6 - ESLint	api-t6-eslint.txt
+FALLO (1)	api-t6 - vitest con cobertura (unitarias + integracion)	api-t6-vitest.txt
+FALLO (1)	api-t6 - coleccion Postman (newman)	api-t6-postman.txt
+
+# Resumen de ejecucion - 2026-11-18 19:29
+
+OK	api-t6 - npm install	api-t6-install.txt
+OK	api-t6 - PostgreSQL en Docker (dev + pruebas)	api-t6-docker.txt
+OK	api-t6 - migraciones base de desarrollo	api-t6-migrate-dev.txt
+OK	api-t6 - migraciones base de PRUEBAS	api-t6-migrate-test.txt
+OK	api-t6 - TypeScript (typecheck)	api-t6-typecheck.txt
+OK	api-t6 - ESLint	api-t6-eslint.txt
+OK	api-t6 - vitest con cobertura (unitarias + integracion)	api-t6-vitest.txt
+OK	api-t6 - coleccion Postman (newman)	api-t6-postman.txt
+
+# Resumen de ejecucion - 2026-11-18 19:36
+
+FALLO (1)	Frontend React - vitest con cobertura	frontend-vitest.txt
+FALLO (1)	Frontend React - ESLint	frontend-eslint.txt
+
+# Resumen de ejecucion - 2026-11-18 19:43
+
+OK	Frontend React - vitest con cobertura	frontend-vitest.txt
+OK	Frontend React - ESLint	frontend-eslint.txt
+

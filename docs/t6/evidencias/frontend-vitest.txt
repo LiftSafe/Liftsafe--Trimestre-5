@@ -1,0 +1,884 @@
+# Frontend React - vitest con cobertura
+# Fecha: 2026-11-18 19:39
+
+
+ RUN  v5.0.4 C:/src/Liftsafe--Trimestre-5/LiftSafe_FrontendV2
+      Coverage enabled with v8
+
+ ✓ src/pages/Users.test.jsx > <UsersPage /> listado > should list the users returned by the API 944ms
+ ✓ src/pages/Users.test.jsx > <UsersPage /> listado > should show the empty message when there are no users 161ms
+ ✓ src/pages/ChecklistNorma.test.jsx > ChecklistNorma (RNF-011) > should show only active groups and items with the totals 1485ms
+ ✓ src/pages/Users.test.jsx > <UsersPage /> listado > should show the error alert when the API fails 488ms
+ ✓ src/pages/Users.test.jsx > <UsersPage /> crear usuario: validaciones > should ask for the required fields when the form is empty 1785ms
+stderr | src/pages/ChecklistNorma.test.jsx > ChecklistNorma (RNF-011) > should propose the next code when adding an item and save it
+An update to ChecklistNorma inside a test was not wrapped in act(...).
+System.Management.Automation.RemoteException
+When testing, code that causes React state updates should be wrapped into act(...):
+System.Management.Automation.RemoteException
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+System.Management.Automation.RemoteException
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to ChecklistNorma inside a test was not wrapped in act(...).
+System.Management.Automation.RemoteException
+When testing, code that causes React state updates should be wrapped into act(...):
+System.Management.Automation.RemoteException
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+System.Management.Automation.RemoteException
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+System.Management.Automation.RemoteException
+stderr | src/pages/ChecklistNorma.test.jsx > ChecklistNorma (RNF-011) > should propose the next code when adding an item and save it
+An update to ItemDialog inside a test was not wrapped in act(...).
+System.Management.Automation.RemoteException
+When testing, code that causes React state updates should be wrapped into act(...):
+System.Management.Automation.RemoteException
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+System.Management.Automation.RemoteException
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+System.Management.Automation.RemoteException
+stderr | src/pages/ChecklistNorma.test.jsx > ChecklistNorma (RNF-011) > should propose the next code when adding an item and save it
+An update to ChecklistNorma inside a test was not wrapped in act(...).
+System.Management.Automation.RemoteException
+When testing, code that causes React state updates should be wrapped into act(...):
+System.Management.Automation.RemoteException
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+System.Management.Automation.RemoteException
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to ChecklistNorma inside a test was not wrapped in act(...).
+System.Management.Automation.RemoteException
+When testing, code that causes React state updates should be wrapped into act(...):
+System.Management.Automation.RemoteException
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+System.Management.Automation.RemoteException
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+System.Management.Automation.RemoteException
+stderr | src/pages/ChecklistNorma.test.jsx > ChecklistNorma (RNF-011) > should propose the next code when adding an item and save it
+An update to ChecklistNorma inside a test was not wrapped in act(...).
+System.Management.Automation.RemoteException
+When testing, code that causes React state updates should be wrapped into act(...):
+System.Management.Automation.RemoteException
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+System.Management.Automation.RemoteException
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+System.Management.Automation.RemoteException
+ ✓ src/pages/ChecklistNorma.test.jsx > ChecklistNorma (RNF-011) > should propose the next code when adding an item and save it 2553ms
+ ✓ src/pages/ChecklistNorma.test.jsx > ChecklistNorma (RNF-011) > should show the server error inside the form 823ms
+stderr | src/pages/ChecklistNorma.test.jsx > ChecklistNorma (RNF-011) > should deactivate an item with its switch
+An update to ChecklistNorma inside a test was not wrapped in act(...).
+System.Management.Automation.RemoteException
+When testing, code that causes React state updates should be wrapped into act(...):
+System.Management.Automation.RemoteException
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+System.Management.Automation.RemoteException
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+System.Management.Automation.RemoteException
+ ✓ src/pages/ChecklistNorma.test.jsx > ChecklistNorma (RNF-011) > should deactivate an item with its switch 186ms
+ ✓ src/pages/ChecklistNorma.test.jsx > ChecklistNorma (RNF-011) > should reject a group name shorter than 3 characters (DEF-02) 991ms
+ ✓ src/pages/ChecklistNorma.test.jsx > ChecklistNorma (RNF-011) > should show only the selected group when adding an item 1245ms
+ ✓ src/pages/authPages.test.jsx > <Login /> > should send the typed credentials and go to the dashboard 938ms
+ ✓ src/pages/authPages.test.jsx > <Login /> > should not let the email keep spaces, even pasted ones 190ms
+ ✓ src/pages/Users.test.jsx > <UsersPage /> crear usuario: validaciones > should warn when the passwords do not match 11224ms
+ ✓ src/pages/authPages.test.jsx > <Login /> > should return to the page the user was trying to open 132ms
+ ✓ src/pages/authPages.test.jsx > <Login /> > should show the login error and stay on the page ({"success":false,"message":"Usuario inactivo"}) 348ms
+ ✓ src/pages/authPages.test.jsx > <Login /> > should show the login error and stay on the page ({"success":false}) 182ms
+ ✓ src/pages/authPages.test.jsx > <Login /> > should show a generic error when login throws 155ms
+ ✓ src/pages/authPages.test.jsx > <Login /> > should send an already logged user to the dashboard 78ms
+ ✓ src/pages/authPages.test.jsx > <Register /> > should ask for the required fields 596ms
+ ✓ src/pages/authPages.test.jsx > <Register /> > should reject abc / abc before calling the backend 1202ms
+ ✓ src/pages/authPages.test.jsx > <Register /> > should reject Abcdefg1 / Abcdefg2 before calling the backend 1253ms
+ ✓ src/pages/authPages.test.jsx > <Register /> > should register with the full name and go to the dashboard 967ms
+ ✓ src/pages/authPages.test.jsx > <Register /> > should show the backend error ({"success":false,"message":"Correo ya registrado"}) 744ms
+ ✓ src/pages/authPages.test.jsx > <Register /> > should show the backend error ({"success":false}) 882ms
+ ✓ src/pages/authPages.test.jsx > <Register /> > should ask for the NIT and the business name when the document type is NIT 1248ms
+ ✓ src/pages/authPages.test.jsx > <ForgotPassword /> > should request the code and move to the second step 316ms
+ ✓ src/pages/authPages.test.jsx > <ForgotPassword /> > should stay on the first step when the answer says Error ({"message":"Error enviando el correo"}) 191ms
+ ✓ src/pages/authPages.test.jsx > <ForgotPassword /> > should show the request error (Error: Servidor caído) 369ms
+ ✓ src/pages/authPages.test.jsx > <ForgotPassword /> > should show the request error (Error) 281ms
+ ✓ src/pages/authPages.test.jsx > <ForgotPassword /> > second step > should keep only digits in the code 432ms
+ ✓ src/pages/authPages.test.jsx > <ForgotPassword /> > second step > should reject abc / abc without calling the backend 851ms
+ ✓ src/pages/authPages.test.jsx > <ForgotPassword /> > second step > should reject Abcdefg1 / Abcdefg2 without calling the backend 644ms
+ ✓ src/pages/Users.test.jsx > <UsersPage /> crear usuario > should create the user, confirm it and reload the list 12617ms
+ ✓ src/pages/authPages.test.jsx > <ForgotPassword /> > second step > should change the password with the code and then go to login 3016ms
+ ✓ src/pages/authPages.test.jsx > <ForgotPassword /> > second step > should show the error when the code is rejected 850ms
+ ✓ src/pages/authPages.test.jsx > <ForgotPassword /> > second step > should go back to the first step to change the email 421ms
+ ✓ src/pages/authPages.test.jsx > <ResetPassword /> > should reject a link without token 382ms
+ ✓ src/pages/authPages.test.jsx > <ResetPassword /> > should reject abc / abc 370ms
+ ✓ src/pages/authPages.test.jsx > <ResetPassword /> > should reject Abcdefg1 / Abcdefg2 353ms
+ ✓ src/pages/authPages.test.jsx > <ResetPassword /> > should send the token from the link and the new password 374ms
+ ✓ src/pages/authPages.test.jsx > <ResetPassword /> > should show the error from the backend (Error: Token vencido) 432ms
+ ✓ src/pages/authPages.test.jsx > <ResetPassword /> > should show the error from the backend (Error) 499ms
+ ✓ src/pages/Users.test.jsx > <UsersPage /> editar usuario > should prefill the form and save the changes 5100ms
+ ✓ src/pages/Users.test.jsx > <UsersPage /> editar usuario > should show the error when the update fails 1965ms
+ ✓ src/pages/Users.test.jsx > <UsersPage /> eliminar usuario > should delete the user after confirming 1923ms
+ ✓ src/pages/Users.test.jsx > <UsersPage /> eliminar usuario > should show the error when the deletion fails 1506ms
+ ✓ src/pages/dashboards.test.jsx > <AsesorDashboard /> > should summarize the portfolio of clients, elevators and pending inspections 1591ms
+ ✓ src/pages/dashboards.test.jsx > <AsesorDashboard /> > should show the error when the data cannot be loaded 237ms
+ ✓ src/pages/dashboards.test.jsx > <ClientDashboard /> > should list the elevators and inspections of the client 418ms
+ ✓ src/pages/dashboards.test.jsx > <ClientDashboard /> > should show the error when the data cannot be loaded 198ms
+ ✓ src/pages/dashboards.test.jsx > <InspectorDashboard /> > should split the assigned inspections by state 455ms
+ ✓ src/pages/dashboards.test.jsx > <InspectorDashboard /> > should show the error when the data cannot be loaded 222ms
+ ✓ src/pages/dashboards.test.jsx > <DirectorTecnicoDashboard /> > should list the reports to approve and the ones with observations 501ms
+ ✓ src/pages/dashboards.test.jsx > <DirectorTecnicoDashboard /> > should give each inspection state its own color in the pie chart 280ms
+ ✓ src/pages/dashboards.test.jsx > <DirectorTecnicoDashboard /> > should show the error when the data cannot be loaded 257ms
+ ✓ src/pages/dashboards.test.jsx > <AdminDashboard /> > should show the system statistics in its cards 1671ms
+ ✓ src/pages/dashboards.test.jsx > <AdminDashboard /> > should list the recent users and inspections 751ms
+ ✓ src/layouts/DashboardLayout.test.jsx > <DashboardLayout /> > should render the page inside the layout and show the user role 1622ms
+ ✓ src/pages/dashboards.test.jsx > <AdminDashboard /> > should use the default status series when the API sends no chart data 807ms
+ ✓ src/layouts/DashboardLayout.test.jsx > <DashboardLayout /> > should show only the screens allowed for Coordinador 1177ms
+ ✓ src/pages/dashboards.test.jsx > <AdminDashboard /> > should use the status series sent by the API 705ms
+ ✓ src/layouts/DashboardLayout.test.jsx > <DashboardLayout /> > should show only the screens allowed for Administrador 799ms
+ ✓ src/layouts/DashboardLayout.test.jsx > <DashboardLayout /> > should show only the screens allowed for Cliente 494ms
+ ✓ src/pages/dashboards.test.jsx > <AdminDashboard /> > should show only the active assignments with the inspector and elevator names 780ms
+ ✓ src/layouts/DashboardLayout.test.jsx > <DashboardLayout /> > should count only unread notifications in the bell 262ms
+ ✓ src/pages/dashboards.test.jsx > <AdminDashboard /> > should tell the user when there are no active assignments 608ms
+ ✓ src/layouts/DashboardLayout.test.jsx > <DashboardLayout /> > should tell the user when there are no notifications 999ms
+ ✓ src/pages/dashboards.test.jsx > <AdminDashboard /> > should end an assignment and confirm it 1276ms
+ ✓ src/layouts/DashboardLayout.test.jsx > <DashboardLayout /> > should mark a notification as read and go to its section when clicked 1231ms
+ ✓ src/pages/dashboards.test.jsx > <AdminDashboard /> > should show the error when ending an assignment fails 1290ms
+ ✓ src/layouts/DashboardLayout.test.jsx > <DashboardLayout /> > should not call the API again for a notification that is already read 974ms
+ ✓ src/layouts/DashboardLayout.test.jsx > <DashboardLayout /> > should mark all notifications as read 903ms
+ ✓ src/pages/dashboards.test.jsx > <AdminDashboard /> > should ask for an inspector and an elevator before assigning 1060ms
+ ✓ src/layouts/DashboardLayout.test.jsx > <DashboardLayout /> > should keep working when the notifications cannot be loaded 192ms
+ ✓ src/pages/dashboards.test.jsx > <AdminDashboard /> > should show the error when the assignment lists cannot be loaded 616ms
+ ✓ src/pages/dashboards.test.jsx > <CoordinadorDashboard /> > should show a loading message until the data arrives 190ms
+ ✓ src/layouts/DashboardLayout.test.jsx > <DashboardLayout /> > should warn with a message when a new notification arrives while the session is open 424ms
+ ✓ src/pages/dashboards.test.jsx > <CoordinadorDashboard /> > should list the pending requests with their priority and the reports to review 341ms
+ ✓ src/pages/dashboards.test.jsx > <CoordinadorDashboard /> > should list the pending inspections when there are no pending requests 230ms
+ ✓ src/layouts/DashboardLayout.test.jsx > <DashboardLayout /> > should summarise several new notifications in one message 422ms
+ ✓ src/layouts/DashboardLayout.test.jsx > <DashboardLayout /> > should log out from the side menu 891ms
+ ✓ src/pages/dashboards.test.jsx > <CoordinadorDashboard /> > should open and close the assignment form 1142ms
+ ✓ src/layouts/DashboardLayout.test.jsx > <DashboardLayout /> > should show the name and role in the avatar menu 579ms
+ ✓ src/pages/dashboards.test.jsx > <CoordinadorDashboard /> > should not schedule an inspection in the past 1208ms
+ ✓ src/pages/dashboards.test.jsx > <CoordinadorDashboard /> > should schedule the inspection, reload the requests and confirm it 1425ms
+ ✓ src/pages/dashboards.test.jsx > <CoordinadorDashboard /> > should show the error when the assignment fails 1152ms
+ ✓ src/components/SedesClienteDialog.test.jsx > SedesClienteDialog > should list the client sedes with their elevator count 1490ms
+ ✓ src/components/SedesClienteDialog.test.jsx > SedesClienteDialog > should show an empty message when the client has no sedes 283ms
+ ✓ src/components/SedesClienteDialog.test.jsx > SedesClienteDialog > should ask for a name before adding a sede 721ms
+ ✓ src/pages/paginasSimples.test.jsx > <DashboardHome /> > should show the Administrador panel 126ms
+ ✓ src/pages/paginasSimples.test.jsx > <DashboardHome /> > should show the Asesor panel 7ms
+ ✓ src/pages/paginasSimples.test.jsx > <DashboardHome /> > should show the Coordinador panel 7ms
+ ✓ src/pages/paginasSimples.test.jsx > <DashboardHome /> > should show the Director Técnico panel 6ms
+ ✓ src/pages/paginasSimples.test.jsx > <DashboardHome /> > should show the Inspector panel 9ms
+ ✓ src/pages/paginasSimples.test.jsx > <DashboardHome /> > should show the Cliente panel 6ms
+ ✓ src/pages/paginasSimples.test.jsx > <DashboardHome /> > should send the visitor to the login when there is no session 43ms
+ ✓ src/pages/paginasSimples.test.jsx > <DashboardHome /> > should send the visitor to the login when the user has no role 14ms
+ ✓ src/components/SedesClienteDialog.test.jsx > SedesClienteDialog > should add a sede and reload the list 869ms
+ ✓ src/pages/paginasSimples.test.jsx > <DashboardHome /> > should send the visitor to the login when the role is unknown 16ms
+ ✓ src/components/SedesClienteDialog.test.jsx > SedesClienteDialog > should show the backend message when a sede cannot be deleted 406ms
+ ✓ src/pages/paginasSimples.test.jsx > <Settings /> > should show the data of the logged user 740ms
+ ✓ src/pages/paginasSimples.test.jsx > <Settings /> > should ask the inspector for the license number 188ms
+ ✓ src/components/SedesClienteDialog.test.jsx > SedesClienteDialog > should rename a sede 729ms
+ ✓ src/pages/paginasSimples.test.jsx > <Settings /> > should show the building of a client as a read-only field 186ms
+ ✓ src/pages/paginasSimples.test.jsx > <Settings /> > should show the notification preferences only to roles that can manage them 480ms
+ ✓ src/components/SedesClienteDialog.test.jsx > SedesClienteDialog > should not save an empty name when renaming 636ms
+ ✓ src/pages/paginasSimples.test.jsx > <Settings /> > should hide the reports switch from clients 487ms
+ ✓ src/components/SedesClienteDialog.test.jsx > SedesClienteDialog > should talk about buildings and show their elevators for the advisor 696ms
+ ✓ src/pages/paginasSimples.test.jsx > <Settings /> > should confirm that the changes were saved 584ms
+ ✓ src/pages/paginasSimples.test.jsx > <Landing /> > should present the system and its four modules 321ms
+ ✓ src/pages/paginasSimples.test.jsx > <Landing /> > should offer the login and the registration 290ms
+ ✓ src/pages/paginasSimples.test.jsx > <Auditoria /> > should not let a non-administrator see the audit log 31ms
+ ✓ src/pages/paginasSimples.test.jsx > <Auditoria /> > should list the events with the affected record and "Sistema" when there is no user 362ms
+ ✓ src/pages/paginasSimples.test.jsx > <Auditoria /> > should filter the events with the search box 588ms
+ ✓ src/pages/paginasSimples.test.jsx > <Auditoria /> > should tell the user when there are no records 179ms
+ ✓ src/pages/paginasSimples.test.jsx > <Auditoria /> > should show the error when the log cannot be loaded 162ms
+ ✓ src/pages/paginasSimples.test.jsx > <Encuestas /> > should explain that there are no surveys yet 84ms
+ ✓ src/pages/paginasSimples.test.jsx > <Encuestas /> > should separate the pending surveys from the answered ones 483ms
+ ✓ src/pages/paginasSimples.test.jsx > <Encuestas /> > should ask for a rating before sending 485ms
+ ✓ src/pages/paginasSimples.test.jsx > <Encuestas /> > should send the rating and the comment, and thank the user 1058ms
+ ✓ src/pages/paginasSimples.test.jsx > <Encuestas /> > should show the error when the survey cannot be sent 772ms
+ ✓ src/pages/paginasSimples.test.jsx > <Encuestas /> > should show the error when the surveys cannot be loaded 82ms
+ ✓ src/components/ChecklistInspeccion.test.jsx > ChecklistInspeccion > should summarize graded, not compliant and N/A items 21ms
+ ✓ src/components/ChecklistInspeccion.test.jsx > ChecklistInspeccion > should show the progress and number the items across categories 1073ms
+ ✓ src/components/ChecklistInspeccion.test.jsx > ChecklistInspeccion > should grade an item when an option is clicked 634ms
+ ✓ src/components/ChecklistInspeccion.test.jsx > ChecklistInspeccion > should remove the grade when the selected option is clicked again 257ms
+ ✓ src/components/ChecklistInspeccion.test.jsx > ChecklistInspeccion > should filter pending and not compliant items 259ms
+ ✓ src/components/ChecklistInspeccion.test.jsx > ChecklistInspeccion > should tell when every item is already graded 174ms
+stderr | src/components/ChecklistInspeccion.test.jsx > ChecklistInspeccion > should upload the chosen file for that item
+An update to FotosItem inside a test was not wrapped in act(...).
+System.Management.Automation.RemoteException
+When testing, code that causes React state updates should be wrapped into act(...):
+System.Management.Automation.RemoteException
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+System.Management.Automation.RemoteException
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+System.Management.Automation.RemoteException
+ ✓ src/components/ChecklistInspeccion.test.jsx > ChecklistInspeccion > should show a Foto button per item with its photo count for inspectors 277ms
+stderr | src/components/ChecklistInspeccion.test.jsx > ChecklistInspeccion > should let the inspector remove a photo
+An empty string ("") was passed to the src attribute. This may cause the browser to download the whole page again over the network. To fix this, either do not render the element at all or pass null to src instead of an empty string.
+System.Management.Automation.RemoteException
+ ✓ src/components/ChecklistInspeccion.test.jsx > ChecklistInspeccion > should upload the chosen file for that item 179ms
+stderr | src/components/ChecklistInspeccion.test.jsx > ChecklistInspeccion > should only show existing photos (no button) to other roles
+An empty string ("") was passed to the src attribute. This may cause the browser to download the whole page again over the network. To fix this, either do not render the element at all or pass null to src instead of an empty string.
+System.Management.Automation.RemoteException
+ ✓ src/components/ChecklistInspeccion.test.jsx > ChecklistInspeccion > should let the inspector remove a photo 222ms
+stderr | src/components/ChecklistInspeccion.test.jsx > ChecklistInspeccion > should warn that a not compliant item needs a photo until it has one
+An empty string ("") was passed to the src attribute. This may cause the browser to download the whole page again over the network. To fix this, either do not render the element at all or pass null to src instead of an empty string.
+System.Management.Automation.RemoteException
+ ✓ src/components/ChecklistInspeccion.test.jsx > ChecklistInspeccion > should only show existing photos (no button) to other roles 121ms
+ ✓ src/components/ChecklistInspeccion.test.jsx > ChecklistInspeccion > should warn that a not compliant item needs a photo until it has one 448ms
+ ✓ src/components/ChecklistInspeccion.test.jsx > ChecklistInspeccion > should show one group per page and move between them 997ms
+ ✓ src/components/ChecklistInspeccion.test.jsx > ChecklistInspeccion > should go back to the first page when the filter changes 293ms
+ ✓ src/components/ChecklistInspeccion.test.jsx > ChecklistInspeccion > should show the item code and the NTC defect level 69ms
+ ✓ src/components/ChecklistInspeccion.test.jsx > ChecklistInspeccion > should jump to the page of an item when asked from outside 261ms
+stderr | src/components/ChecklistInspeccion.test.jsx > ChecklistInspeccion > should add an observation to a graded item
+An update to ObservacionItem inside a test was not wrapped in act(...).
+System.Management.Automation.RemoteException
+When testing, code that causes React state updates should be wrapped into act(...):
+System.Management.Automation.RemoteException
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+System.Management.Automation.RemoteException
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to ObservacionItem inside a test was not wrapped in act(...).
+System.Management.Automation.RemoteException
+When testing, code that causes React state updates should be wrapped into act(...):
+System.Management.Automation.RemoteException
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+System.Management.Automation.RemoteException
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+System.Management.Automation.RemoteException
+ ✓ src/components/ChecklistInspeccion.test.jsx > ChecklistInspeccion > should not let grade or upload photos when the inspection is closed 183ms
+ ✓ src/components/ChecklistInspeccion.test.jsx > ChecklistInspeccion > should add an observation to a graded item 876ms
+ ✓ src/components/ChecklistInspeccion.test.jsx > ChecklistInspeccion > should show a saved observation read only when it cannot be edited 219ms
+ ✓ src/components/AscensoresEdificio.test.jsx > AscensoresEdificio > should register an elevator in the building 2540ms
+ ✓ src/components/AscensoresEdificio.test.jsx > AscensoresEdificio > should show the server error 1556ms
+ ✓ src/components/AscensoresEdificio.test.jsx > AscensoresEdificio > should edit an elevator from its row, code included 1027ms
+ ✓ src/components/AscensoresEdificio.test.jsx > AscensoresEdificio > should not show the edit button in read only mode 50ms
+ ✓ src/components/AscensoresEdificio.test.jsx > AscensoresEdificio > should keep a type that is not in the list when editing 629ms
+ ✓ src/pages/Encuestas.test.jsx > <Encuestas /> > should tell the client when there are no surveys yet 485ms
+ ✓ src/pages/Encuestas.test.jsx > <Encuestas /> > should show the error when the surveys cannot be loaded 280ms
+ ✓ src/pages/Encuestas.test.jsx > <Encuestas /> > should separate the pending surveys from the answered ones 1007ms
+ ✓ src/pages/Encuestas.test.jsx > <Encuestas /> > should ask for a rating before sending and not call the backend 696ms
+ ✓ src/pages/Encuestas.test.jsx > <Encuestas /> > should send the rating and the comment and reload the list 2289ms
+ ✓ src/pages/Encuestas.test.jsx > <Encuestas /> > should send a null comment when the client writes none and show the backend error 622ms
+ ✓ src/pages/Auditoria.test.jsx > Auditoria > muestra los registros de auditoría que devuelve la API 1371ms
+ ✓ src/pages/Auditoria.test.jsx > Auditoria > muestra un mensaje cuando no hay registros 410ms
+stderr | src/pages/Auditoria.test.jsx > Auditoria > bloquea la página a quien no es Administrador
+An update to Auditoria inside a test was not wrapped in act(...).
+System.Management.Automation.RemoteException
+When testing, code that causes React state updates should be wrapped into act(...):
+System.Management.Automation.RemoteException
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+System.Management.Automation.RemoteException
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to Auditoria inside a test was not wrapped in act(...).
+System.Management.Automation.RemoteException
+When testing, code that causes React state updates should be wrapped into act(...):
+System.Management.Automation.RemoteException
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+System.Management.Automation.RemoteException
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+System.Management.Automation.RemoteException
+ ✓ src/pages/Auditoria.test.jsx > Auditoria > muestra el error cuando la API falla 280ms
+ ✓ src/pages/Auditoria.test.jsx > Auditoria > bloquea la página a quien no es Administrador 42ms
+ ✓ src/pages/Auditoria.test.jsx > Auditoria > filtra la tabla al escribir en el buscador 1053ms
+ ✓ src/pages/Auditoria.test.jsx > Auditoria > pide a la API solo los registros de la tabla elegida en el filtro 2011ms
+ ✓ src/components/CancelarVisitaDialog.test.jsx > CancelarVisitaDialog > should ask for the reason before cancelling 1457ms
+stderr | src/components/CancelarVisitaDialog.test.jsx > CancelarVisitaDialog > should send the reason and whether the request is cancelled too
+An update to Transition inside a test was not wrapped in act(...).
+System.Management.Automation.RemoteException
+When testing, code that causes React state updates should be wrapped into act(...):
+System.Management.Automation.RemoteException
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+System.Management.Automation.RemoteException
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+System.Management.Automation.RemoteException
+stderr | src/components/CancelarVisitaDialog.test.jsx > CancelarVisitaDialog > should send the reason and whether the request is cancelled too
+An update to Transition inside a test was not wrapped in act(...).
+System.Management.Automation.RemoteException
+When testing, code that causes React state updates should be wrapped into act(...):
+System.Management.Automation.RemoteException
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+System.Management.Automation.RemoteException
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+System.Management.Automation.RemoteException
+ ✓ src/components/CancelarVisitaDialog.test.jsx > CancelarVisitaDialog > should send the reason and whether the request is cancelled too 1030ms
+ ✓ src/components/CancelarVisitaDialog.test.jsx > CancelarVisitaDialog > should show the server error 871ms
+ ✓ src/pages/Auditoria.semana5.test.jsx > <Auditoria /> > should deny access to anyone who is not an administrator 317ms
+ ✓ src/pages/Auditoria.semana5.test.jsx > <Auditoria /> > should list the audit records with user, operation and affected row 723ms
+ ✓ src/pages/Auditoria.semana5.test.jsx > <Auditoria /> > should show "Sistema" and a dash when the record has no user or id 189ms
+ ✓ src/pages/Auditoria.semana5.test.jsx > <Auditoria /> > should tell the admin when there are no records 176ms
+ ✓ src/pages/Auditoria.semana5.test.jsx > <Auditoria /> > should show the error when the audit cannot be loaded 194ms
+ ✓ src/pages/Auditoria.semana5.test.jsx > <Auditoria /> > should filter by table through the backend 2227ms
+ ✓ src/pages/Auditoria.semana5.test.jsx > <Auditoria /> > should filter the loaded records with the search box 680ms
+ ✓ src/components/componentesDashboard.test.jsx > <PageHeader /> > should show the title and the subtitle 531ms
+ ✓ src/components/componentesDashboard.test.jsx > <PageHeader /> > should render links for crumbs with a path and plain text for the last one 140ms
+ ✓ src/components/componentesDashboard.test.jsx > <SearchBar /> > should send the typed text to onChange 182ms
+ ✓ src/components/componentesDashboard.test.jsx > <SearchBar /> > should use "Buscar..." as the default placeholder 30ms
+ ✓ src/components/componentesDashboard.test.jsx > <StatCard /> > should show title, value and subtitle 163ms
+ ✓ src/components/componentesDashboard.test.jsx > <StatCard /> > should not behave as a button when it has no destination 15ms
+ ✓ src/components/componentesDashboard.test.jsx > <StatCard /> > should navigate to its destination on click and with the keyboard 134ms
+ ✓ src/components/componentesDashboard.test.jsx > <StatCard /> > should navigate with a click 43ms
+ ✓ src/components/componentesDashboard.test.jsx > <StatCard /> > should show the trend 12 as +12% 64ms
+ ✓ src/components/componentesDashboard.test.jsx > <StatCard /> > should show the trend -3 as -3% 36ms
+ ✓ src/components/componentesDashboard.test.jsx > <ConfirmDialog /> > should call onConfirm and onClose from its two buttons 637ms
+ ✓ src/components/componentesDashboard.test.jsx > <ConfirmDialog /> > should block both buttons while it is loading 155ms
+ ✓ src/components/componentesDashboard.test.jsx > <ConfirmDialog /> > should render nothing when it is closed 13ms
+ ✓ src/components/componentesDashboard.test.jsx > <ChartCard /> > should show title, subtitle, action and content 92ms
+ ✓ src/components/componentesDashboard.test.jsx > <ActivityPanel /> > should list every item with its detail, chip, time and action 185ms
+ ✓ src/components/componentesDashboard.test.jsx > <ActivityPanel /> > should show the avatar letter only when showAvatars is on 112ms
+ ✓ src/components/componentesDashboard.test.jsx > <ActivityPanel /> > should render the header action 54ms
+ ✓ src/components/componentesDashboard.test.jsx > gráficas del dashboard (recharts) > should mount InspectionTrendChart without breaking 24ms
+ ✓ src/components/componentesDashboard.test.jsx > gráficas del dashboard (recharts) > should mount BuildingBarChart without breaking 10ms
+stderr | src/components/componentesDashboard.test.jsx > gráficas del dashboard (recharts) > should show the center label of the donut chart
+The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+System.Management.Automation.RemoteException
+stderr | src/components/componentesDashboard.test.jsx > gráficas del dashboard (recharts) > should not draw the center label of the donut chart when none is given
+The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+System.Management.Automation.RemoteException
+ ✓ src/components/componentesDashboard.test.jsx > gráficas del dashboard (recharts) > should mount WeeklyActivityChart without breaking 12ms
+ ✓ src/components/componentesDashboard.test.jsx > gráficas del dashboard (recharts) > should mount ComplianceLineChart without breaking 10ms
+ ✓ src/components/componentesDashboard.test.jsx > gráficas del dashboard (recharts) > should mount SalesPipelineChart without breaking 10ms
+ ✓ src/components/componentesDashboard.test.jsx > gráficas del dashboard (recharts) > should show the center label of the donut chart 27ms
+ ✓ src/components/componentesDashboard.test.jsx > gráficas del dashboard (recharts) > should not draw the center label of the donut chart when none is given 13ms
+ ✓ src/components/componentesDashboard.test.jsx > gráficas del dashboard (recharts) > should mount StatusPieChart with data 7ms
+ ✓ src/components/componentesDashboard.test.jsx > gráficas del dashboard (recharts) > should mount StatusPieChart without data (default series) 20ms
+ ✓ src/pages/dashboards/InspectorDashboard.test.jsx > <InspectorDashboard /> > should greet the inspector by role and first name in the welcome banner 1790ms
+ ✓ src/pages/dashboards/InspectorDashboard.test.jsx > <InspectorDashboard /> > should count the inspections by state in the summary cards 213ms
+ ✓ src/pages/dashboards/InspectorDashboard.test.jsx > <InspectorDashboard /> > should list the scheduled and the completed inspections in their own panels 334ms
+ ✓ src/pages/dashboards/InspectorDashboard.test.jsx > <InspectorDashboard /> > should show zeros and no activity when the inspector has no inspections 195ms
+ ✓ src/pages/dashboards/InspectorDashboard.test.jsx > <InspectorDashboard /> > should show the error returned by the API 304ms
+ ✓ src/pages/dashboards/InspectorDashboard.test.jsx > <InspectorDashboard /> > should hide the chart while loading and show it when the data arrives 312ms
+ ✓ src/pages/dashboards/InspectorDashboard.test.jsx > <InspectorDashboard /> > should open the inspections list when the user clicks a summary card 304ms
+ ✓ src/components/componentesSimples.test.jsx > <StatCard /> > should show the title, the value and the subtitle 398ms
+ ✓ src/components/componentesSimples.test.jsx > <StatCard /> > should show a positive and a negative trend 129ms
+ ✓ src/components/componentesSimples.test.jsx > <StatCard /> > should go to the given route when the card is clicked 422ms
+ ✓ src/components/componentesSimples.test.jsx > <StatCard /> > should go to the given route with the keyboard 162ms
+ ✓ src/components/componentesSimples.test.jsx > <PageHeader /> > should show the title, the subtitle and the breadcrumbs 151ms
+ ✓ src/components/componentesSimples.test.jsx > <PageHeader /> > should not render breadcrumbs when there are none 7ms
+ ✓ src/components/componentesSimples.test.jsx > <SearchBar /> > should report what the user types 378ms
+ ✓ src/components/componentesSimples.test.jsx > <SearchBar /> > should use the given placeholder 35ms
+ ✓ src/components/componentesSimples.test.jsx > <ConfirmDialog /> > should render nothing while it is closed 16ms
+ ✓ src/components/componentesSimples.test.jsx > <ConfirmDialog /> > should confirm or cancel with the default texts 712ms
+ ✓ src/components/componentesSimples.test.jsx > <ConfirmDialog /> > should disable both buttons while loading 141ms
+ ✓ src/components/componentesSimples.test.jsx > <ChartCard /> > should show the title, the subtitle, the action and the content 82ms
+ ✓ src/components/componentesComunes.test.jsx > <RoleRoute /> > should send a visitor without session to the login 123ms
+ ✓ src/components/componentesComunes.test.jsx > <RoleRoute /> > should decide by the role permissions (Administrador) 8ms
+ ✓ src/components/componentesComunes.test.jsx > <RoleRoute /> > should decide by the role permissions (Coordinador) 17ms
+ ✓ src/components/componentesComunes.test.jsx > <ListPagination /> > should not render when 0 items fit in one page (limit 10) 5ms
+ ✓ src/components/componentesComunes.test.jsx > <ListPagination /> > should not render when 10 items fit in one page (limit 10) 5ms
+ ✓ src/components/componentesComunes.test.jsx > <ListPagination /> > should show the range in Spanish and move to the next page 1021ms
+ ✓ src/components/componentesComunes.test.jsx > <ListPagination /> > should respect a custom page size 95ms
+ ✓ src/components/componentesComunes.test.jsx > <PromptDialog /> > should send the typed text when confirming 1502ms
+ ✓ src/components/componentesComunes.test.jsx > <PromptDialog /> > should not confirm an empty text when it is required 616ms
+ ✓ src/components/componentesComunes.test.jsx > <PromptDialog /> > should start empty every time it opens and close with Cancelar 702ms
+ ✓ src/components/componentesComunes.test.jsx > <MessageDialog /> > should use the default title for severity success 105ms
+ ✓ src/components/componentesComunes.test.jsx > <MessageDialog /> > should use the default title for severity error 96ms
+ ✓ src/components/componentesComunes.test.jsx > <MessageDialog /> > should use the default title for severity warning 117ms
+ ✓ src/components/componentesComunes.test.jsx > <MessageDialog /> > should use the default title for severity desconocida 89ms
+ ✓ src/components/componentesComunes.test.jsx > <MessageDialog /> > should prefer the given title and close with Aceptar 141ms
+ ✓ src/components/componentesComunes.test.jsx > <WelcomeBanner /> > should greet with the role and the first name and show a fixed date 193ms
+ ✓ src/components/componentesComunes.test.jsx > <WelcomeBanner /> > should use a generic label for an unknown role and render the actions 129ms
+stderr | src/pages/Productividad.test.jsx > Productividad (RF-024) > should show the summary and a row per inspector
+React does not recognize the `InputLabelProps` prop on a DOM element. If you intentionally want it to appear in the DOM as a custom attribute, spell it as lowercase `inputlabelprops` instead. If you accidentally passed it from a parent component, remove it from the DOM element.
+System.Management.Automation.RemoteException
+ ✓ src/pages/Productividad.test.jsx > Productividad (RF-024) > should show the summary and a row per inspector 1749ms
+stderr | src/pages/Productividad.test.jsx > Productividad (RF-024) > should ask again when the dates change
+An update to Productividad inside a test was not wrapped in act(...).
+System.Management.Automation.RemoteException
+When testing, code that causes React state updates should be wrapped into act(...):
+System.Management.Automation.RemoteException
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+System.Management.Automation.RemoteException
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to Productividad inside a test was not wrapped in act(...).
+System.Management.Automation.RemoteException
+When testing, code that causes React state updates should be wrapped into act(...):
+System.Management.Automation.RemoteException
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+System.Management.Automation.RemoteException
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+System.Management.Automation.RemoteException
+stderr | src/pages/Productividad.test.jsx > Productividad (RF-024) > should ask again when the dates change
+An update to Productividad inside a test was not wrapped in act(...).
+System.Management.Automation.RemoteException
+When testing, code that causes React state updates should be wrapped into act(...):
+System.Management.Automation.RemoteException
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+System.Management.Automation.RemoteException
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+System.Management.Automation.RemoteException
+ ✓ src/pages/Productividad.test.jsx > Productividad (RF-024) > should ask again when the dates change 586ms
+ ✓ src/pages/Productividad.test.jsx > Productividad (RF-024) > should show the error 185ms
+stderr | src/pages/Productividad.test.jsx > Productividad (RF-024) > should download the Excel made by the server
+An update to Productividad inside a test was not wrapped in act(...).
+System.Management.Automation.RemoteException
+When testing, code that causes React state updates should be wrapped into act(...):
+System.Management.Automation.RemoteException
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+System.Management.Automation.RemoteException
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+System.Management.Automation.RemoteException
+ ✓ src/pages/Productividad.test.jsx > Productividad (RF-024) > should download the Excel made by the server 740ms
+ ✓ src/hooks/useDashboardData.test.jsx > useDashboardData > should start loading and then expose the list returned by the service 104ms
+ ✓ src/hooks/useDashboardData.test.jsx > useDashboardData > should keep an object response as an object (stats and charts) 80ms
+ ✓ src/hooks/useDashboardData.test.jsx > useDashboardData > should fall back to an empty list when the response is null 87ms
+ ✓ src/hooks/useDashboardData.test.jsx > useDashboardData > should fall back to an empty list when the response is undefined 80ms
+ ✓ src/hooks/useDashboardData.test.jsx > useDashboardData > should fall back to an empty list when the response is "texto" 79ms
+ ✓ src/hooks/useDashboardData.test.jsx > useDashboardData > should fall back to an empty list when the response is 42 74ms
+ ✓ src/hooks/useDashboardData.test.jsx > useDashboardData > should expose the error message and an empty list when the service fails 78ms
+ ✓ src/hooks/useDashboardData.test.jsx > useDashboardData > should use a default message when the error has none 80ms
+ ✓ src/hooks/useDashboardData.test.jsx > useDashboardData > should log out on an authentication error (Error: x) 86ms
+ ✓ src/hooks/useDashboardData.test.jsx > useDashboardData > should log out on an authentication error (Error: Request failed 401) 84ms
+ ✓ src/hooks/useDashboardData.test.jsx > useDashboardData > should log out on an authentication error (Error: Unauthorized) 78ms
+ ✓ src/hooks/useDashboardData.test.jsx > useDashboardData > should log out on an authentication error (Error: Token expired) 76ms
+ ✓ src/hooks/useDashboardData.test.jsx > useDashboardData > should log out on an authentication error (Error: Not authenticated) 80ms
+ ✓ src/hooks/useDashboardData.test.jsx > useDashboardData > should call the service again when refetch is used 16ms
+ ✓ src/pages/MisEdificios.test.jsx > MisEdificios > should list the client buildings with their elevators, read only 634ms
+ ✓ src/pages/MisEdificios.test.jsx > MisEdificios > should explain when there are no buildings yet 87ms
+ ✓ src/context/AuthContext.test.jsx > AuthContext > should start without a user when there is no saved session 34ms
+ ✓ src/context/AuthContext.test.jsx > AuthContext > should save the session and expose the user after a successful login 8ms
+ ✓ src/context/AuthContext.test.jsx > AuthContext > should read name and role from data.user when they are nested 3ms
+ ✓ src/context/AuthContext.test.jsx > AuthContext > should return the login error without saving a session (Error: Correo o clave mal) 6ms
+ ✓ src/context/AuthContext.test.jsx > AuthContext > should return the login error without saving a session (Error) 4ms
+ ✓ src/context/AuthContext.test.jsx > AuthContext > should restore a saved session whose token has not expired 3ms
+ ✓ src/context/AuthContext.test.jsx > AuthContext > should close a saved session whose token already expired 33ms
+ ✓ src/context/AuthContext.test.jsx > AuthContext > should close the session when the saved token is malformed 7ms
+ ✓ src/context/AuthContext.test.jsx > AuthContext > should discard a saved user that is not valid JSON 4ms
+ ✓ src/context/AuthContext.test.jsx > AuthContext > should clear the session and go to /login on logout 207ms
+ ✓ src/context/AuthContext.test.jsx > AuthContext > should log in automatically after registering 4ms
+ ✓ src/context/AuthContext.test.jsx > AuthContext > should ask to log in manually when the account was created but the login fails 4ms
+ ✓ src/context/AuthContext.test.jsx > AuthContext > should return the register error (Error: Correo ya registrado) 5ms
+ ✓ src/context/AuthContext.test.jsx > AuthContext > should return the register error (Error) 3ms
+ ✓ src/context/AuthContext.test.jsx > AuthContext > hasAction should follow the role permissions (Administrador, createUser) 5ms
+ ✓ src/context/AuthContext.test.jsx > AuthContext > hasAction should follow the role permissions (Coordinador, createUser) 5ms
+ ✓ src/context/AuthContext.test.jsx > AuthContext > should fail clearly when useAuth is used outside the provider 12ms
+ ✓ src/components/PasswordRequirements.test.jsx > <PasswordRequirements /> > muestra las 5 reglas de contraseña 351ms
+ ✓ src/components/PasswordRequirements.test.jsx > <PasswordRequirements /> > marca en verde las reglas que sí se cumplen 349ms
+ ✓ src/components/PasswordRequirements.test.jsx > <PasswordRequirements /> > deja en gris la regla que no se cumple 71ms
+ ✓ src/services/apiClient.msw.test.js > apiClient con MSW > should return the parsed body on the happy path 92ms
+ ✓ src/services/apiClient.msw.test.js > apiClient con MSW > should throw an error with the HTTP status when the API responds 500 18ms
+ ✓ src/services/apiClient.msw.test.js > apiClient con MSW > should throw the detail sent by the API when validation fails (422) 20ms
+ ✓ src/services/apiClient.msw.test.js > apiClient con MSW > should join the messages when the 422 detail is an array 12ms
+ ✓ src/services/apiClient.msw.test.js > apiClient con MSW > should show a readable error when the API responds HTML instead of JSON 9ms
+ ✓ src/services/apiClient.msw.test.js > apiClient con MSW > should send the JSON body and the Bearer token on POST 12ms
+ ✓ src/hooks/usePaginatedSearch.test.js > usePaginatedSearch > should return the first page and count total pages 45ms
+ ✓ src/hooks/usePaginatedSearch.test.js > usePaginatedSearch > should filter ignoring case and search in every configured field 10ms
+ ✓ src/hooks/usePaginatedSearch.test.js > usePaginatedSearch > should go back to the first page when the search changes 8ms
+ ✓ src/hooks/usePaginatedSearch.test.js > usePaginatedSearch > should accept a function as search field 11ms
+ ✓ src/hooks/usePaginatedSearch.test.js > usePaginatedSearch > should report one page (never zero) when nothing matches 6ms
+ ✓ src/hooks/usePaginatedSearch.test.js > usePaginatedSearch > should ignore a search made only of spaces 3ms
+ ✓ src/services/serviciosRestantes.test.js > servicios que delegan en apiClient > checklistService.calificar should call () => __vite_ssr_import_3__.checklistService.calificar({}) with /checklist/ 16ms
+ ✓ src/services/serviciosRestantes.test.js > servicios que delegan en apiClient > checklistService.listarPorInspeccion should call () => __vite_ssr_import_3__.checklistService.listarPorInspeccion(3) with /checklist/inspeccion/3 1ms
+ ✓ src/services/serviciosRestantes.test.js > servicios que delegan en apiClient > checklistService.obtenerCategorias should call () => __vite_ssr_import_3__.checklistService.obtenerCategorias() with /checklist/categorias 1ms
+ ✓ src/services/serviciosRestantes.test.js > servicios que delegan en apiClient > checklistService.obtenerCategorias (inspección) should call () => __vite_ssr_import_3__.checklistService.obtenerCategorias(7) with /checklist/categorias?id_inspeccion=7 1ms
+ ✓ src/services/serviciosRestantes.test.js > servicios que delegan en apiClient > checklistService.obtenerCumplimiento should call () => __vite_ssr_import_3__.checklistService.obtenerCumplimiento(3) with /checklist/cumplimiento/3 1ms
+ ✓ src/services/serviciosRestantes.test.js > servicios que delegan en apiClient > checklistService.eliminar should call () => __vite_ssr_import_3__.checklistService.eliminar(8) with /checklist/8 1ms
+ ✓ src/services/serviciosRestantes.test.js > servicios que delegan en apiClient > clienteService.crear should call () => __vite_ssr_import_4__.clienteService.crear({}) with /clientes/ 1ms
+ ✓ src/services/serviciosRestantes.test.js > servicios que delegan en apiClient > clienteService.listar should call () => __vite_ssr_import_4__.clienteService.listar() with /clientes/ 1ms
+ ✓ src/services/serviciosRestantes.test.js > servicios que delegan en apiClient > clienteService.obtener should call () => __vite_ssr_import_4__.clienteService.obtener(2) with /clientes/2 1ms
+ ✓ src/services/serviciosRestantes.test.js > servicios que delegan en apiClient > clienteService.modificar should call () => __vite_ssr_import_4__.clienteService.modificar(2, {}) with /clientes/2 1ms
+ ✓ src/services/serviciosRestantes.test.js > servicios que delegan en apiClient > programacionService.asignar should call () => __vite_ssr_import_11__.programacionService.asignar({}) with /programacion/ 1ms
+ ✓ src/services/serviciosRestantes.test.js > servicios que delegan en apiClient > programacionService.listar should call () => __vite_ssr_import_11__.programacionService.listar() with /programacion/ 1ms
+ ✓ src/services/serviciosRestantes.test.js > servicios que delegan en apiClient > programacionService.reasignar should call () => __vite_ssr_import_11__.programacionService.reasignar(4, {}) with /programacion/4/reasignar 0ms
+ ✓ src/services/serviciosRestantes.test.js > servicios que delegan en apiClient > usuarioAscensorService.asignar should call () => __vite_ssr_import_12__.usuarioAscensorService.asignar({}) with /usuario-ascensor/ 1ms
+ ✓ src/services/serviciosRestantes.test.js > servicios que delegan en apiClient > usuarioAscensorService.listar should call () => __vite_ssr_import_12__.usuarioAscensorService.listar() with /usuario-ascensor/ 1ms
+ ✓ src/services/serviciosRestantes.test.js > servicios que delegan en apiClient > usuarioAscensorService.obtener should call () => __vite_ssr_import_12__.usuarioAscensorService.obtener(5) with /usuario-ascensor/5 1ms
+ ✓ src/services/serviciosRestantes.test.js > servicios que delegan en apiClient > usuarioAscensorService.desasignar should call () => __vite_ssr_import_12__.usuarioAscensorService.desasignar(5, {}) with /usuario-ascensor/5/desasignar 0ms
+ ✓ src/services/serviciosRestantes.test.js > servicios que delegan en apiClient > auditoriaService.listar should call () => __vite_ssr_import_1__.auditoriaService.listar() with /auditoria/ 1ms
+ ✓ src/services/serviciosRestantes.test.js > servicios que delegan en apiClient > auditoriaService.filtrarPorTabla should call () => __vite_ssr_import_1__.auditoriaService.filtrarPorTabla("usuario") with /auditoria/?tabla=usuario 0ms
+ ✓ src/services/serviciosRestantes.test.js > servicios que delegan en apiClient > auditoriaService.filtrarPorUsuario should call () => __vite_ssr_import_1__.auditoriaService.filtrarPorUsuario(3) with /auditoria/?usuario=3 1ms
+ ✓ src/services/serviciosRestantes.test.js > servicios que delegan en apiClient > informeService.generar should call () => __vite_ssr_import_8__.informeService.generar(9) with /informes/9/generar 1ms
+ ✓ src/services/serviciosRestantes.test.js > servicios que delegan en apiClient > informeService.listar should call () => __vite_ssr_import_8__.informeService.listar() with /informes/ 1ms
+ ✓ src/services/serviciosRestantes.test.js > servicios que delegan en apiClient > informeService.obtenerPorInspeccion should call () => __vite_ssr_import_8__.informeService.obtenerPorInspeccion(9) with /informes/inspeccion/9 1ms
+ ✓ src/services/serviciosRestantes.test.js > servicios que delegan en apiClient > informeService.enviar should call () => __vite_ssr_import_8__.informeService.enviar(1) with /informes/1/enviar 1ms
+ ✓ src/services/serviciosRestantes.test.js > servicios que delegan en apiClient > informeService.eliminar should call () => __vite_ssr_import_8__.informeService.eliminar(1) with /informes/1 1ms
+ ✓ src/services/serviciosRestantes.test.js > servicios que delegan en apiClient > encuestaService.listarMias should call () => __vite_ssr_import_5__.encuestaService.listarMias() with /encuestas/ 1ms
+ ✓ src/services/serviciosRestantes.test.js > servicios que delegan en apiClient > encuestaService.responder should call () => __vite_ssr_import_5__.encuestaService.responder(2, {}) with /encuestas/2/responder 2ms
+ ✓ src/services/serviciosRestantes.test.js > servicios que delegan en apiClient > firmaService.firmarInspector should call () => __vite_ssr_import_6__.firmaService.firmarInspector(4, {}) with /inspecciones/4/firma-inspector 1ms
+ ✓ src/services/serviciosRestantes.test.js > servicios que delegan en apiClient > firmaService.firmarCliente should call () => __vite_ssr_import_6__.firmaService.firmarCliente(4, {}) with /inspecciones/4/firma-cliente 1ms
+ ✓ src/services/serviciosRestantes.test.js > servicios que delegan en apiClient > firmaService.verificarFirmas should call () => __vite_ssr_import_6__.firmaService.verificarFirmas(4) with /inspecciones/4/firmas 1ms
+ ✓ src/services/serviciosRestantes.test.js > servicios que delegan en apiClient > inspeccionesService.misInspecciones should call () => __vite_ssr_import_9__.inspeccionesService.misInspecciones() with /inspecciones/mis-inspecciones 0ms
+ ✓ src/services/serviciosRestantes.test.js > servicios que delegan en apiClient > observacionService.crear should call () => __vite_ssr_import_10__.observacionService.crear({}) with /observaciones/ 2ms
+ ✓ src/services/serviciosRestantes.test.js > servicios que delegan en apiClient > observacionService.listarPorInforme should call () => __vite_ssr_import_10__.observacionService.listarPorInforme(6) with /observaciones/6 1ms
+ ✓ src/services/serviciosRestantes.test.js > servicios que delegan en apiClient > observacionService.modificar should call () => __vite_ssr_import_10__.observacionService.modificar(6, {}) with /observaciones/6 1ms
+ ✓ src/services/serviciosRestantes.test.js > servicios que delegan en apiClient > observacionService.eliminar should call () => __vite_ssr_import_10__.observacionService.eliminar(6) with /observaciones/6 1ms
+ ✓ src/services/serviciosRestantes.test.js > servicios que delegan en apiClient > fotografiaService.listarPorInforme should call () => __vite_ssr_import_7__.fotografiaService.listarPorInforme(6) with /fotografias/informe/6 0ms
+ ✓ src/services/serviciosRestantes.test.js > servicios que delegan en apiClient > fotografiaService.eliminar should call () => __vite_ssr_import_7__.fotografiaService.eliminar(6) with /fotografias/6 1ms
+ ✓ src/services/serviciosRestantes.test.js > servicios que delegan en apiClient > informeService.aprobar should send the decision Aprobado with the technical concept 3ms
+ ✓ src/services/serviciosRestantes.test.js > servicios que delegan en apiClient > informeService.rechazar should send the decision Rechazado with the technical concept 1ms
+ ✓ src/services/serviciosRestantes.test.js > servicios que delegan en apiClient > fotografiaService.subir should build the form data con descripción 8ms
+ ✓ src/services/serviciosRestantes.test.js > servicios que delegan en apiClient > fotografiaService.subir should build the form data sin descripción 2ms
+ ✓ src/services/serviciosRestantes.test.js > authService: recuperación de clave y creación de usuarios > recoverPasswordRequest should POST the right body 6ms
+ ✓ src/services/serviciosRestantes.test.js > authService: recuperación de clave y creación de usuarios > resetPasswordRequest should POST the right body 2ms
+ ✓ src/services/serviciosRestantes.test.js > authService: recuperación de clave y creación de usuarios > resetPasswordWithCodeRequest should POST the right body 1ms
+ ✓ src/services/serviciosRestantes.test.js > authService: recuperación de clave y creación de usuarios > should use the message field when the error has no detail 4ms
+ ✓ src/services/serviciosRestantes.test.js > authService: recuperación de clave y creación de usuarios > createUserRequest should map the form, the role id and the token 4ms
+ ✓ src/services/dashboardService.test.js > dashboardService > fetchStats should call the endpoint  6ms
+ ✓ src/services/dashboardService.test.js > dashboardService > fetchCharts should call the endpoint  1ms
+ ✓ src/services/dashboardService.test.js > dashboardService > fetchInspecciones should call the endpoint  1ms
+ ✓ src/services/dashboardService.test.js > dashboardService > fetchAscensores should call the endpoint  1ms
+ ✓ src/services/dashboardService.test.js > dashboardService > fetchUsuarios should call the endpoint  1ms
+ ✓ src/services/dashboardService.test.js > dashboardService > fetchInformes should call the endpoint  0ms
+ ✓ src/services/dashboardService.test.js > dashboardService > fetchReportsSummary should call the endpoint  1ms
+ ✓ src/services/dashboardService.test.js > dashboardService > getCurrentUser should call the endpoint  0ms
+ ✓ src/services/dashboardService.test.js > dashboardService > fetchVistaResumen should call the endpoint  1ms
+ ✓ src/services/dashboardService.test.js > dashboardService > fetchInspeccionesPorEstado should call the endpoint Finalizada 0ms
+ ✓ src/services/dashboardService.test.js > dashboardService > fetchUserProfile should call the endpoint 7 1ms
+ ✓ src/services/dashboardService.test.js > dashboardService > fetchAdminStats should call the endpoint  1ms
+ ✓ src/services/dashboardService.test.js > dashboardService > fetchClienteAscensores should call the endpoint 3 1ms
+ ✓ src/services/dashboardService.test.js > dashboardService > fetchInspectorInspecciones should call the endpoint 4 0ms
+ ✓ src/services/dashboardService.test.js > dashboardService > fetchListadoAscensores should call the endpoint  0ms
+ ✓ src/services/dashboardService.test.js > dashboardService > fetchEdificiosAscensores should call the endpoint  0ms
+ ✓ src/services/dashboardService.test.js > dashboardService > fetchMisAscensores should call the endpoint  0ms
+ ✓ src/services/dashboardService.test.js > dashboardService > fetchMisInspecciones should call the endpoint  0ms
+ ✓ src/services/dashboardService.test.js > dashboardService > should send the Bearer token only when there is a session 1ms
+ ✓ src/services/dashboardService.test.js > dashboardService > should throw the backend detail and keep the HTTP status 3ms
+ ✓ src/services/dashboardService.test.js > dashboardService > should build a message with the status when the error body is not JSON 2ms
+ ✓ src/services/dashboardService.test.js > dashboardService > should use a generic message when the error has no detail 1ms
+ ✓ src/services/dashboardService.test.js > dashboardService > should explain that the backend is down when the network fails 1ms
+ ✓ src/services/dashboardService.test.js > dashboardService > should translate buildings to the field names used by the screen 1ms
+ ✓ src/services/dashboardService.test.js > dashboardService > should return an empty list of buildings when the backend answers null 1ms
+ ✓ src/services/dashboardService.test.js > dashboardService > should save the token after a successful login 1ms
+ ✓ src/services/dashboardService.test.js > dashboardService > should reject the login with the right message ({"detail":"Credenciales inválidas"}) 1ms
+ ✓ src/services/dashboardService.test.js > dashboardService > should reject the login with the right message ({}) 1ms
+ ✓ src/services/dashboardService.test.js > dashboardService > crearInspeccion should use [object Object] on POST and fail with a default message 2ms
+ ✓ src/services/dashboardService.test.js > dashboardService > eliminarUsuario should use 9 on DELETE and fail with a default message 2ms
+ ✓ src/utils/filtrosInspecciones.test.js > filtros de inspecciones (RF-017) > should not filter when nothing is chosen 8ms
+ ✓ src/utils/filtrosInspecciones.test.js > filtros de inspecciones (RF-017) > should filter by client, technician, city, type and state 3ms
+ ✓ src/utils/filtrosInspecciones.test.js > filtros de inspecciones (RF-017) > should filter by a date range 1ms
+ ✓ src/utils/filtrosInspecciones.test.js > filtros de inspecciones (RF-017) > should list the distinct values of each filter, sorted 26ms
+ ✓ src/services/serviciosDelegados.test.js > servicios que delegan en apiClient > informeService.generar should call the right endpoint 22ms
+ ✓ src/services/serviciosDelegados.test.js > servicios que delegan en apiClient > informeService.enviar should call the right endpoint 9ms
+ ✓ src/services/serviciosDelegados.test.js > servicios que delegan en apiClient > informeService.eliminar should call the right endpoint 2ms
+ ✓ src/services/serviciosDelegados.test.js > servicios que delegan en apiClient > firmaService.firmarCliente should call the right endpoint 1ms
+ ✓ src/services/serviciosDelegados.test.js > servicios que delegan en apiClient > firmaService.verificarFirmas should call the right endpoint 3ms
+ ✓ src/services/serviciosDelegados.test.js > servicios que delegan en apiClient > checklistService.calificar should call the right endpoint 4ms
+ ✓ src/services/serviciosDelegados.test.js > servicios que delegan en apiClient > checklistService.obtenerCumplimiento should call the right endpoint 2ms
+ ✓ src/services/serviciosDelegados.test.js > servicios que delegan en apiClient > encuestaService.responder should call the right endpoint 1ms
+ ✓ src/services/serviciosDelegados.test.js > servicios que delegan en apiClient > clienteService.modificar should call the right endpoint 1ms
+ ✓ src/services/serviciosDelegados.test.js > servicios que delegan en apiClient > usuarioAscensorService.desasignar should call the right endpoint 1ms
+ ✓ src/services/serviciosDelegados.test.js > servicios que delegan en apiClient > auditoriaService.filtrarPorTabla should call the right endpoint 5ms
+ ✓ src/services/serviciosDelegados.test.js > servicios que delegan en apiClient > notificacionService.marcarTodasLeidas should call the right endpoint 2ms
+ ✓ src/services/serviciosDelegados.test.js > servicios que delegan en apiClient > notificacionService.marcarLeida should call the right endpoint 1ms
+ ✓ src/services/serviciosDelegados.test.js > servicios que delegan en apiClient > ascensorService.listar should call the right endpoint 2ms
+ ✓ src/services/serviciosDelegados.test.js > servicios que delegan en apiClient > ascensorService.crear should call the right endpoint 1ms
+ ✓ src/services/serviciosDelegados.test.js > servicios que delegan en apiClient > ascensorService.modificar should call the right endpoint 1ms
+ ✓ src/services/serviciosDelegados.test.js > servicios que delegan en apiClient > ascensorService.eliminar should call the right endpoint 1ms
+ ✓ src/services/serviciosDelegados.test.js > servicios que delegan en apiClient > clienteService.listarSedes should call the right endpoint 1ms
+ ✓ src/services/serviciosDelegados.test.js > servicios que delegan en apiClient > clienteService.crearSede should call the right endpoint 1ms
+ ✓ src/services/serviciosDelegados.test.js > servicios que delegan en apiClient > clienteService.modificarSede should call the right endpoint 1ms
+ ✓ src/services/serviciosDelegados.test.js > servicios que delegan en apiClient > clienteService.eliminarSede should call the right endpoint 1ms
+ ✓ src/services/serviciosDelegados.test.js > servicios que delegan en apiClient > should ask for the inspectors of a date only when a date is given 2ms
+ ✓ src/services/serviciosDelegados.test.js > servicios que delegan en apiClient > should send the decision Aprobado or Rechazado when reviewing a report 1ms
+ ✓ src/services/serviciosDelegados.test.js > servicios que delegan en apiClient > should send the reason in the body when cancelling a scheduling 3ms
+ ✓ src/services/serviciosDelegados.test.js > servicios que delegan en apiClient > should cancel the visit of a request 3ms
+ ✓ src/services/serviciosDelegados.test.js > servicios que delegan en apiClient > should upload a photo as FormData and skip the description when it is empty 5ms
+ ✓ src/services/serviciosDelegados.test.js > servicios que delegan en apiClient > should include the description when it is provided 2ms
+ ✓ src/utils/sucursales.test.js > sucursales > should use the sede id as key, or a fixed key when there is no sede 8ms
+ ✓ src/utils/sucursales.test.js > sucursales > should group elevators by sede and count them, sorted by name 40ms
+ ✓ src/utils/sucursales.test.js > sucursales > should put elevators without sede last 1ms
+ ✓ src/utils/sucursales.test.js > sucursales > should return an empty list when there are no elevators 0ms
+ ✓ src/utils/sucursales.test.js > sucursales > should list every building of the client, even without elevators 2ms
+ ✓ src/services/apiClient.test.js > apiClient > should send the Bearer token when there is a session 8ms
+ ✓ src/services/apiClient.test.js > apiClient > should not send Authorization without a token 1ms
+ ✓ src/services/apiClient.test.js > apiClient > should repair mojibake in the response body 4ms
+ ✓ src/services/apiClient.test.js > apiClient > should return null for a 204 response 1ms
+ ✓ src/services/apiClient.test.js > apiClient > should throw an Error with the backend detail and the HTTP status 3ms
+ ✓ src/services/apiClient.test.js > apiClient > should join the messages when the detail is a list of validation errors 3ms
+ ✓ src/services/apiClient.test.js > apiClient > should use a default message when the error has no detail 1ms
+ ✓ src/services/apiClient.test.js > apiClient > should send FormData as is, without Content-Type 2ms
+ ✓ src/services/apiClient.test.js > apiClient > should serialize plain objects as JSON 1ms
+ ✓ src/services/authService.test.js > authService > registerRequest (reglas de NIT) > should send nit and razon_social only when the document type is NIT 16ms
+ ✓ src/services/authService.test.js > authService > registerRequest (reglas de NIT) > should send nit and razon_social as null for a person (CC) 2ms
+ ✓ src/services/authService.test.js > authService > registerRequest (reglas de NIT) > should always register as Cliente and send an empty phone as null 2ms
+ ✓ src/services/authService.test.js > authService > updateUserRequest (contraseña opcional) > should not send the password when the admin leaves it empty 3ms
+ ✓ src/services/authService.test.js > authService > updateUserRequest (contraseña opcional) > should send the password when the admin writes a new one 1ms
+ ✓ src/services/authService.test.js > authService > updateUserRequest (contraseña opcional) > should map the role name to its database id 1ms
+ ✓ src/services/authService.test.js > authService > manejo de errores > should throw the backend detail when the login fails 6ms
+ ✓ src/services/authService.test.js > authService > manejo de errores > should throw a default message when the error body is not JSON 2ms
+ ✓ src/services/authService.test.js > authService > manejo de errores > should throw a default message when deleting a user fails without detail 3ms
+ ✓ src/App.test.jsx > <App /> (rutas) > should send a visitor without session from the dashboard to the login 1059ms
+ ✓ src/App.test.jsx > <App /> (rutas) > should send a visitor from any unknown address to the login 283ms
+ ✓ src/App.test.jsx > <App /> (rutas) > should show the dashboard home to a logged user 56ms
+ ✓ src/App.test.jsx > <App /> (rutas) > should send a role without permission back to the dashboard home 58ms
+ ✓ src/App.test.jsx > <App /> (rutas) > should send an unknown address of a logged user to the dashboard 101ms
+ ✓ src/App.test.jsx > <App /> (rutas) > should open the public page /register 655ms
+ ✓ src/App.test.jsx > <App /> (rutas) > should open the public page /forgot-password 126ms
+ ✓ src/utils/filtroProductividad.test.js > filtroProductividad (RF-024 → lista) > ida y vuelta por la dirección 3ms
+ ✓ src/utils/filtroProductividad.test.js > filtroProductividad (RF-024 → lista) > cuenta igual que el reporte 2ms
+ ✓ src/utils/filtroProductividad.test.js > filtroProductividad (RF-024 → lista) > cuenta como rechazada la que luego se corrigió y aprobó 0ms
+ ✓ src/utils/filtroProductividad.test.js > filtroProductividad (RF-024 → lista) > etiqueta legible 0ms
+ ✓ src/services/solicitudService.test.js > solicitudService > should cancel a request by changing its state to Cancelada 9ms
+ ✓ src/services/solicitudService.test.js > solicitudService > should send the Bearer token in every call 1ms
+ ✓ src/services/solicitudService.test.js > solicitudService > should throw the backend detail when the request fails 3ms
+ ✓ src/services/solicitudService.test.js > solicitudService > should use a default message when the failure has no detail 1ms
+ ✓ src/utils/filtroEstado.test.js > filtroEstado > should read the states from the query string 3ms
+ ✓ src/utils/filtroEstado.test.js > filtroEstado > should keep only the rows with those states, using estado or status 2ms
+ ✓ src/utils/filtroEstado.test.js > filtroEstado > should build the link with the states encoded 0ms
+ ✓ src/utils/edificios.test.js > validarAscensor > should ask for the first missing field 4ms
+ ✓ src/utils/edificios.test.js > validarAscensor > should check capacity and floors 0ms
+ ✓ src/utils/edificios.test.js > ascensorDesdeEdificio > should take the address and city from the building 2ms
+ ✓ src/utils/edificios.test.js > ascensorDesdeEdificio > should fill address and city when the building has none 0ms
+ ✓ src/utils/edificios.test.js > editar un ascensor > should fill the form from an elevator and build the update data 1ms
+ ✓ src/utils/checklistNorma.test.js > checklistNorma (RNF-011) > siguienteOrden 4ms
+ ✓ src/utils/checklistNorma.test.js > checklistNorma (RNF-011) > numeralDelGrupo y sugerirCodigo 1ms
+ ✓ src/utils/checklistNorma.test.js > checklistNorma (RNF-011) > oculta lo desactivado salvo que se pida verlo 4ms
+ ✓ src/utils/checklistNorma.test.js > checklistNorma (RNF-011) > busca sin importar tildes ni mayúsculas 1ms
+ ✓ src/utils/checklistNorma.test.js > checklistNorma (RNF-011) > resumen cuenta solo lo activo 1ms
+ ✓ src/utils/tokenStorage.test.js > tokenStorage > should save and read the token from sessionStorage 5ms
+ ✓ src/utils/tokenStorage.test.js > tokenStorage > should return null when there is no token 2ms
+ ✓ src/utils/tokenStorage.test.js > tokenStorage > should save and read the user as an object 2ms
+ ✓ src/utils/tokenStorage.test.js > tokenStorage > should return null when the stored user is not valid JSON 1ms
+ ✓ src/utils/tokenStorage.test.js > tokenStorage > should clear current and legacy session keys 1ms
+ ✓ src/config/roles.test.js > roles: permisos de pantallas > should give an unknown role only dashboard and configuracion 6ms
+ ✓ src/config/roles.test.js > roles: permisos de pantallas > canAccess(Administrador, auditoria) should be true 2ms
+ ✓ src/config/roles.test.js > roles: permisos de pantallas > canAccess(Director Técnico, auditoria) should be false 1ms
+ ✓ src/config/roles.test.js > roles: permisos de pantallas > canAccess(Cliente, inspecciones) should be true 1ms
+ ✓ src/config/roles.test.js > roles: permisos de pantallas > canAccess(Cliente, usuarios) should be false 1ms
+ ✓ src/config/roles.test.js > roles: permisos de pantallas > canAccess(Asesor, inspecciones) should be false 1ms
+ ✓ src/config/roles.test.js > roles: permisos de pantallas > canAccess(Inspector, ascensores) should be true 0ms
+ ✓ src/config/roles.test.js > roles: permisos de pantallas > canAccess(Visitante, usuarios) should be false 0ms
+ ✓ src/config/roles.test.js > roles: permisos de pantallas > canAccess(Asesor, usuarios) should be true 1ms
+ ✓ src/config/roles.test.js > roles: permisos de pantallas > canAccess(Cliente, misEdificios) should be true 1ms
+ ✓ src/config/roles.test.js > roles: permisos de pantallas > canAccess(Coordinador, productividad) should be true 2ms
+ ✓ src/config/roles.test.js > roles: permisos de pantallas > canAccess(Director Técnico, productividad) should be true 0ms
+ ✓ src/config/roles.test.js > roles: permisos de pantallas > canAccess(Inspector, productividad) should be false 0ms
+ ✓ src/config/roles.test.js > roles: permisos de pantallas > canAccess(Administrador, checklistNorma) should be true 0ms
+ ✓ src/config/roles.test.js > roles: permisos de pantallas > canAccess(Director Técnico, checklistNorma) should be true 0ms
+ ✓ src/config/roles.test.js > roles: permisos de pantallas > canAccess(Coordinador, checklistNorma) should be false 0ms
+ ✓ src/config/roles.test.js > roles: permisos de pantallas > canAccess(Inspector, checklistNorma) should be false 0ms
+ ✓ src/config/roles.test.js > roles: permisos de pantallas > should build the menu in the same order as MENU_ITEMS and only with allowed screens 1ms
+ ✓ src/config/roles.test.js > roles: acciones > canDo(createInspection, Coordinador) should be true 0ms
+ ✓ src/config/roles.test.js > roles: acciones > canDo(createInspection, Inspector) should be true 0ms
+ ✓ src/config/roles.test.js > roles: acciones > canDo(createInspection, Asesor) should be false 0ms
+ ✓ src/config/roles.test.js > roles: acciones > canDo(createInspection, Director Técnico) should be false 0ms
+ ✓ src/config/roles.test.js > roles: acciones > canDo(createUser, Administrador) should be true 0ms
+ ✓ src/config/roles.test.js > roles: acciones > canDo(createUser, Coordinador) should be false 0ms
+ ✓ src/config/roles.test.js > roles: acciones > should deny an action that does not exist 0ms
+ ✓ src/utils/passwordValidation.test.js > passwordValidation > los errores de "Abcdefg1" coinciden con la tabla compartida 7ms
+ ✓ src/utils/passwordValidation.test.js > passwordValidation > los errores de "Clave135!" coinciden con la tabla compartida 1ms
+ ✓ src/utils/passwordValidation.test.js > passwordValidation > los errores de "abc" coinciden con la tabla compartida 1ms
+ ✓ src/utils/passwordValidation.test.js > passwordValidation > los errores de "ABCDEFG1" coinciden con la tabla compartida 0ms
+ ✓ src/utils/passwordValidation.test.js > passwordValidation > los errores de "abcdefg1" coinciden con la tabla compartida 0ms
+ ✓ src/utils/passwordValidation.test.js > passwordValidation > los errores de "Abcdefgh" coinciden con la tabla compartida 0ms
+ ✓ src/utils/passwordValidation.test.js > passwordValidation > los errores de "Abc12345" coinciden con la tabla compartida 0ms
+ ✓ src/utils/passwordValidation.test.js > passwordValidation > los errores de "Clave987!" coinciden con la tabla compartida 0ms
+ ✓ src/utils/passwordValidation.test.js > passwordValidation > los errores de "" coinciden con la tabla compartida 0ms
+ ✓ src/utils/passwordValidation.test.js > passwordValidation > isPasswordValid acepta una contraseña correcta 1ms
+ ✓ src/utils/passwordValidation.test.js > passwordValidation > isPasswordValid rechaza una contraseña débil 0ms
+ ✓ src/utils/passwordValidation.test.js > passwordValidation > getPasswordError devuelve null si todo está bien 0ms
+ ✓ src/utils/passwordValidation.test.js > passwordValidation > getPasswordError devuelve el primer error (igual que el backend) 0ms
+ ✓ src/config/api.test.js > config/api > should map every role to the id used by the database 11ms
+ ✓ src/config/api.test.js > config/api > should return the label of a known document type 1ms
+ ✓ src/config/api.test.js > config/api > should return the same value when the document type is unknown 0ms
+ ✓ src/config/api.test.js > config/api > should keep only document types for adults (minAge >= 18) 1ms
+ ✓ src/config/api.test.js > config/api > should add the Authorization header only when there is a token 1ms
+ ✓ src/config/api.test.js > config/api > should not set Content-Type in form data headers (the browser sets the boundary) 1ms
+ ✓ src/utils/correo.test.js > sinEspacios > should remove spaces at the start, the end and in the middle 12ms
+ ✓ src/utils/correo.test.js > sinEspacios > should remove tabs and line breaks pasted with the email 2ms
+ ✓ src/utils/correo.test.js > sinEspacios > should return an empty text for null or undefined 1ms
+ ✓ src/utils/productividad.test.js > productividad (RF-024) > should compute a date some days ago 10ms
+ ✓ src/utils/productividad.test.js > productividad (RF-024) > should build a CSV with a row per inspector and the total 2ms
+ ✓ src/utils/statusHelpers.test.js > statusHelpers > should expose the exact names of the pending states 7ms
+ ✓ src/utils/statusHelpers.test.js > statusHelpers > should paint the state Aprobada with the success color 1ms
+ ✓ src/utils/statusHelpers.test.js > statusHelpers > should paint the state Observaciones with the error color 0ms
+ ✓ src/utils/statusHelpers.test.js > statusHelpers > should paint the state Programada with the info color 0ms
+ ✓ src/utils/statusHelpers.test.js > statusHelpers > should paint the state Borrador with the default color 0ms
+ ✓ src/utils/statusHelpers.test.js > statusHelpers > should paint the state Suspendido with the warning color 0ms
+ ✓ src/utils/statusHelpers.test.js > statusHelpers > should paint the state default with the default color 0ms
+ ✓ src/utils/statusHelpers.test.js > statusHelpers > should show a friendlier label for the states with observations 0ms
+ ✓ src/utils/statusHelpers.test.js > statusHelpers > should have a color for every state that has a label 1ms
+ ✓ src/utils/checklist.test.js > itemsSinFotoObligatoria > should list not compliant items without a photo 8ms
+ ✓ src/utils/checklist.test.js > itemsSinFotoObligatoria > should return nothing when every not compliant item has a photo or there is no data 2ms
+ ✓ src/utils/checklist.test.js > describirItems > should give the continuous number and group of each item 1ms
+ ✓ src/utils/checklist.test.js > primerItemSinCalificar > should return the first item without a grade, in order 1ms
+ ✓ src/utils/encoding.test.js > decodeMojibake > should repair VerificaciÃ³n 7ms
+ ✓ src/utils/encoding.test.js > decodeMojibake > should repair AndrÃ©s 1ms
+ ✓ src/utils/encoding.test.js > decodeMojibake > should leave "Verificación" untouched (texto ya correcto) 1ms
+ ✓ src/utils/encoding.test.js > decodeMojibake > should leave "" untouched (cadena vacía) 0ms
+ ✓ src/utils/encoding.test.js > decodeMojibake > should return null as is when it is not a string 1ms
+ ✓ src/utils/encoding.test.js > decodeMojibake > should return undefined as is when it is not a string 0ms
+ ✓ src/utils/encoding.test.js > decodeMojibake > should return 42 as is when it is not a string 1ms
+ ✓ src/utils/encoding.test.js > decodeMojibake > should return {"a":1} as is when it is not a string 0ms
+ ✓ src/utils/encoding.test.js > decodeDeep > should repair strings inside nested objects and arrays 4ms
+ ✓ src/utils/encoding.test.js > decodeDeep > should return null unchanged 1ms
+ ✓ src/utils/encoding.test.js > decodeDeep > should return undefined unchanged 1ms
+ ✓ src/utils/encoding.test.js > decodeDeep > should return 5 unchanged 0ms
+ ✓ src/utils/encoding.test.js > decodeDeep > should return true unchanged 0ms
+ ✓ src/utils/statusHelpers.semana5.test.js > statusHelpers > should expose the two states that wait for a person 8ms
+ ✓ src/utils/statusHelpers.semana5.test.js > statusHelpers > should give every waiting state its own color 1ms
+ ✓ src/utils/statusHelpers.semana5.test.js > statusHelpers > should color the main inspection states 0ms
+ ✓ src/utils/statusHelpers.semana5.test.js > statusHelpers > should translate "Observaciones" to a readable label 5ms
+
+ Test Files  47 passed (47)
+      Tests  523 passed (523)
+   Start at  19:39:30
+   Duration  233.86s (tests 37%, environment 22%, import 18%, transform 16%, setup 5%, worker 1%)
+
+    Isolate  47 workers spawned · ~2.37s startup each (spawn + environment, per file)
+             at least ~53.25s faster with isolate: false — reuses workers across files instead of one per file
+
+ % Coverage report from v8
+-------------------|---------|----------|---------|---------|-------------------
+File               | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+-------------------|---------|----------|---------|---------|-------------------
+All files          |   58.09 |    49.29 |   61.45 |   57.93 |                   
+ src               |     100 |      100 |     100 |     100 |                   
+  App.jsx          |     100 |      100 |     100 |     100 |                   
+ src/components    |   91.31 |    85.79 |   86.23 |   93.85 |                   
+  ...sEdificio.jsx |   90.19 |    88.15 |   88.23 |      95 | 87,173            
+  ...itaDialog.jsx |     100 |    78.57 |     100 |     100 | 23,33-34          
+  ...nspeccion.jsx |   96.03 |    89.36 |    92.5 |   98.76 | 153               
+  ...irmDialog.jsx |     100 |      100 |     100 |     100 |                   
+  ...agination.jsx |     100 |    85.71 |     100 |     100 | 8                 
+  Logo.jsx         |     100 |      100 |     100 |     100 |                   
+  ...ageDialog.jsx |     100 |      100 |     100 |     100 |                   
+  PageHeader.jsx   |     100 |      100 |     100 |     100 |                   
+  ...uirements.jsx |     100 |      100 |     100 |     100 |                   
+  PromptDialog.jsx |     100 |      100 |     100 |     100 |                   
+  RoleRoute.jsx    |     100 |      100 |     100 |     100 |                   
+  SearchBar.jsx    |     100 |      100 |     100 |     100 |                   
+  ...nteDialog.jsx |   77.77 |    67.16 |   61.53 |   82.08 | ...35-169,209-211 
+  StatCard.jsx     |     100 |    91.66 |     100 |     100 | 13,18             
+  ...omeBanner.jsx |     100 |      100 |     100 |     100 |                   
+ ...ents/dashboard |   83.33 |    84.78 |   81.25 |    86.2 |                   
+  ...vityPanel.jsx |     100 |     92.3 |     100 |     100 | 40,65             
+  ChartCard.jsx    |     100 |      100 |     100 |     100 |                   
+  ...ardCharts.jsx |   77.77 |    66.66 |      80 |   82.35 | 9-14              
+  ...sPieChart.jsx |   83.33 |       80 |   66.66 |   83.33 | 33                
+ src/config        |     100 |    91.66 |     100 |     100 |                   
+  api.js           |     100 |     87.5 |     100 |     100 | 151               
+  roles.js         |     100 |      100 |     100 |     100 |                   
+ src/constants     |       0 |      100 |     100 |       0 |                   
+  demoUsers.js     |       0 |      100 |     100 |       0 | 1                 
+ src/context       |     100 |     90.9 |     100 |     100 |                   
+  AuthContext.jsx  |     100 |     90.9 |     100 |     100 | 84,110            
+ src/hooks         |     100 |       90 |     100 |     100 |                   
+  ...hboardData.js |     100 |    85.71 |     100 |     100 | 22,44,69          
+  ...atedSearch.js |     100 |      100 |     100 |     100 |                   
+ src/layouts       |   67.71 |    81.81 |   65.85 |   70.37 |                   
+  AuthLayout.jsx   |     100 |      100 |     100 |     100 |                   
+  ...ardLayout.jsx |   67.46 |    80.55 |      65 |   70.09 | ...88,302,363-393 
+ src/pages         |   30.72 |     22.8 |   28.96 |   30.93 |                   
+  Auditoria.jsx    |     100 |    88.88 |     100 |     100 | 33-35             
+  Buildings.jsx    |    6.06 |        0 |       0 |    6.06 | 49-233            
+  ...listNorma.jsx |   79.16 |    61.11 |   78.72 |    86.2 | ...46-249,290-305 
+  ...boardHome.jsx |     100 |      100 |     100 |     100 |                   
+  Elevators.jsx    |     2.6 |        0 |       0 |    2.83 | 31,77-439         
+  Encuestas.jsx    |   95.91 |       85 |   86.66 |   95.55 | 96-97             
+  ...tPassword.jsx |     100 |       90 |     100 |     100 | 89,108-121,170    
+  Inspections.jsx  |    0.99 |        0 |       0 |    1.09 | 46-49,69-1741     
+  Landing.jsx      |     100 |      100 |     100 |     100 |                   
+  Login.jsx        |     100 |    93.75 |     100 |     100 | 153               
+  MisEdificios.jsx |   77.77 |    58.33 |      80 |    87.5 | 16                
+  ...uctividad.jsx |   97.91 |       75 |     100 |   97.05 | 63                
+  Register.jsx     |     100 |      100 |     100 |     100 |                   
+  Reports.jsx      |       0 |        0 |       0 |       0 | 33-471            
+  ...tPassword.jsx |   96.87 |       90 |      80 |     100 | 56,94             
+  Settings.jsx     |    92.3 |      100 |   83.33 |   91.66 | 43                
+  Solicitudes.jsx  |    1.68 |        0 |       0 |     1.9 | 78-870            
+  Users.jsx        |      80 |     65.6 |   67.85 |   81.73 | ...63-371,405-436 
+ ...ges/dashboards |   94.14 |    79.91 |   93.44 |   93.82 |                   
+  ...Dashboard.jsx |   89.55 |    76.53 |   94.73 |   88.33 | 78,88-100         
+  ...Dashboard.jsx |     100 |      100 |     100 |     100 |                   
+  ...Dashboard.jsx |     100 |       95 |     100 |     100 | 44                
+  ...Dashboard.jsx |   93.84 |     70.9 |   84.21 |      95 | 77,270,321        
+  ...Dashboard.jsx |     100 |    83.33 |     100 |     100 | 61,63-66          
+  ...Dashboard.jsx |     100 |      100 |     100 |     100 |                   
+ src/services      |   82.44 |    68.71 |   82.14 |   83.75 |                   
+  apiClient.js     |     100 |    95.23 |     100 |     100 | 29                
+  ...sorService.js |   81.25 |       50 |    87.5 |   86.66 | 17-18             
+  ...riaService.js |     100 |      100 |     100 |     100 |                   
+  authService.js   |   93.93 |    62.79 |   91.66 |   93.54 | 12,118            
+  ...istService.js |   58.33 |      100 |      50 |   58.33 | 15-19             
+  ...nteService.js |   81.81 |      100 |      80 |   81.81 | 11,16             
+  ...ardService.js |     100 |    96.22 |     100 |     100 | 149,170           
+  ...staService.js |     100 |      100 |     100 |     100 |                   
+  firmaService.js  |     100 |      100 |     100 |     100 |                   
+  ...fiaService.js |      50 |    28.57 |      60 |   53.33 | 15-22             
+  ...rmeService.js |     100 |      100 |     100 |     100 |                   
+  ...nesService.js |     100 |      100 |     100 |     100 |                   
+  ...ionService.js |   70.58 |       50 |    62.5 |      75 | 11-12,18,38       
+  ...ionService.js |   83.33 |      100 |      80 |     100 |                   
+  ...ionService.js |     100 |      100 |     100 |     100 |                   
+  ...rteService.js |    4.76 |        0 |       0 |    6.25 | 7-28              
+  ...tudService.js |   76.92 |       70 |   57.14 |      76 | 15,33,55,65,68,73 
+  ...sorService.js |     100 |      100 |     100 |     100 |                   
+  ...rioService.js |   76.92 |     62.5 |      80 |   83.33 | 11-12             
+ src/theme         |     100 |      100 |     100 |     100 |                   
+  colors.js        |     100 |      100 |     100 |     100 |                   
+  theme.js         |     100 |      100 |     100 |     100 |                   
+ src/utils         |   98.21 |    88.03 |     100 |   99.52 |                   
+  checklist.js     |     100 |       84 |     100 |     100 | 3,19,27,35        
+  ...klistNorma.js |     100 |    85.71 |     100 |     100 | 7,21-22,38,52     
+  correo.js        |     100 |      100 |     100 |     100 |                   
+  edificios.js     |     100 |    96.15 |     100 |     100 | 27                
+  encoding.js      |    90.9 |    94.44 |     100 |   93.33 | 15                
+  filtroEstado.js  |     100 |      100 |     100 |     100 |                   
+  ...ductividad.js |   93.47 |    73.01 |     100 |     100 | ...45-47,49,55-61 
+  ...specciones.js |     100 |      100 |     100 |     100 |                   
+  ...Validation.js |     100 |      100 |     100 |     100 |                   
+  productividad.js |     100 |    85.71 |     100 |     100 | 26,35             
+  statusHelpers.js |     100 |      100 |     100 |     100 |                   
+  sucursales.js    |     100 |    95.45 |     100 |     100 | 13                
+  tokenStorage.js  |     100 |      100 |     100 |     100 |                   
+-------------------|---------|----------|---------|---------|-------------------
+
+# Código de salida: 0

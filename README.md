@@ -55,7 +55,9 @@
 
 ```
 LiftSafe/
-├── liftsafe-backend/          # API REST (FastAPI)
+├── liftsafe-backend/          # Backend 1: API REST principal (FastAPI)
+├── api-t6/                    # Backend 4: API de integración con JWT (Express + Prisma)
+├── docs/t6/                   # Documentación de cierre T6 (pruebas, defectos, arquitectura)
 │   ├── app/
 │   │   ├── main.py             # Punto de entrada
 │   │   ├── config.py           # Configuración
@@ -181,12 +183,28 @@ npm run dev
 
 La aplicación queda en http://localhost:5173
 
-### 4. Pruebas (opcional)
+### 4. Pruebas
 
-```bash
-cd liftsafe-backend && uv run pytest          # backend + cobertura
-cd LiftSafe_FrontendV2 && npm test            # frontend + cobertura
-```
+Plan, matriz de casos, reporte y defectos: **[docs/t6/](docs/t6/README.md)**.
+
+| Qué | Comando | Nivel |
+|---|---|---|
+| Backend FastAPI | `cd liftsafe-backend && uv run pytest` | Unitarias, API, regresión · cobertura ≥ 64 % |
+| Linter Python (PEP 8) | `cd liftsafe-backend && uv run ruff check app tests` | Estática |
+| Frontend React | `cd LiftSafe_FrontendV2 && npm test` | Unitarias y de componentes · cobertura ≥ 54 % |
+| Linter frontend | `cd LiftSafe_FrontendV2 && npx eslint .` | Estática |
+| 4.° backend (api-t6) | `cd api-t6 && npm run test:cov` | Unitarias, API e integración con base de pruebas |
+| Postman (api-t6) | `cd api-t6 && npx newman run postman/LiftSafe-T6.postman_collection.json` | Contrato HTTP (19 tests) |
+| E2E | `cd e2e && npx playwright test` | Navegador |
+| **Todo y con evidencia** | VS Code → *Run Task* → "LiftSafe: T6 - ejecutar todas las pruebas y guardar evidencia" | Deja los resultados en `docs/t6/evidencias/` |
+
+Las pruebas **no usan la base de desarrollo**: el backend usa una sesión falsa y el 4.° backend
+usa la base `liftsafe_t6_test` (ver [plan de pruebas](docs/t6/04-plan-de-pruebas.md#4-ambientes-prueba-separado-de-desarrollo)).
+
+### 5. 4.° backend: API de integración (api-t6)
+
+Express + Prisma + PostgreSQL con JWT y roles ADMIN / INTEGRADOR. Instalación y documentación
+de cada endpoint en **[api-t6/README.md](api-t6/README.md)**.
 
 ### Problemas frecuentes
 

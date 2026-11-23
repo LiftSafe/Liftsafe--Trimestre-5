@@ -1,0 +1,36 @@
+# api-t6 - migraciones base de desarrollo
+# Fecha: 2026-11-18 19:28
+
+Loaded Prisma config from prisma.config.ts.
+System.Management.Automation.RemoteException
+Prisma config detected, skipping environment variable loading.
+Prisma schema loaded from prisma\schema.prisma
+Datasource "db": PostgreSQL database "liftsafe_t6", schema "public" at "localhost:5433"
+
+2 migrations found in prisma/migrations
+
+Applying migration `20261110200000_init`
+Applying migration `20261118120000_auth_users`
+
+The following migration(s) have been applied:
+
+migrations/
+  └─ 20261110200000_init/
+    └─ migration.sql
+  └─ 20261118120000_auth_users/
+    └─ migration.sql
+      
+All migrations have been successfully applied.
+Loaded Prisma config from prisma.config.ts.
+System.Management.Automation.RemoteException
+Prisma config detected, skipping environment variable loading.
+Running seed command `tsx prisma/seed.ts` ...
+🌱 Seed de LiftSafe (4.° backend, T6)
+   🏢 Edificios: 4 listos
+   🛗 Ascensores: 8 listos
+   🔑 Usuarios: admin@liftsafe.test (ADMIN), integrador@liftsafe.test (INTEGRADOR)
+✅ En la base: 4 edificios y 8 ascensores
+
+The seed command has been executed.
+
+# Código de salida: 0

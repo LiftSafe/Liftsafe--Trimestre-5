@@ -1,0 +1,5 @@
+# api-t6 - TypeScript (typecheck)
+# Fecha: 2026-11-18 19:28
+
+
+# Código de salida: 0

@@ -1,0 +1,22 @@
+# api-t6 - npm install
+# Fecha: 2026-11-18 19:27
+
+
+> liftsafe-api-t6@1.0.0 postinstall
+> prisma generate
+
+Loaded Prisma config from prisma.config.ts.
+System.Management.Automation.RemoteException
+Prisma config detected, skipping environment variable loading.
+Prisma schema loaded from prisma\schema.prisma
+
+✔ Generated Prisma Client (v6.19.3) to .\node_modules\@prisma\client in 118ms
+
+Start by importing your Prisma Client (See: https://pris.ly/d/importing-client)
+
+Tip: Need your database queries to be 1000x faster? Accelerate offers you that and more: https://pris.ly/tip-2-accelerate
+
+
+up to date in 4s
+
+# Código de salida: 0

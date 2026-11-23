@@ -1,0 +1,229 @@
+# Regresion de defectos sobre el codigo ANTERIOR al arreglo (commit a01fe24) - se espera que FALLE
+# Fecha: 2026-11-18 19:31  ·  Código de salida: 1
+
+F.FFF.FFFF.                                                              [100%]
+================================== FAILURES ===================================
+_____________ test_def01_error_500_incluye_cors_para_el_frontend ______________
+
+    def test_def01_error_500_incluye_cors_para_el_frontend():
+        respuesta = asyncio.run(main.handle_unexpected_error(_request("http://localhost:5173"), RuntimeError("BD caída")))
+        assert respuesta.status_code == 500
+>       assert respuesta.headers["access-control-allow-origin"] == "http://localhost:5173"
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_regresion_defectos.py:33: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = MutableHeaders({'content-length': '39', 'content-type': 'application/json'})
+key = 'access-control-allow-origin'
+
+    def __getitem__(self, key: str) -> str:
+        get_header_key = key.lower().encode("latin-1")
+        for header_key, header_value in self._list:
+            if header_key == get_header_key:
+                return header_value.decode("latin-1")
+>       raise KeyError(key)
+E       KeyError: 'access-control-allow-origin'
+
+C:\src\Liftsafe--Trimestre-5\liftsafe-backend\.venv\Lib\site-packages\starlette\datastructures.py:557: KeyError
+------------------------------ Captured log call ------------------------------
+ERROR    app.main:main.py:86 Error no controlado en POST /auth/login
+NoneType: None
+_____________ test_def02_nombre_de_grupo_muy_corto_se_rechaza[o] ______________
+
+nombre = 'o'
+
+    @pytest.mark.parametrize("nombre", ["o", "ab", "   o  "])
+    def test_def02_nombre_de_grupo_muy_corto_se_rechaza(nombre):
+>       with pytest.raises(ValidationError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValidationError
+
+tests\test_regresion_defectos.py:48: Failed
+_____________ test_def02_nombre_de_grupo_muy_corto_se_rechaza[ab] _____________
+
+nombre = 'ab'
+
+    @pytest.mark.parametrize("nombre", ["o", "ab", "   o  "])
+    def test_def02_nombre_de_grupo_muy_corto_se_rechaza(nombre):
+>       with pytest.raises(ValidationError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValidationError
+
+tests\test_regresion_defectos.py:48: Failed
+___________ test_def02_nombre_de_grupo_muy_corto_se_rechaza[   o  ] ___________
+
+nombre = '   o  '
+
+    @pytest.mark.parametrize("nombre", ["o", "ab", "   o  "])
+    def test_def02_nombre_de_grupo_muy_corto_se_rechaza(nombre):
+>       with pytest.raises(ValidationError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValidationError
+
+tests\test_regresion_defectos.py:48: Failed
+__________ test_def03_productividad_filtra_por_fecha_de_terminacion ___________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000297430CDBA0>
+
+    def test_def03_productividad_filtra_por_fecha_de_terminacion(monkeypatch):
+        consulta = _ConsultaEspia()
+        db = SimpleNamespace(query=lambda *_a: consulta)
+        monkeypatch.setattr(reportes, "rechazos_por_inspeccion", lambda _db: {})
+        datos = reportes._datos_productividad(date(2026, 11, 1), date(2026, 11, 13), {"rol": "Administrador"}, db)
+        sql = " ".join(str(c) for c in consulta.filtros).lower()
+>       assert "coalesce(inspeccion.fecha_fin, inspeccion.fecha_inicio)" in sql
+E       AssertionError: assert 'coalesce(inspeccion.fecha_fin, inspeccion.fecha_inicio)' in 'inspeccion.fecha_inicio >= :fecha_inicio_1 inspeccion.fecha_inicio <= :fecha_inicio_1'
+
+tests\test_regresion_defectos.py:83: AssertionError
+____________ test_mej01_inspector_asignado_recoge_firma_presencial ____________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000297430CC9D0>
+
+    def test_mej01_inspector_asignado_recoge_firma_presencial(monkeypatch):
+>       r, insp, auditoria = _firma_cliente(monkeypatch, "Inspector", 7,
+                                            {"firma": "data:x", "nombre_firmante": "Ana Ruiz", "documento_firmante": "52123456"})
+
+tests\test_regresion_defectos.py:128: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\test_regresion_defectos.py:123: in _firma_cliente
+    resultado = asyncio.run(inspecciones.firmar_cliente(73, FirmaRequest(**datos), credentials=None, db=db))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\Roaming\uv\python\cpython-3.14-windows-x86_64-none\Lib\asyncio\runners.py:205: in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+..\..\..\..\Roaming\uv\python\cpython-3.14-windows-x86_64-none\Lib\asyncio\runners.py:128: in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\Roaming\uv\python\cpython-3.14-windows-x86_64-none\Lib\asyncio\base_events.py:720: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+id = 73, data = FirmaRequest(firma='data:x'), credentials = None
+db = <tests.test_regresion_defectos._SesionSimple object at 0x00000297430927B0>
+
+    @router.put("/{id}/firma-cliente", response_model=MessageResponse)
+    async def firmar_cliente(
+        id: int,
+        data: FirmaRequest,
+        credentials: HTTPAuthorizationCredentials = Security(security),
+        db: Session = Depends(get_db)
+    ):
+        rol, correo, user_id = get_current_user_role(credentials)
+    
+        inspeccion = db.query(Inspeccion).filter(Inspeccion.id_inspeccion == id).first()
+        if not inspeccion:
+            raise HTTPException(status_code=404, detail="Inspección no encontrada")
+    
+        if inspeccion.firma_cliente:
+            raise HTTPException(status_code=400, detail="Ya hay una firma del cliente registrada")
+    
+        ascensor = db.query(Ascensor).filter(Ascensor.id_ascensor == inspeccion.id_ascensor).first()
+        if not ascensor:
+            raise HTTPException(status_code=404, detail="Ascensor no encontrado")
+    
+        if ascensor.id_cliente != user_id:
+>           raise HTTPException(status_code=403, detail="No eres el cliente propietario de este ascensor")
+E           fastapi.exceptions.HTTPException: 403: No eres el cliente propietario de este ascensor
+
+app\routes\inspecciones.py:340: HTTPException
+____________ test_mej01_firma_presencial_exige_nombre_y_documento _____________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000029742FE3410>
+
+    def test_mej01_firma_presencial_exige_nombre_y_documento(monkeypatch):
+        with pytest.raises(HTTPException) as e:
+            _firma_cliente(monkeypatch, "Inspector", 7, {"firma": "data:x"})
+>       assert e.value.status_code == 400
+E       AssertionError: assert 403 == 400
+E        +  where 403 = HTTPException(status_code=403, detail='No eres el cliente propietario de este ascensor').status_code
+E        +    where HTTPException(status_code=403, detail='No eres el cliente propietario de este ascensor') = <ExceptionInfo HTTPException(status_code=403, detail='No eres el cliente propietario de este ascensor') tblen=6>.value
+
+tests\test_regresion_defectos.py:138: AssertionError
+______ test_mej01_firma_presencial_exige_que_el_inspector_firme_primero _______
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002974319C9E0>
+
+    def test_mej01_firma_presencial_exige_que_el_inspector_firme_primero(monkeypatch):
+        with pytest.raises(HTTPException) as e:
+            _firma_cliente(monkeypatch, "Inspector", 7,
+                           {"firma": "data:x", "nombre_firmante": "Ana", "documento_firmante": "1"}, firma_inspector=None)
+>       assert e.value.status_code == 400
+E       AssertionError: assert 403 == 400
+E        +  where 403 = HTTPException(status_code=403, detail='No eres el cliente propietario de este ascensor').status_code
+E        +    where HTTPException(status_code=403, detail='No eres el cliente propietario de este ascensor') = <ExceptionInfo HTTPException(status_code=403, detail='No eres el cliente propietario de este ascensor') tblen=6>.value
+
+tests\test_regresion_defectos.py:145: AssertionError
+============================== warnings summary ===============================
+..\..\..\..\..\..\..\src\Liftsafe--Trimestre-5\liftsafe-backend\.venv\Lib\site-packages\fastapi\testclient.py:1
+  C:\src\Liftsafe--Trimestre-5\liftsafe-backend\.venv\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+app\database.py:27
+  C:\Users\LIFTSAFE\AppData\Local\Temp\liftsafe-antes\liftsafe-backend\app\database.py:27: MovedIn20Warning: The ``declarative_base()`` function is now available as sqlalchemy.orm.declarative_base(). (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    Base = declarative_base()
+
+app\schemas\schemas.py:17
+  C:\Users\LIFTSAFE\AppData\Local\Temp\liftsafe-antes\liftsafe-backend\app\schemas\schemas.py:17: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class UsuarioResponse(BaseModel):
+
+app\schemas\schemas.py:32
+  C:\Users\LIFTSAFE\AppData\Local\Temp\liftsafe-antes\liftsafe-backend\app\schemas\schemas.py:32: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class AscensorResponse(BaseModel):
+
+app\schemas\schemas.py:44
+  C:\Users\LIFTSAFE\AppData\Local\Temp\liftsafe-antes\liftsafe-backend\app\schemas\schemas.py:44: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class InspeccionResponse(BaseModel):
+
+app\schemas\schemas.py:187
+  C:\Users\LIFTSAFE\AppData\Local\Temp\liftsafe-antes\liftsafe-backend\app\schemas\schemas.py:187: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class UsuarioAscensorResponse(UsuarioAscensorBase):
+
+app\schemas\schemas.py:199
+  C:\Users\LIFTSAFE\AppData\Local\Temp\liftsafe-antes\liftsafe-backend\app\schemas\schemas.py:199: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class AuditoriaResponse(BaseModel):
+
+app\schemas\schemas.py:235
+  C:\Users\LIFTSAFE\AppData\Local\Temp\liftsafe-antes\liftsafe-backend\app\schemas\schemas.py:235: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class SolicitudResponse(SolicitudBase):
+
+app\schemas\schemas.py:284
+  C:\Users\LIFTSAFE\AppData\Local\Temp\liftsafe-antes\liftsafe-backend\app\schemas\schemas.py:284: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class ProgramacionResponse(BaseModel):
+
+app\schemas\schemas.py:315
+  C:\Users\LIFTSAFE\AppData\Local\Temp\liftsafe-antes\liftsafe-backend\app\schemas\schemas.py:315: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class NotificacionResponse(NotificacionBase):
+
+app\schemas\schemas.py:349
+  C:\Users\LIFTSAFE\AppData\Local\Temp\liftsafe-antes\liftsafe-backend\app\schemas\schemas.py:349: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class DetalleChecklistResponse(DetalleChecklistBase):
+
+app\schemas\schemas.py:356
+  C:\Users\LIFTSAFE\AppData\Local\Temp\liftsafe-antes\liftsafe-backend\app\schemas\schemas.py:356: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class ChecklistItemResponse(BaseModel):
+
+app\schemas\schemas.py:369
+  C:\Users\LIFTSAFE\AppData\Local\Temp\liftsafe-antes\liftsafe-backend\app\schemas\schemas.py:369: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class ChecklistCategoriaResponse(BaseModel):
+
+app\schemas\schemas.py:402
+  C:\Users\LIFTSAFE\AppData\Local\Temp\liftsafe-antes\liftsafe-backend\app\schemas\schemas.py:402: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class ObservacionResponse(ObservacionBase):
+
+app\schemas\schemas.py:421
+  C:\Users\LIFTSAFE\AppData\Local\Temp\liftsafe-antes\liftsafe-backend\app\schemas\schemas.py:421: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class FotografiaResponse(FotografiaBase):
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/test_regresion_defectos.py::test_def01_error_500_incluye_cors_para_el_frontend
+FAILED tests/test_regresion_defectos.py::test_def02_nombre_de_grupo_muy_corto_se_rechaza[o]
+FAILED tests/test_regresion_defectos.py::test_def02_nombre_de_grupo_muy_corto_se_rechaza[ab]
+FAILED tests/test_regresion_defectos.py::test_def02_nombre_de_grupo_muy_corto_se_rechaza[   o  ]
+FAILED tests/test_regresion_defectos.py::test_def03_productividad_filtra_por_fecha_de_terminacion
+FAILED tests/test_regresion_defectos.py::test_mej01_inspector_asignado_recoge_firma_presencial
+FAILED tests/test_regresion_defectos.py::test_mej01_firma_presencial_exige_nombre_y_documento
+FAILED tests/test_regresion_defectos.py::test_mej01_firma_presencial_exige_que_el_inspector_firme_primero
+8 failed, 3 passed, 15 warnings in 1.79s

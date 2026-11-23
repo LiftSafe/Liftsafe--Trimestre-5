@@ -1,0 +1,25 @@
+# api-t6 - migraciones base de PRUEBAS
+# Fecha: 2026-11-18 19:28
+
+Loaded Prisma config from prisma.config.ts.
+System.Management.Automation.RemoteException
+Prisma config detected, skipping environment variable loading.
+Prisma schema loaded from prisma\schema.prisma
+Datasource "db": PostgreSQL database "liftsafe_t6_test", schema "public" at "localhost:5433"
+
+2 migrations found in prisma/migrations
+
+Applying migration `20261110200000_init`
+Applying migration `20261118120000_auth_users`
+
+The following migration(s) have been applied:
+
+migrations/
+  └─ 20261110200000_init/
+    └─ migration.sql
+  └─ 20261118120000_auth_users/
+    └─ migration.sql
+      
+All migrations have been successfully applied.
+
+# Código de salida: 0
