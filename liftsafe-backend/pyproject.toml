@@ -32,6 +32,7 @@ dev = [
     "pytest-cov==7.1.0",
     "httpx==0.28.1",
     "pytest-mock==3.15.1",
+    "ruff>=0.17.5",
 ]
 
 [build-system]
@@ -52,3 +53,14 @@ omit = ["app/__init__.py"]
 
 [tool.coverage.report]
 fail_under = 64  # semana 5: 64.54% real, redondeada hacia abajo (>= 50)
+
+# Linter (PEP 8) — T6. `uv run ruff check app tests`
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+extend-exclude = ["scripts", "migrations"]
+
+[tool.ruff.lint]
+# E/W: estilo PEP 8 · F: errores reales (nombres sin definir, imports sin usar)
+select = ["E", "W", "F"]
+ignore = ["E501"]  # líneas largas: la guía del equipo es 120, no se trata como error
