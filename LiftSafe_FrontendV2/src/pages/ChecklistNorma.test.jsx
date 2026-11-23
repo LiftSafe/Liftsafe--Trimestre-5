@@ -66,4 +66,27 @@ describe('ChecklistNorma (RNF-011)', () => {
     fireEvent.click(screen.getByLabelText('Activo NTC-6.1-01'))
     await vi.waitFor(() => expect(checklistAdminService.editarItem).toHaveBeenCalledWith(1, { activo: false }))
   })
+
+  // DEF-02 (regresión): un grupo no puede quedar con un nombre como "o"
+  it('should reject a group name shorter than 3 characters (DEF-02)', async () => {
+    render(<MemoryRouter><ChecklistNorma /></MemoryRouter>)
+    fireEvent.click(await screen.findByRole('button', { name: 'Nuevo grupo' }))
+    const dialogo = await screen.findByRole('dialog')
+    fireEvent.change(within(dialogo).getByLabelText(/Nombre del grupo/), { target: { value: 'o' } })
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Guardar' }))
+    expect(await within(dialogo).findByText(/al menos 3 caracteres/)).toBeInTheDocument()
+    expect(checklistAdminService.crearGrupo).not.toHaveBeenCalled()
+  })
+
+  // Mejora T6: al agregar un ítem solo se muestra el grupo desde el que se abrió
+  it('should show only the selected group when adding an item', async () => {
+    render(<MemoryRouter><ChecklistNorma /></MemoryRouter>)
+    fireEvent.click(await screen.findByText('6.1 Puertas de piso'))
+    fireEvent.click(screen.getByRole('button', { name: 'Agregar ítem' }))
+    const dialogo = await screen.findByRole('dialog')
+    const grupo = within(dialogo).getByLabelText(/Grupo/)
+    expect(grupo).toHaveValue('6.1 Puertas de piso')
+    expect(grupo).toHaveAttribute('readonly')
+    expect(within(dialogo).queryByText('Cuarto de Máquinas (desactivado)')).not.toBeInTheDocument()
+  })
 })
