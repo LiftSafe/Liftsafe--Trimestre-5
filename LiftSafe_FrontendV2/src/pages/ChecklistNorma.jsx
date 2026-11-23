@@ -111,7 +111,7 @@ function ItemDialog({ inicial, grupos, onCerrar, onGuardar }) {
       <DialogContent sx={{ display: 'grid', gap: 2, pt: '8px !important' }}>
         {/* El ítem pertenece al grupo desde el que se abrió ("Agregar ítem" o el lápiz):
             se muestra solo ese grupo, sin la lista de todos los demás. */}
-        <TextField label="Grupo" value={nombreGrupo} required InputProps={{ readOnly: true }} />
+        <TextField label="Grupo" value={nombreGrupo} required slotProps={{ htmlInput: { readOnly: true } }} />
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '2fr 1fr' }, gap: 2 }}>
           <TextField label="Código" value={form.codigo_item} onChange={cambiar('codigo_item')} placeholder="NTC-6.1-01" required />
           <TextField label="Orden" type="number" value={form.orden_visualizacion} onChange={cambiar('orden_visualizacion')} slotProps={{ htmlInput: { min: 0 } }} />

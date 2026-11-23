@@ -30,7 +30,7 @@ const apiClient = async (endpoint, options = {}) => {
     return response.json();
   } catch (error) {
     if (error.message.includes('Failed to fetch')) {
-      throw new Error('No se puede conectar al servidor. Verifica que el backend esté corriendo en http://localhost:8000');
+      throw new Error('No se puede conectar al servidor. Verifica que el backend esté corriendo en http://localhost:8000', { cause: error });
     }
     throw error;
   }

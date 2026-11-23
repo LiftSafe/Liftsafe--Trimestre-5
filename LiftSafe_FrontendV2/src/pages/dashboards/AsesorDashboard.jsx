@@ -25,9 +25,6 @@ export default function AsesorDashboard() {
   const pending = inspecciones.filter((item) => 
     item.status === 'Programada' || item.status === 'Borrador'
   );
-  const completed = inspecciones.filter((item) => 
-    item.status === 'Finalizada' || item.status === 'Aprobada'
-  );
 
   const clientItems = ascensores.slice(0, 5).map((item) => ({
     id: item.id,

@@ -13,15 +13,6 @@ import { decodeDeep } from '../utils/encoding';
 // afecta el login.
 const AuthContext = createContext(null);
 
-function buildUserFromLogin(data, correo) {
-  return {
-    name: data.nombre || data.user?.nombre,
-    email: correo,
-    role: data.rol || data.user?.rol,
-    token: data.access_token,
-  };
-}
-
 export function AuthProvider({ children }) {
   const navigate = useNavigate();
 

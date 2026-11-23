@@ -4,7 +4,7 @@ import { Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import InspectorDashboard from './InspectorDashboard'
 import { useDashboardData } from '../../hooks/useDashboardData'
-import { fetchCharts, fetchInspecciones } from '../../services/dashboardService'
+import { fetchInspecciones } from '../../services/dashboardService'
 import { renderWithProviders } from '../../test/renderWithProviders'
 
 vi.mock('../../context/AuthContext', () => ({

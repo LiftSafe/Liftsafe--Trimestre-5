@@ -21,14 +21,10 @@ export default function ClienteDashboard() {
 
   // Mis ascensores
   const activeElevators = ascensores.filter(a => a.status === 'Activo');
-  const inactiveElevators = ascensores.filter(a => a.status === 'Inactivo');
 
   // Mis inspecciones
   const pending = inspecciones.filter((item) => 
     item.status === 'Programada' || item.status === 'Borrador'
-  );
-  const completed = inspecciones.filter((item) => 
-    item.status === 'Finalizada' || item.status === 'Aprobada'
   );
 
   const elevatorItems = ascensores.slice(0, 5).map((item) => ({

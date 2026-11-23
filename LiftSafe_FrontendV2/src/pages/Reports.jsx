@@ -13,7 +13,6 @@ import DownloadOutlinedIcon from '@mui/icons-material/DownloadOutlined';
 import SendOutlinedIcon from '@mui/icons-material/SendOutlined';
 import CheckCircleOutlinedIcon from '@mui/icons-material/CheckCircleOutlined';
 import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
-import DeleteIcon from '@mui/icons-material/Delete';
 import PageHeader from '../components/PageHeader';
 import SearchBar from '../components/SearchBar';
 import ListPagination from '../components/ListPagination';
@@ -122,10 +121,6 @@ export default function Reports() {
     certificados: certificados || 0,
     pendientes: pendientes || 0,
     por_vencer: porVencer || 0,
-  };
-
-  const handleDeleteClick = (doc) => {
-    setDeleteDialog({ open: true, doc });
   };
 
   const handleVerPdf = async (doc) => {

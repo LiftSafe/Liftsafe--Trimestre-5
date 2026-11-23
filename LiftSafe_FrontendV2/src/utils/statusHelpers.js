@@ -23,9 +23,7 @@ export const statusColor = {
   Activo: 'success',
   Inactivo: 'error',
   
-  // Usuarios
-  Activo: 'success',
-  Inactivo: 'error',
+  // Usuarios (Activo e Inactivo ya están arriba con el mismo color)
   Suspendido: 'warning',
   
   // Informes
