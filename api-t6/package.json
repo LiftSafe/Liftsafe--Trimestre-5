@@ -1,0 +1,51 @@
+{
+  "name": "liftsafe-api-t6",
+  "version": "1.0.0",
+  "private": true,
+  "description": "LiftSafe — 4.° backend (T6): API de integración con JWT, roles, PostgreSQL y Prisma",
+  "type": "commonjs",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "prisma generate && tsc -p tsconfig.json",
+    "start": "cross-env NODE_ENV=production node dist/server.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:seed": "prisma db seed",
+    "db:studio": "prisma studio",
+    "postinstall": "prisma generate",
+    "test:cov": "vitest run --coverage",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "6.19.3",
+    "@prisma/client": "6.19.3",
+    "cross-env": "7.0.3",
+    "dotenv": "16.4.7",
+    "express": "4.21.2",
+    "morgan": "1.10.0",
+    "winston": "3.17.0",
+    "zod": "3.24.1",
+    "bcryptjs": "2.4.3",
+    "jsonwebtoken": "9.0.2"
+  },
+  "devDependencies": {
+    "@types/express": "4.17.21",
+    "@types/morgan": "1.9.9",
+    "@types/node": "22.10.5",
+    "@types/supertest": "6.0.2",
+    "prisma": "6.19.3",
+    "supertest": "7.0.0",
+    "tsx": "4.19.2",
+    "typescript": "5.7.3",
+    "vitest": "2.1.8",
+    "@types/bcryptjs": "2.4.6",
+    "@types/jsonwebtoken": "9.0.7",
+    "@vitest/coverage-v8": "2.1.8",
+    "eslint": "9.17.0",
+    "@eslint/js": "9.17.0",
+    "typescript-eslint": "8.19.0",
+    "globals": "15.14.0"
+  }
+}

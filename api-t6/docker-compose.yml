@@ -1,0 +1,23 @@
+# PostgreSQL para el 4.° backend: crea DOS bases en el mismo servidor,
+# liftsafe_t6 (desarrollo) y liftsafe_t6_test (pruebas automáticas).
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: liftsafe-t6-db
+    environment:
+      POSTGRES_USER: liftsafe
+      POSTGRES_PASSWORD: liftsafe
+      POSTGRES_DB: liftsafe_t6
+    ports:
+      - "5433:5432"
+    volumes:
+      - liftsafe_t6_pg:/var/lib/postgresql/data
+      - ./docker/crear-base-pruebas.sql:/docker-entrypoint-initdb.d/01-crear-base-pruebas.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U liftsafe -d liftsafe_t6"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  liftsafe_t6_pg:
