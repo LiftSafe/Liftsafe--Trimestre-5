@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr, field_validator
-from typing import Optional, List, Literal
+from typing import Optional, Literal
 from datetime import datetime, date, time
 from app.utils.password_validator import validate_password
 from app.utils.auth_deps import DOCUMENT_TYPES, CLIENTE_ROL_ID
@@ -19,7 +19,7 @@ class UsuarioResponse(BaseModel):
     nombre_completo: str
     correo: str
     nombre_rol: str
-    
+
     class Config:
         from_attributes = True
 
@@ -37,7 +37,7 @@ class AscensorResponse(BaseModel):
     tipo_ascensor: str
     ciudad: str
     estado: str
-    
+
     class Config:
         from_attributes = True
 
@@ -49,7 +49,7 @@ class InspeccionResponse(BaseModel):
     nombre_inspector: str
     fecha_inicio: Optional[datetime]
     estado: str
-    
+
     class Config:
         from_attributes = True
 
@@ -158,7 +158,7 @@ class MessageResponse(BaseModel):
 
 class AscensorCreadoResponse(MessageResponse):
     id_ascensor: int
-    
+
 class InspeccionCreate(BaseModel):
     id_ascensor: int
     id_inspector: int

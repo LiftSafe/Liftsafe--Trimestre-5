@@ -179,7 +179,7 @@ def generar_excel_productividad(datos: dict, generado_por: str = "", ahora: date
     filas.append(_fila(nota, [_celda(f"A{nota}", (
         "Cumplimiento = terminadas ÷ asignadas.   Rechazadas = inspecciones con algún informe rechazado (aunque luego se corrigiera).   Aprobación = aprobadas ÷ (aprobadas + rechazadas).   "
         "Tiempo promedio por inspección terminada. Se cuentan las inspecciones iniciadas dentro del periodo."), NOTA)], 30))
-    combinadas += [f"B2:J2", f"B3:J3", f"B4:J4", f"A{nota}:J{nota}"]
+    combinadas += ["B2:J2", "B3:J3", "B4:J4", f"A{nota}:J{nota}"]
 
     anchos = [34, 12, 12, 11, 12, 12, 12, 15, 13, 16]
     cols = "".join(f'<col min="{i}" max="{i}" width="{w}" customWidth="1"/>' for i, w in enumerate(anchos, 1))

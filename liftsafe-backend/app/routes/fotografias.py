@@ -3,7 +3,6 @@ from sqlalchemy.orm import Session
 from typing import List
 from datetime import datetime
 import os
-import shutil
 from app.database import get_db
 from sqlalchemy import or_
 from app.models.models import Fotografia, Informe, Inspeccion, ChecklistItem

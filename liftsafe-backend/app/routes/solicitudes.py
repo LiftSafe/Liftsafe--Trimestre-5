@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session, joinedload
 from typing import List
-from datetime import datetime, date
+from datetime import date
 from app.database import get_db
 from app.models.models import Solicitud, Ascensor, Usuario, Notificacion
-from app.schemas.schemas import SolicitudCreate, SolicitudUpdate, SolicitudResponse
+from app.schemas.schemas import SolicitudCreate, SolicitudUpdate
 from app.controllers.estado_solicitud_controller import estado_visible, estados_ultima_inspeccion
 from app.utils.auth_deps import get_current_user_role, require_admin, ADMIN_ROL_ID, COORDINADOR_ROL_ID
 

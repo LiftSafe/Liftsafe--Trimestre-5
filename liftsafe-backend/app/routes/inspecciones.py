@@ -1,8 +1,7 @@
 from fastapi.responses import JSONResponse
-from fastapi import APIRouter, Depends, HTTPException, Request, Security
+from fastapi import APIRouter, Depends, HTTPException, Security
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session, aliased
-from sqlalchemy import text
 from app.database import get_db
 from app.controllers.productividad_controller import rechazos_por_inspeccion
 from app.models.models import Inspeccion, Ascensor, Usuario, Informe, Notificacion, Solicitud, Programacion, Sede
@@ -15,7 +14,6 @@ from app.utils.auth_deps import get_current_user_role, ADMIN_ROL_ID, COORDINADOR
 from app.config import settings
 from jose import jwt, JWTError
 from datetime import datetime, date
-from typing import Optional
 
 router = APIRouter(prefix="/inspecciones", tags=["Inspecciones"])
 
@@ -123,23 +121,23 @@ def crear_nueva_inspeccion(
     db: Session = Depends(get_db)
 ):
     rol, correo, user_id = get_current_user_role(credentials)
-    
+
     if rol not in ['Administrador', 'Coordinador', 'Inspector']:
         raise HTTPException(status_code=403, detail="No autorizado para crear inspecciones")
-    
+
     fecha_programada = data.fecha_programada
     if isinstance(fecha_programada, datetime):
         fecha_programada = fecha_programada.date()
-    
+
     hoy = date.today()
     if fecha_programada < hoy:
         raise HTTPException(
-            status_code=400, 
+            status_code=400,
             detail=f"La fecha programada ({fecha_programada}) no puede ser anterior a hoy ({hoy})"
         )
-    
+
     inspector_id = user_id if rol == 'Inspector' else data.id_inspector
-    
+
     try:
         inspeccion = crear_inspeccion(db, data.dict(), inspector_id)
         return {
@@ -160,14 +158,14 @@ def obtener_inspeccion(
     db: Session = Depends(get_db)
 ):
     rol, correo, user_id = get_current_user_role(credentials)
-    
+
     inspeccion = db.query(Inspeccion).filter(Inspeccion.id_inspeccion == id).first()
     if not inspeccion:
         raise HTTPException(status_code=404, detail="Inspección no encontrada")
-    
+
     if rol == 'Inspector' and inspeccion.id_inspector != user_id:
         raise HTTPException(status_code=403, detail="No tienes permiso para ver esta inspección")
-    
+
     if rol == 'Cliente':
         ascensor = db.query(Ascensor).filter(Ascensor.id_ascensor == inspeccion.id_ascensor).first()
         if ascensor.id_cliente != user_id:
@@ -213,14 +211,14 @@ def actualizar_inspeccion(
     db: Session = Depends(get_db)
 ):
     rol, correo, user_id = get_current_user_role(credentials)
-    
+
     if rol not in ['Administrador', 'Coordinador', 'Inspector']:
         raise HTTPException(status_code=403, detail="No autorizado para actualizar inspecciones")
-    
+
     inspeccion = db.query(Inspeccion).filter(Inspeccion.id_inspeccion == id_inspeccion).first()
     if not inspeccion:
         raise HTTPException(status_code=404, detail="Inspección no encontrada")
-    
+
     # Si es inspector, solo puede editar sus propias inspecciones
     if rol == 'Inspector' and inspeccion.id_inspector != user_id:
         raise HTTPException(status_code=403, detail="No autorizado para editar esta inspección")
@@ -267,17 +265,17 @@ def eliminar_inspeccion(
     db: Session = Depends(get_db)
 ):
     rol, correo, user_id = get_current_user_role(credentials)
-    
+
     if rol not in ['Administrador', 'Coordinador']:
         raise HTTPException(status_code=403, detail="No autorizado para eliminar inspecciones")
-    
+
     inspeccion = db.query(Inspeccion).filter(Inspeccion.id_inspeccion == id_inspeccion).first()
     if not inspeccion:
         raise HTTPException(status_code=404, detail="Inspección no encontrada")
-    
+
     if inspeccion.estado not in ['Pendiente', 'Programada']:
         raise HTTPException(status_code=400, detail="Solo se pueden eliminar inspecciones en estado Pendiente o Programada")
-    
+
     db.delete(inspeccion)
     db.commit()
     return {"message": "Inspección eliminada exitosamente"}
@@ -293,24 +291,24 @@ def firmar_inspector(
     db: Session = Depends(get_db)
 ):
     rol, correo, user_id = get_current_user_role(credentials)
-    
+
     inspeccion = db.query(Inspeccion).filter(Inspeccion.id_inspeccion == id).first()
     if not inspeccion:
         raise HTTPException(status_code=404, detail="Inspección no encontrada")
-    
+
     if inspeccion.id_inspector != user_id:
         raise HTTPException(status_code=403, detail="No eres el inspector asignado a esta inspección")
-    
+
     if inspeccion.firma_inspector:
         raise HTTPException(status_code=400, detail="Ya hay una firma del inspector registrada")
-    
+
     inspeccion.firma_inspector = data.firma
     inspeccion.fecha_firma_inspector = datetime.now()
     registrar_auditoria(db, user_id, "inspeccion", "FIRMA", inspeccion.id_inspeccion,
                         {"firma_inspector": False}, {"firma_inspector": True}, commit=False)
     db.commit()
     db.refresh(inspeccion)
-    
+
     return {"message": "Firma del inspector registrada exitosamente"}
 
 # ============================================
@@ -324,18 +322,18 @@ async def firmar_cliente(
     db: Session = Depends(get_db)
 ):
     rol, correo, user_id = get_current_user_role(credentials)
-    
+
     inspeccion = db.query(Inspeccion).filter(Inspeccion.id_inspeccion == id).first()
     if not inspeccion:
         raise HTTPException(status_code=404, detail="Inspección no encontrada")
-    
+
     if inspeccion.firma_cliente:
         raise HTTPException(status_code=400, detail="Ya hay una firma del cliente registrada")
-    
+
     ascensor = db.query(Ascensor).filter(Ascensor.id_ascensor == inspeccion.id_ascensor).first()
     if not ascensor:
         raise HTTPException(status_code=404, detail="Ascensor no encontrado")
-    
+
     # Firma presencial: el inspector asignado puede recoger la firma del cliente
     # en su propio equipo al terminar la visita. Se exige el nombre y documento
     # de quien firma, y queda en la auditoría que la registró el inspector.
@@ -381,19 +379,19 @@ def verificar_firmas(
     db: Session = Depends(get_db)
 ):
     rol, correo, user_id = get_current_user_role(credentials)
-    
+
     inspeccion = db.query(Inspeccion).filter(Inspeccion.id_inspeccion == id).first()
     if not inspeccion:
         raise HTTPException(status_code=404, detail="Inspección no encontrada")
-    
+
     if rol == 'Inspector' and inspeccion.id_inspector != user_id:
         raise HTTPException(status_code=403, detail="No tienes permiso para ver esta inspección")
-    
+
     if rol == 'Cliente':
         ascensor = db.query(Ascensor).filter(Ascensor.id_ascensor == inspeccion.id_ascensor).first()
         if ascensor.id_cliente != user_id:
             raise HTTPException(status_code=403, detail="No tienes permiso para ver esta inspección")
-    
+
     return {
         "id_inspeccion": inspeccion.id_inspeccion,
         "firma_inspector": bool(inspeccion.firma_inspector),
@@ -439,11 +437,11 @@ async def actualizar_estado(
     db: Session = Depends(get_db)
 ):
     rol, correo, user_id = get_current_user_role(credentials)
-    
+
     inspeccion = db.query(Inspeccion).filter(Inspeccion.id_inspeccion == id).first()
     if not inspeccion:
         raise HTTPException(status_code=404, detail="Inspección no encontrada")
-    
+
     if rol not in ['Administrador', 'Coordinador'] and inspeccion.id_inspector != user_id:
         raise HTTPException(status_code=403, detail="No tienes permiso para actualizar esta inspección")
     # El inspector solo puede terminar su inspección (o seguir trabajándola);
@@ -452,7 +450,7 @@ async def actualizar_estado(
         raise HTTPException(status_code=403, detail="El inspector solo puede finalizar la inspección")
     if rol == 'Inspector' and esta_cerrada(inspeccion.estado):
         raise HTTPException(status_code=400, detail="La inspección ya fue cerrada")
-    
+
     estados_validos = ['Programada', 'En Progreso', 'Completada', 'Cancelada', 'Finalizada', 'Aprobada', PENDIENTE_FIRMA_CLIENTE, PENDIENTE_REVISION]
     if estado not in estados_validos:
         raise HTTPException(status_code=400, detail=f"Estado inválido. Opciones: {estados_validos}")
@@ -479,7 +477,7 @@ async def actualizar_estado(
     inspeccion.estado = estado
     if estado in ['Completada', 'Finalizada', 'Aprobada', PENDIENTE_FIRMA_CLIENTE, PENDIENTE_REVISION]:
         inspeccion.fecha_fin = datetime.now()
-    
+
     db.commit()
     db.refresh(inspeccion)
 

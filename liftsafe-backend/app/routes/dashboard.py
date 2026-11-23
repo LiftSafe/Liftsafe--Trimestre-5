@@ -3,9 +3,9 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload
 from app.database import get_db
-from app.utils.auth_deps import get_current_user, require_admin
+from app.utils.auth_deps import get_current_user
 from app.models.models import Usuario, Ascensor, Inspeccion, Informe, Rol  # ✅ SIN Edificio
-from sqlalchemy import func, text
+from sqlalchemy import func
 from datetime import datetime, timedelta
 
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
@@ -58,15 +58,15 @@ def get_charts(current_user = Depends(get_current_user), db: Session = Depends(g
             func.date_format(Inspeccion.fecha_inicio, '%Y-%m').label('mes'),
             func.count(Inspeccion.id_inspeccion).label('total')
         ).filter(Inspeccion.fecha_inicio >= seis_meses)
-        
+
         if not inspecciones_mes.first():
             inspecciones_mes = db.query(
                 func.date_format(Inspeccion.fecha_creacion, '%Y-%m').label('mes'),
                 func.count(Inspeccion.id_inspeccion).label('total')
             ).filter(Inspeccion.fecha_creacion >= seis_meses)
-        
+
         inspecciones_mes = inspecciones_mes.group_by('mes').order_by('mes').all()
-        
+
         # Ascensores por estado
         ascensores_estado = db.query(
             Ascensor.estado, func.count(Ascensor.id_ascensor)

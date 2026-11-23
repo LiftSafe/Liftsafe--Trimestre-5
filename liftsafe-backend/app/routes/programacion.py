@@ -37,7 +37,7 @@ def asignar_inspector(
     solicitud = db.query(Solicitud).filter(Solicitud.id_solicitud == data.id_solicitud).first()
     if not solicitud:
         raise HTTPException(status_code=404, detail="Solicitud no encontrada")
-    
+
     # Validar que la solicitud esté pendiente
     if solicitud.estado != "Pendiente":
         raise HTTPException(status_code=400, detail="La solicitud no está pendiente")
@@ -132,11 +132,11 @@ def listar_programaciones(
     current_user: dict = Depends(get_current_user)
 ):
     query = db.query(Programacion)
-    
+
     # Si es Inspector, solo ve sus programaciones
     if current_user["rol"] == "Inspector":
         query = query.filter(Programacion.id_inspector == current_user["user_id"])
-    
+
     return query.order_by(Programacion.fecha_programada.desc()).all()
 
 # ============================================
@@ -161,9 +161,9 @@ def reasignar_inspector(
         ).first()
         if not inspector:
             raise HTTPException(status_code=404, detail="Inspector no encontrado")
-        
+
         programacion.id_inspector = data.id_inspector
-        
+
         # Crear notificación para el nuevo inspector (Luz) -- mismo FIX que
         # en asignar_inspector: dejar que el modelo ponga la hora real.
         notificacion = Notificacion(
@@ -325,11 +325,11 @@ def eliminar_programacion(
     programacion = db.query(Programacion).filter(Programacion.id_programacion == id).first()
     if not programacion:
         raise HTTPException(status_code=404, detail="Programación no encontrada")
-    
+
     # Solo se pueden eliminar programaciones en estado Programada
     if programacion.estado != "Programada":
         raise HTTPException(status_code=400, detail="Solo se pueden eliminar programaciones en estado Programada")
-    
+
     db.delete(programacion)
     db.commit()
     return {"message": "Programación eliminada exitosamente"}

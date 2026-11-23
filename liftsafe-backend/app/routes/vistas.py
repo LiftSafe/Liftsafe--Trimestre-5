@@ -1,9 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, Security
+from fastapi import APIRouter, Depends, HTTPException, Security
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from app.database import get_db
-from app.models.models import Inspeccion, Ascensor, Usuario
 from jose import jwt, JWTError
 from app.config import settings
 
@@ -35,7 +34,7 @@ def inspecciones_por_estado(
     db: Session = Depends(get_db)
 ):
     rol, correo, user_id = get_current_user_role(credentials)
-    
+
     # Admin y Director Técnico ven todo
     if rol in ['Administrador', 'Director Técnico']:
         result = db.execute(
@@ -43,7 +42,7 @@ def inspecciones_por_estado(
             {"estado": estado}
         ).mappings().all()
         return [dict(row) for row in result]
-    
+
     # Cliente: solo ve inspecciones de sus ascensores
     elif rol == 'Cliente':
         result = db.execute(text("""
@@ -64,7 +63,7 @@ def inspecciones_por_estado(
             ORDER BY i.fecha_inicio DESC
         """), {"estado": estado, "client_id": user_id}).mappings().all()
         return [dict(row) for row in result]
-    
+
     # Inspector: solo ve sus propias inspecciones
     elif rol == 'Inspector':
         result = db.execute(text("""
@@ -85,6 +84,6 @@ def inspecciones_por_estado(
             ORDER BY i.fecha_inicio DESC
         """), {"estado": estado, "inspector_id": user_id}).mappings().all()
         return [dict(row) for row in result]
-    
+
     else:
         raise HTTPException(status_code=403, detail="Rol no autorizado")

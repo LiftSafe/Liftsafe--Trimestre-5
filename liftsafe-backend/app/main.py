@@ -1,4 +1,4 @@
-# instalar las librerias 
+# instalar las librerias
 # pip install -r requirements.txt
 
 import logging

@@ -1,6 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload
-from typing import List
 from datetime import datetime
 from app.database import get_db
 from app.models.models import Encuesta, Inspeccion

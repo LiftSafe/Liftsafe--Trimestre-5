@@ -1,5 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, Security
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.security import HTTPBearer
 from sqlalchemy.orm import Session
 from datetime import date as date_type
 from typing import Optional
@@ -7,10 +7,9 @@ from app.utils.cifrado import cifrar_contrasena
 from app.database import get_db
 from app.models.models import Usuario, Rol, Programacion
 from app.schemas.schemas import UsuarioCreate, UsuarioUpdate, MessageResponse
-from app.controllers.usuario_controller import get_user_profile, get_admin_stats, get_cliente_ascensores, get_inspector_inspecciones
+from app.controllers.usuario_controller import get_admin_stats, get_cliente_ascensores, get_inspector_inspecciones
 from app.utils.auth_deps import require_admin_from_request, get_current_user, get_current_user_role_from_request, INSPECTOR_ROL_ID
 from app.controllers.gestion_usuarios_controller import exigir_gestor, exigir_rol_permitido, solo_clientes
-from app.config import settings
 from sqlalchemy import text
 
 router = APIRouter(prefix="/usuarios", tags=["Usuarios"])
@@ -82,10 +81,10 @@ def perfil(user_id: int, db: Session = Depends(get_db), current_user: dict = Dep
         JOIN rol r ON u.id_rol = r.id_rol
         WHERE u.id_usuario = :user_id
     """), {"user_id": user_id}).mappings().first()
-    
+
     if not result:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
-    
+
     return {
         "id_usuario": result["id_usuario"],
         "nombre_completo": result["nombre_completo"],
@@ -125,7 +124,7 @@ def listado_usuarios(request: Request, db: Session = Depends(get_db)):
         WHERE (:solo_clientes = 0 OR r.nombre_rol = 'Cliente')
         ORDER BY u.id_usuario DESC
     """), {"solo_clientes": 1 if solo_clientes(gestor) else 0}).mappings().all()
-    
+
     return [
         {
             "id_usuario": row["id_usuario"],
@@ -269,21 +268,21 @@ def eliminar_usuario(
     db: Session = Depends(get_db)
 ):
     require_admin_from_request(request)
-    
+
     # Verificar que el usuario existe
     user = db.query(Usuario).filter(Usuario.id_usuario == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
-    
+
     # No permitir eliminar al último administrador
     admin_rol = db.query(Rol).filter(Rol.nombre_rol == "Administrador").first()
     if admin_rol and user.id_rol == admin_rol.id_rol:
         total_admins = db.query(Usuario).filter(Usuario.id_rol == admin_rol.id_rol).count()
         if total_admins <= 1:
             raise HTTPException(status_code=409, detail="No se puede eliminar el último administrador")
-    
+
     # Eliminar usuario
     db.delete(user)
     db.commit()
-    
+
     return {"message": f"Usuario '{user.nombre_completo}' eliminado exitosamente"}

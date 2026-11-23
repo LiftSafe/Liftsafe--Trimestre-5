@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, Security
+from fastapi import APIRouter, Depends, HTTPException, Security
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -49,7 +49,7 @@ def listado_ascensores(
         if not user:
             raise HTTPException(status_code=404, detail="Usuario no encontrado")
         ascensores = db.query(Ascensor, Usuario.nombre_completo).join(Usuario, Ascensor.id_cliente == Usuario.id_usuario).filter(Ascensor.id_cliente == user.id_usuario).order_by(Ascensor.id_ascensor.desc()).all()
-    
+
     return [
         {
             "id_ascensor": a.id_ascensor,
@@ -144,17 +144,17 @@ def mis_ascensores_inspeccionados(
     db: Session = Depends(get_db)
 ):
     rol, correo, user_id = get_current_user_role(credentials)
-    
+
     if not user_id:
         raise HTTPException(status_code=401, detail="Usuario no identificado")
-    
+
     # Buscar ascensores que el inspector ha inspeccionado
     ascensores = db.query(Ascensor, Usuario.nombre_completo).\
         join(Inspeccion, Ascensor.id_ascensor == Inspeccion.id_ascensor).\
         join(Usuario, Ascensor.id_cliente == Usuario.id_usuario).\
         filter(Inspeccion.id_inspector == user_id).\
         distinct().all()
-    
+
     return [
         {
             "id_ascensor": a.id_ascensor,
@@ -180,20 +180,20 @@ def crear_ascensor(
     db: Session = Depends(get_db)
 ):
     rol, correo, user_id = get_current_user_role(credentials)
-    
+
     # ✅ FIX: Director Técnico opera en "modo supervisión" (ve todo, aprueba
     # informes) y no debería poder crear ascensores desde acá.
     # El Asesor registra los ascensores de los edificios de sus clientes.
     if rol not in ['Administrador', 'Coordinador', 'Asesor']:
         raise HTTPException(status_code=403, detail="No autorizado para crear ascensores")
-    
+
     # Validar que el cliente exista
     cliente = db.query(Usuario).filter(Usuario.id_usuario == data.id_cliente).first()
     if not cliente:
         raise HTTPException(status_code=404, detail="Cliente no encontrado")
     if rol == 'Asesor' and (not cliente.rol or cliente.rol.nombre_rol != 'Cliente'):
         raise HTTPException(status_code=403, detail="El asesor solo registra ascensores de clientes")
-    
+
     # Validar código interno único
     existente = db.query(Ascensor).filter(Ascensor.codigo_interno == data.codigo_interno).first()
     if existente:
@@ -201,7 +201,7 @@ def crear_ascensor(
 
     # Sede: obligatoria solo si el cliente tiene 2 o más sedes
     id_sede = sede_para_ascensor(db, data.id_cliente, data.id_sede)
-    
+
     nuevo = Ascensor(
         id_sede=id_sede,
         id_cliente=data.id_cliente,
@@ -236,12 +236,12 @@ def editar_ascensor(
     db: Session = Depends(get_db)
 ):
     rol, correo, user_id = get_current_user_role(credentials)
-    
+
     # ✅ FIX: mismo motivo que en crear_ascensor -> "modo supervisión".
     # El Asesor corrige los ascensores que registra en los edificios de sus clientes.
     if rol not in ['Administrador', 'Coordinador', 'Asesor']:
         raise HTTPException(status_code=403, detail="No autorizado para editar ascensores")
-    
+
     ascensor = db.query(Ascensor).filter(Ascensor.id_ascensor == id_ascensor).first()
     if not ascensor:
         raise HTTPException(status_code=404, detail="Ascensor no encontrado")
@@ -251,14 +251,14 @@ def editar_ascensor(
             raise HTTPException(status_code=403, detail="El asesor solo edita ascensores de clientes")
         if data.id_cliente is not None and data.id_cliente != ascensor.id_cliente:
             raise HTTPException(status_code=403, detail="El asesor no puede cambiar el cliente del ascensor")
-    
+
     # Validar cliente si se está actualizando
     if data.id_cliente is not None:
         cliente = db.query(Usuario).filter(Usuario.id_usuario == data.id_cliente).first()
         if not cliente:
             raise HTTPException(status_code=404, detail="Cliente no encontrado")
         ascensor.id_cliente = data.id_cliente
-    
+
     # Validar código interno único si se está actualizando
     if data.codigo_interno is not None:
         existente = db.query(Ascensor).filter(
@@ -268,7 +268,7 @@ def editar_ascensor(
         if existente:
             raise HTTPException(status_code=409, detail="El código interno ya está registrado")
         ascensor.codigo_interno = data.codigo_interno
-    
+
     if data.marca is not None:
         ascensor.marca = data.marca
     if data.modelo is not None:
@@ -299,7 +299,7 @@ def editar_ascensor(
     # Sede: se valida si se manda una, o si cambió el cliente
     if data.id_sede is not None or data.id_cliente is not None:
         ascensor.id_sede = sede_para_ascensor(db, ascensor.id_cliente, data.id_sede)
-    
+
     db.commit()
     db.refresh(ascensor)
     return {"message": "Ascensor actualizado exitosamente"}
@@ -314,19 +314,19 @@ def eliminar_ascensor(
     db: Session = Depends(get_db)
 ):
     rol, correo, user_id = get_current_user_role(credentials)
-    
+
     # ✅ FIX: mismo motivo -> "modo supervisión", Director Técnico no elimina.
     if rol != 'Administrador':
         raise HTTPException(status_code=403, detail="No autorizado para eliminar ascensores")
-    
+
     ascensor = db.query(Ascensor).filter(Ascensor.id_ascensor == id_ascensor).first()
     if not ascensor:
         raise HTTPException(status_code=404, detail="Ascensor no encontrado")
-    
+
     # Validar que no tenga inspecciones asociadas
     if ascensor.inspecciones:
         raise HTTPException(status_code=409, detail="No se puede eliminar el ascensor porque tiene inspecciones asociadas")
-    
+
     db.delete(ascensor)
     db.commit()
     return {"message": "Ascensor eliminado exitosamente"}

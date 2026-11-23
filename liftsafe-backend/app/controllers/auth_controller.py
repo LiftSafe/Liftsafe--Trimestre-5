@@ -6,10 +6,8 @@ import random
 import string
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
-from sqlalchemy import text
 from app.utils.cifrado import cifrar_contrasena, contrasena_coincide
 from app.models.models import Usuario, Rol
-from app.schemas.schemas import UsuarioLogin
 from jose import jwt, JWTError
 from app.config import settings
 
@@ -85,7 +83,7 @@ def authenticate_user(db: Session, correo: str, password: str):
     user = db.query(Usuario).join(Rol).filter(Usuario.correo == correo).first()
     if not user:
         return None
-    
+
     if contrasena_coincide(db, correo, password):
         return user
     return None

@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from app.database import get_db
 from app.models.models import Notificacion
-from app.schemas.schemas import NotificacionCreate, NotificacionUpdate, NotificacionResponse
+from app.schemas.schemas import NotificacionCreate, NotificacionResponse
 from app.utils.auth_deps import get_current_user_role
 
 router = APIRouter(prefix="/notificaciones", tags=["Notificaciones"])

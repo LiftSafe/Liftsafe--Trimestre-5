@@ -6,7 +6,7 @@ Parte 2: el contrato de errores de TODO el API: siempre JSON con `detail` y
 """
 import pytest
 
-from tests.fakes import FakeSession, auth, token_vencido
+from tests.fakes import auth, token_vencido
 
 ASCENSOR = {
     "id_cliente": 5, "codigo_interno": "A-1", "marca": "Otis", "modelo": "G", "numero_serie": "S",

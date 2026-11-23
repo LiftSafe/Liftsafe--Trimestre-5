@@ -124,15 +124,15 @@ def generar_informe(
     inspeccion = db.query(Inspeccion).filter(Inspeccion.id_inspeccion == id_inspeccion).first()
     if not inspeccion:
         raise HTTPException(status_code=404, detail="Inspeccion no encontrada")
-    
+
     if not inspeccion.firma_inspector or not inspeccion.firma_cliente:
         raise HTTPException(status_code=400, detail="Faltan firmas para generar el informe")
-    
+
     try:
         pdf_path, hash_documento = generar_pdf_informe(db, id_inspeccion)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error generando PDF: {str(e)}")
-    
+
     informe = db.query(Informe).filter(Informe.id_inspeccion == id_inspeccion).first()
     if informe:
         informe.ruta_pdf = pdf_path
@@ -149,7 +149,7 @@ def generar_informe(
             estado="Generado"
         )
         db.add(nuevo_informe)
-    
+
     db.commit()
 
     # Las fotos que el inspector tomó durante la inspección (antes de que
@@ -406,15 +406,15 @@ def eliminar_informe(
     # Solo Administrador o Director Técnico pueden eliminar
     if current_user["rol"] not in ['Administrador', 'Director Técnico']:
         raise HTTPException(status_code=403, detail="No autorizado para eliminar informes")
-    
+
     informe = db.query(Informe).filter(Informe.id_informe == id).first()
     if not informe:
         raise HTTPException(status_code=404, detail="Informe no encontrado")
-    
+
     # Eliminar archivo PDF si existe
     if informe.ruta_pdf and os.path.exists(informe.ruta_pdf):
         os.remove(informe.ruta_pdf)
-    
+
     db.delete(informe)
     db.commit()
     return {"message": "Informe eliminado exitosamente"}

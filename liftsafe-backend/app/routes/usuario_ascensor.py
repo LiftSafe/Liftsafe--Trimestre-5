@@ -4,7 +4,7 @@ from typing import List
 from datetime import date
 from app.database import get_db
 from app.models.models import UsuarioAscensor, Usuario, Ascensor
-from app.schemas.schemas import UsuarioAscensorCreate, UsuarioAscensorUpdate, UsuarioAscensorResponse, MessageResponse
+from app.schemas.schemas import UsuarioAscensorCreate, UsuarioAscensorUpdate, MessageResponse
 from app.utils.auth_deps import get_current_user_role, require_admin
 
 router = APIRouter(prefix="/usuario-ascensor", tags=["Usuario-Ascensor"])
@@ -153,7 +153,7 @@ def desasignar_inspector(
     asignacion = db.query(UsuarioAscensor).filter(UsuarioAscensor.id_usuario_ascensor == id).first()
     if not asignacion:
         raise HTTPException(status_code=404, detail="Asignación no encontrada")
-    
+
     if asignacion.fecha_desasignacion:
         raise HTTPException(status_code=400, detail="Ya está desasignado")
 
@@ -174,7 +174,7 @@ def eliminar_asignacion(
     asignacion = db.query(UsuarioAscensor).filter(UsuarioAscensor.id_usuario_ascensor == id).first()
     if not asignacion:
         raise HTTPException(status_code=404, detail="Asignación no encontrada")
-    
+
     db.delete(asignacion)
     db.commit()
     return {"message": "Asignación eliminada exitosamente"}

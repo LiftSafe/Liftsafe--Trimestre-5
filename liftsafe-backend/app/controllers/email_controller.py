@@ -23,13 +23,13 @@ async def _enviar(message: MessageSchema) -> None:
 
 async def send_reset_email(email: str, code: str):
     """Envía un email con código numérico de 6 dígitos para recuperar contraseña."""
-    
+
     # Loguear el código siempre (backup)
-    logger.info(f"=" * 50)
+    logger.info("=" * 50)
     logger.info(f"🔐 CÓDIGO DE RECUPERACIÓN PARA: {email}")
     logger.info(f"🔢 CÓDIGO: {code}")
-    logger.info(f"=" * 50)
-    
+    logger.info("=" * 50)
+
     try:
         message = MessageSchema(
             subject="Código de recuperación de contraseña - LiftSafe",
@@ -46,11 +46,11 @@ async def send_reset_email(email: str, code: str):
             """,
             subtype="html"
         )
-        
+
         await _enviar(message)
         logger.info(f"✅ Email enviado exitosamente a {email}")
         return True
-        
+
     except Exception as e:
         logger.error(f"❌ Error enviando email: {str(e)}")
         raise Exception(f"Error al enviar correo: {str(e)}")

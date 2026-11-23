@@ -10,7 +10,7 @@ def crear_inspeccion(db: Session, data: dict, id_inspector: int):
     fecha_programada = data['fecha_programada']
     if isinstance(fecha_programada, str):
         fecha_programada = datetime.strptime(fecha_programada, '%Y-%m-%d')
-    
+
     # 1. Crear solicitud primero (requerida por el modelo)
     nueva_solicitud = Solicitud(
         id_cliente=data.get('id_cliente', 1),
@@ -24,7 +24,7 @@ def crear_inspeccion(db: Session, data: dict, id_inspector: int):
     )
     db.add(nueva_solicitud)
     db.flush()
-    
+
     # 2. Crear programación
     nueva_programacion = Programacion(
         id_solicitud=nueva_solicitud.id_solicitud,
@@ -39,7 +39,7 @@ def crear_inspeccion(db: Session, data: dict, id_inspector: int):
     )
     db.add(nueva_programacion)
     db.flush()
-    
+
     # 3. Crear inspección
     nueva_inspeccion = Inspeccion(
         id_programacion=nueva_programacion.id_programacion,
@@ -53,5 +53,5 @@ def crear_inspeccion(db: Session, data: dict, id_inspector: int):
     db.add(nueva_inspeccion)
     db.commit()
     db.refresh(nueva_inspeccion)
-    
+
     return nueva_inspeccion
