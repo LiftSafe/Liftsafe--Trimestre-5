@@ -1,5 +1,36 @@
 # Docker + uv Setup - LiftSafe
 
+## 🧑‍🤝‍🧑 Para el equipo: correr LiftSafe con Docker (sin XAMPP, sin Python, sin Node)
+
+Solo necesitas **Git** y **Docker Desktop** (abierto y con la ballena en verde).
+
+```bash
+git clone https://github.com/LiftSafe/Liftsafe--Trimestre-5.git
+cd Liftsafe--Trimestre-5
+git checkout feat/foto-obligatoria-na   # o main, cuando se integre el PR
+docker compose up -d --build
+```
+
+La primera vez tarda varios minutos (descarga imágenes, instala dependencias e
+importa la base de datos). Después abre:
+
+| Qué | Dirección |
+|-----|-----------|
+| Aplicación (frontend) | http://localhost:3000 |
+| API (Swagger) | http://localhost:8000/docs |
+| Base de datos (DBeaver / Workbench) | `localhost:3307` · usuario `liftsafe_app` · clave `123456` |
+
+- **Antes del primer `docker compose up`**, pon el respaldo `01-liftsafe_db.sql` en
+  `docker/mysql/`. No está en GitHub porque el repositorio es público: pídelo al líder por un
+  canal privado o genéralo desde XAMPP con la tarea "LiftSafe: exportar base para Docker".
+  Docker lo importa solo al crear la base.
+- Solo se importa la **primera vez**. Para volver a cargarla desde cero:
+  `docker compose down -v` y luego `docker compose up -d --build`.
+- No necesitas crear `liftsafe-backend/.env`: Docker trae la configuración.
+  Si quieres que funcione "Olvidé mi contraseña", crea un `.env` en la **raíz**
+  del proyecto con `MAIL_USERNAME`, `MAIL_PASSWORD` y `MAIL_FROM`.
+- Si tienes XAMPP encendido no hay problema: Docker usa el puerto 3307 para la base.
+
 ## 📋 Resumen de la Migración
 
 El proyecto LiftSafe ha sido migrado para usar:
@@ -39,7 +70,7 @@ docker compose down -v
 
 | Servicio | Imagen | Puerto | Descripción |
 |----------|--------|--------|-------------|
-| db | mysql:8.0 | 3306 | Base de datos MySQL |
+| db | mariadb:10.4 | 3307 → 3306 | Base de datos (mismo motor de XAMPP) |
 | be | liftsafe-be | 8000 | Backend FastAPI |
 | fe | liftsafe-fe | 3000 | Frontend React (Nginx) |
 

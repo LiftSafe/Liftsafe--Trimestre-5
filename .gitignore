@@ -97,3 +97,6 @@ coverage/
 playwright-report/
 test-results/
 .venv/
+
+# Respaldo real de la base para Docker: NO se sube (el repositorio es público)
+docker/mysql/*.sql

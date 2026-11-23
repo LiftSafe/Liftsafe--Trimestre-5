@@ -10,7 +10,9 @@ services:
   # 🐘 MySQL 8.0 — Base de datos
   # ────────────────────────────
   db:
-    image: mysql:8.0
+    # MariaDB 10.4 = el mismo motor de XAMPP con el que se exportó la base,
+    # así el respaldo (triggers, collations) carga sin cambios.
+    image: mariadb:10.4
     container_name: liftsafe-mysql
     restart: unless-stopped
 
@@ -20,17 +22,21 @@ services:
       MYSQL_USER: liftsafe_app
       MYSQL_PASSWORD: 123456
 
+    # 3307 afuera para no chocar con el MySQL de XAMPP (3306) si está encendido.
+    # Dentro de Docker el backend sigue usando db:3306.
     ports:
-      - "3306:3306"
+      - "3307:3306"
 
     volumes:
       - mysql_data:/var/lib/mysql
+      # Al crear el contenedor por PRIMERA vez se importa la base con sus datos.
+      - ./docker/mysql:/docker-entrypoint-initdb.d:ro
 
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 30
 
     networks:
       - liftsafe_network
@@ -46,23 +52,40 @@ services:
     container_name: liftsafe-be
     restart: unless-stopped
 
+    # Si existe liftsafe-backend/.env se usa (p. ej. para el correo); si no, no pasa nada.
     env_file:
-      - ./liftsafe-backend/.env
+      - path: ./liftsafe-backend/.env
+        required: false
 
+    # Estas variables mandan sobre el .env: dentro de Docker la base está en "db".
     environment:
-      # URL de conexión a MySQL usando el hostname del servicio db
-      DATABASE_URL: mysql+pymysql://liftsafe_app:123456@db:3306/liftsafe_db
+      DB_HOST: db
+      DB_PORT: "3306"
+      DB_USER: liftsafe_app
+      DB_PASSWORD: "123456"
+      DB_NAME: liftsafe_db
 
       # JWT
       SECRET_KEY: dev-secret-key-change-in-production-liftsafe-2026
       ALGORITHM: HS256
       ACCESS_TOKEN_EXPIRE_MINUTES: 480
 
-      # Clave AES de MySQL
+      # Clave AES de MySQL: debe ser la misma con la que se cifró la base importada
       SECRET_KEY_MYSQL: LiftSafeSecretKey2026!
 
-      # Frontend URL para CORS
-      FRONTEND_URL: http://localhost:3000
+      # Correo ("Olvidé mi contraseña"). Valores de relleno para que el backend
+      # arranque; pon los reales en liftsafe-backend/.env si lo necesitas.
+      MAIL_USERNAME: ${MAIL_USERNAME:-sin-configurar@example.com}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-sin-configurar}
+      MAIL_FROM: ${MAIL_FROM:-sin-configurar@example.com}
+
+      # Enlaces "Ver foto" del PDF
+      API_PUBLIC_URL: http://localhost:8000
+
+    volumes:
+      # Fotos e informes PDF quedan guardados aunque se reconstruya la imagen
+      - be_uploads:/app/uploads
+      - be_informes:/app/informes
 
     ports:
       - "8000:8000"
@@ -108,3 +131,5 @@ networks:
 # ────────────────────────────
 volumes:
   mysql_data:
+  be_uploads:
+  be_informes:
